@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (Ultra 满血开源严谨版)
+# 自动生成并运行 Velox 面板 (Ultra 满血闭环版 V2.2)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash
@@ -45,7 +45,7 @@ while true; do
     echo -e "  ${yellow}7.${plain}  🔌 ${green}查看系统监听端口${plain}"
     echo -e "  ${yellow}8.${plain}  📦 ${green}查看 Sing-box 运行状态 ${sb_stat}${plain}"
     echo -e "  ${yellow}9.${plain}  ☁️  ${cyan}查看 WARP 与 Argo 状态 (含一键修复)${plain}"
-    echo -e "  ${yellow}10.${plain} 🚀 ${cyan}深度验证 BBR 加速状态 ${bbr_stat}${plain}"
+    echo -e "  ${yellow}10.${plain} 🚀 ${cyan}深度验证与管理 BBR 加速 ${bbr_stat}${plain}"
     echo -e "  ${yellow}11.${plain} 🧹 ${yellow}一键清理系统垃圾与防盗门 ${f2b_stat}${plain}"
     echo -e "  ${yellow}12.${plain} 🔄 ${green}重启服务器${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
@@ -87,9 +87,32 @@ while true; do
             fi
             ;;
         10) 
-            echo -e "\n${blue}--- 🚀 BBR 状态诊断 ---${plain}"
-            sysctl net.ipv4.tcp_congestion_control
-            lsmod | grep bbr && echo -e "${green}BBR 模块正运行在系统底层，加速生效中！${plain}"
+            echo -e "\n${blue}--- 🚀 BBR 状态诊断与管理 ---${plain}"
+            # 获取当前真实生效的拥塞控制算法
+            current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
+            echo -e "当前系统正在使用的算法: ${yellow}${current_cc}${plain}"
+            
+            if [[ "$current_cc" == "bbr" ]]; then
+                echo -e "${green}✅ BBR 加速已完美生效，网络正在狂飙！${plain}"
+            else
+                echo -e "${red}⚠️ 检测到当前未开启 BBR 加速！${plain}"
+                read -p "是否立即【一键开启 BBR 暴力加速】？(y/n): " enable_bbr
+                if [[ "$enable_bbr" == "y" ]]; then
+                    echo "正在向系统内核注入 BBR 参数..."
+                    sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+                    sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+                    echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
+                    echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
+                    sysctl -p >/dev/null 2>&1
+                    
+                    # 再次验证是否开启成功
+                    if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
+                        echo -e "\n${green}🎉 开启成功！请按回车键返回主菜单，您将看到徽章已变为 [加速中]！${plain}"
+                    else
+                        echo -e "\n${red}❌ 开启失败，可能当前系统内核版本过低不支持 BBR。${plain}"
+                    fi
+                fi
+            fi
             ;;
         11) 
             echo -e "\n${blue}--- 🧹 正在执行系统安全清理 ---${plain}"
@@ -217,5 +240,5 @@ EOF2
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox Pro Max Ultra (严谨防伪版) 安装完毕！请输入 velox 体验！\033[0m"
+echo -e "\033[1;32m✅ Velox Pro Max Ultra (逻辑闭环版) 安装完毕！请输入 velox 体验！\033[0m"
 velox
