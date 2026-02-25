@@ -1,123 +1,130 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (自愈修复版)
+# 自动生成并运行 Velox 面板 (极客高亮终极版)
 
-cat << 'EOF' > /usr/local/bin/velox
+# 定义高亮颜色变量
+blue='\033[1;34m'
+green='\033[1;32m'
+yellow='\033[1;33m'
+cyan='\033[1;36m'
+red='\033[1;31m'
+plain='\033[0m'
+
+cat << EOF > /usr/local/bin/velox
 #!/bin/bash
+# 定义内部颜色变量
+blue='\033[1;34m'
+green='\033[1;32m'
+yellow='\033[1;33m'
+cyan='\033[1;36m'
+red='\033[1;31m'
+plain='\033[0m'
+
 while true; do
     clear
-    echo "====================================================="
-    echo "            🚀 Velox 专属 VPS 管理面板 🚀            "
-    echo "====================================================="
-    echo "  1. 📊 查看系统基础信息"
-    echo "  2. 💾 查看磁盘空间占用"
-    echo "  3. ⏱️  查看运行时间与负载"
-    echo "  4. 📈 实时监控 CPU 与内存 (按 q 退出)"
-    echo "  5. 🌐 查看当前公网 IP"
-    echo "  6. 🔌 查看系统监听端口"
-    echo "  7. 📦 查看 Sing-box 运行状态"
-    echo "  8. ☁️  查看 WARP 与 Argo 状态 (含一键修复)"
-    echo "  9. 🚀 深度验证 BBR 加速状态"
-    echo "  10. 🧹 一键清理系统垃圾"
-    echo "  11. 🔄 重启服务器"
-    echo "  ---------------------------------------------------"
-    echo "  12. 🎬 运行流媒体解锁测试 (第三方)"
-    echo "  13. 📊 快速查看内存报告 (静态)"
-    echo "  ---------------------------------------------------"
-    echo "  U. 🗑️  一键卸载本面板 (清理无痕)"
-    echo "  0. ❌ 退出面板"
-    echo "====================================================="
-    read -p "请选择操作: " choice
-    case $choice in
-        1) echo -e "\n--- 系统信息 ---"; hostnamectl; lsb_release -a 2>/dev/null ;;
-        2) echo -e "\n--- 磁盘空间 ---"; df -h ;;
-        3) echo -e "\n--- 运行状态 ---"; uptime ;;
-        4) echo -e "\n--- 正在启动任务管理器 ---"; sleep 1; top ;;
-        5) echo -e "\n--- 公网 IP ---"; curl -s ifconfig.me; echo "" ;;
-        6) echo -e "\n--- 监听端口 ---"; ss -tuln ;;
-        7) echo -e "\n--- Sing-box ---"; systemctl status sing-box --no-pager | grep -E "Active|Loaded" ;;
+    echo -e "${cyan}=====================================================${plain}"
+    echo -e "            🚀 ${green}Velox 专属 VPS 管理面板${plain} 🚀            "
+    echo -e "${cyan}=====================================================${plain}"
+    echo -e "  ${yellow}1.${plain} 📊 查看系统基础信息"
+    echo -e "  ${yellow}2.${plain} 💾 查看磁盘空间占用"
+    echo -e "  ${yellow}3.${plain} ⏱️  查看运行时间与负载"
+    echo -e "  ${yellow}4.${plain} 📈 实时监控 CPU 与内存 (按 q 退出)"
+    echo -e "  ${yellow}5.${plain} 🌐 查看当前公网 IP"
+    echo -e "  ${yellow}6.${plain} 🔌 查看系统监听端口"
+    echo -e "  ${yellow}7.${plain} 📦 查看 Sing-box 运行状态"
+    echo -e "  ${yellow}8.${plain} ☁️  查看 WARP 与 Argo 状态 (含一键修复)"
+    echo -e "  ${yellow}9.${plain} 🚀 深度验证 BBR 加速状态"
+    echo -e "${blue}  10. 🧹 一键清理系统垃圾 (含安全防护)${plain}"
+    echo -e "  ${yellow}11.${plain} 🔄 重启服务器"
+    echo -e "${cyan}  ---------------------------------------------------${plain}"
+    echo -e "  ${yellow}12.${plain} 🎬 运行流媒体解锁测试 (第三方)"
+    echo -e "  ${yellow}13.${plain} 📊 快速查看内存报告 (静态)"
+    echo -e "${cyan}  ---------------------------------------------------${plain}"
+    echo -e "  ${red}U.${plain} 🗑️  一键卸载本面板 (清理无痕)"
+    echo -e "  ${red}0.${plain} ❌ 退出面板"
+    echo -e "${cyan}=====================================================${plain}"
+    read -p "请选择操作 [${yellow}1-13${plain}]: " choice
+    case \$choice in
+        1) echo -e "\n${blue}--- 系统信息 ---${plain}"; hostnamectl; lsb_release -a 2>/dev/null ;;
+        2) echo -e "\n${blue}--- 磁盘空间 ---${plain}"; df -h ;;
+        3) echo -e "\n${blue}--- 运行状态 ---${plain}"; uptime ;;
+        4) echo -e "\n${cyan}--- 正在启动任务管理器 ---${plain}"; sleep 1; top ;;
+        5) echo -e "\n${blue}--- 公网 IP ---${plain}"; curl -s ifconfig.me; echo "" ;;
+        6) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
+        7) echo -e "\n${blue}--- Sing-box 状态 ---${plain}"; systemctl status sing-box --no-pager | grep -E "Active|Loaded" ;;
         8) 
-            echo -e "\n--- 🌐 WARP 解锁状态 ---"
+            echo -e "\n${blue}--- 🌐 WARP 解锁状态 ---${plain}"
             curl -s https://www.cloudflare.com/cdn-cgi/trace | grep -E "warp=|ip="
-            echo -e "\n--- 🚇 Argo 隧道进程检测 ---"
-            ps aux | grep -i "cloudflared" | grep -v "grep" || echo -e "\033[31m[ 警告 ] 未发现 Argo 隧道进程运行！\033[0m"
-            echo -e "\n---------------------------------------------------"
+            echo -e "\n${blue}--- 🚇 Argo 隧道进程检测 ---${plain}"
+            ps aux | grep -i "cloudflared" | grep -v "grep" || echo -e "${red}[ 警告 ] 未发现 Argo 隧道进程运行！${plain}"
+            echo -e "\n${cyan}---------------------------------------------------${plain}"
             read -p "如果发现状态异常，是否尝试强制重启 Argo 隧道？(y/n): " fix_it
-            if [[ "$fix_it" == "y" ]]; then
+            if [[ "\$fix_it" == "y" ]]; then
                 echo "正在尝试重启隧道服务..."
-                systemctl restart cloudflared && echo -e "\033[32m重启指令已发送，请稍后重新按 8 查看！\033[0m"
+                systemctl restart cloudflared && echo -e "${green}重启指令已发送，请稍后重新按 8 查看！${plain}"
             fi
             ;;
         9) 
-            echo -e "\n--- 🚀 BBR 状态诊断 ---"
+            echo -e "\n${blue}--- 🚀 BBR 状态诊断 ---${plain}"
             sysctl net.ipv4.tcp_congestion_control
-            lsmod | grep bbr && echo -e "\033[32mBBR 模块正运行在系统底层\033[0m"
+            lsmod | grep bbr && echo -e "${green}BBR 模块正运行在系统底层，加速生效中！${plain}"
             ;;
-       10) 
-            echo -e "\n--- 🧹 正在执行系统安全清理 ---"
-            
-            # 1. 查明细再清理 APT 缓存
-            apt_before=$(du -sh /var/cache/apt/archives 2>/dev/null | cut -f1)
+        10) 
+            echo -e "\n${blue}--- 🧹 正在执行系统安全清理 ---${plain}"
+            apt_before=\$(du -sh /var/cache/apt/archives 2>/dev/null | cut -f1)
             echo -n "正在清理软件安装包缓存... "
             sudo apt-get clean -y
             sudo apt-get autoremove -y > /dev/null 2>&1
-            echo -e "[\033[32m已完成\033[0m] (清理前占用: \033[33m${apt_before:-0B}\033[0m)"
-
-            # 2. 清理日志，并强制显示释放了多少空间
+            echo -e "[${green}已完成${plain}] (释放空间: ${yellow}\${apt_before:-0B}${plain})"
             echo "正在清理 3 天前的系统过期日志："
             sudo journalctl --vacuum-time=3d
-            
-            echo -e "\n✅ \033[32m系统垃圾清理与汇报完毕！\033[0m"
+            echo -e "\n✅ ${green}系统垃圾清理与汇报完毕！${plain}"
 
-            # --- 下面是保留的 Fail2ban 防护逻辑，一字没动 ---
-            echo -e "\n--- 🛡️ SSH 安全防护状态 (Fail2ban) ---"
+            echo -e "\n${blue}--- 🛡️ SSH 安全防护状态 (Fail2ban) ---${plain}"
             if command -v fail2ban-client &> /dev/null; then
-                echo -e "\033[32m✅ 防护已开启！\033[0m 当前防护详情："
-                fail2ban-client status sshd | grep -E "Currently|Total"
+                echo -e "${green}✅ 防护已开启！${plain} 当前防护详情："
+                # 这里使用 grep 高亮关键数字 0
+                fail2ban-client status sshd | grep -E --color=always "Currently|Total|([0-9]+)"
             else
-                echo -e "\033[31m⚠️  检测到本机未安装 Fail2ban 防护\033[0m"
+                echo -e "${red}⚠️  检测到本机未安装 Fail2ban 防护${plain}"
                 read -p "是否立即一键安装并开启 SSH 防破译保护？(y/n): " install_f2b
-                if [[ "$install_f2b" == "y" ]]; then
+                if [[ "\$install_f2b" == "y" ]]; then
                     echo "正在安装防护插件，请稍候..."
                     sudo apt-get update && sudo apt-get install fail2ban -y
                     sudo systemctl enable fail2ban && sudo systemctl start fail2ban
-                    echo -e "✅ \033[32m安装成功！你的 VPS 现在自带防盗门了。\033[0m"
+                    echo -e "✅ ${green}安装成功！你的 VPS 现在自带防盗门了。${plain}"
                 fi
             fi
             ;;
-        11) read -p "⚠️ 确定要重启服务器吗？(y/n): " c; [[ "$c" == "y" ]] && sudo reboot ;;
-        12) echo -e "\n--- 开始流媒体解锁测试 ---"; bash <(curl -L -s media.ispvps.com) ;;
-        13) echo -e "\n--- 📊 静态内存报告 ---"; free -h --si ;;
-       U|u) 
-             read -p "⚠️ 确定卸载本面板吗？(y/n): " c
-             if [[ "$c" == "y" ]]; then 
-                 # 1. 先删面板本体
+        11) read -p "⚠️  确定要重启服务器吗？(y/n): " c; [[ "\$c" == "y" ]] && sudo reboot ;;
+        12) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
+        13) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
+        U|u) 
+             echo -e "\n${red}--- ⚠️  卸载操作 ---${plain}"
+             read -p "确定卸载本面板吗？(y/n): " c
+             if [[ "\$c" == "y" ]]; then 
                  rm -f /usr/local/bin/velox
-                 echo -e "\n✅ 面板本体已卸载！"
-                 
-                 # 2. 询问是否连带强拆防盗门 (Fail2ban)
+                 echo -e "${green}✅ 面板本体已卸载！${plain}"
                  if command -v fail2ban-client &> /dev/null; then
-                     echo -e "\n检测到系统当前安装了 SSH 防护 (Fail2ban)。"
+                     echo -e "\n检测到 SSH 防护 (Fail2ban)。"
                      read -p "是否一并【彻底强拆】防盗门？(y/n): " remove_f2b
-                     if [[ "$remove_f2b" == "y" ]]; then
-                         echo "正在拆除防盗门并清理残留..."
+                     if [[ "\$remove_f2b" == "y" ]]; then
+                         echo "正在拆除防盗门..."
                          sudo apt-get remove --purge fail2ban -y > /dev/null 2>&1
                          sudo apt-get autoremove -y > /dev/null 2>&1
-                         echo -e "✅ \033[32m防盗门已彻底拆除！\033[0m"
+                         echo -e "${green}✅ 防盗门已彻底拆除！${plain}"
                      else
-                         echo -e "💡 好的，防盗门已为你保留，继续在后台默默看家。"
+                         echo -e "${cyan}💡 防盗门已保留。${plain}"
                      fi
                  fi
-                 
-                 echo -e "\n江湖再见！"
-                 exit
+                 echo -e "\n江湖再见！"; exit
              fi 
              ;;
-        0) echo -e "\n祝玩机愉快！\n"; exit ;;
-        *) echo -e "\n❌ 输入错误！" ;;
+        0) echo -e "\n${green}祝玩机愉快！${plain}\n"; exit ;;
+        *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
-    echo ""; read -p "按回车键继续..."
+    echo -e "\n${cyan}按回车键继续...${plain}"; read
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo "✅ Velox 面板已更新为【强制自愈版】！"
+echo -e "${green}✅ 面板进化成功！请输入 velox 体验极客高亮版！${plain}"
 velox
