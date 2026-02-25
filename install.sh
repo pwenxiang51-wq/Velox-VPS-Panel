@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (Pro Max Ultra 大结局满血版)
+# 自动生成并运行 Velox 面板 (Ultra 满血开源严谨版)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash
@@ -13,10 +13,24 @@ purple='\033[1;35m'
 plain='\033[0m'
 
 while true; do
-    # === 核心服务动态状态检测 ===
-    sb_stat=$(systemctl is-active --quiet sing-box && echo -e "${green}[运行中]${plain}" || echo -e "${red}[已停止]${plain}")
-    bbr_stat=$(lsmod | grep -q bbr && echo -e "${green}[加速中]${plain}" || echo -e "${yellow}[未生效]${plain}")
-    f2b_stat=$(systemctl is-active --quiet fail2ban && echo -e "${green}[守护中]${plain}" || echo -e "${yellow}[未开启]${plain}")
+    # === 核心服务动态状态检测 (绝对严谨版) ===
+    
+    # 8. Sing-box 状态检测
+    if systemctl list-unit-files | grep -q "sing-box.service"; then
+        sb_stat=$(systemctl is-active --quiet sing-box && echo -e "${green}[运行中]${plain}" || echo -e "${red}[已停止]${plain}")
+    else
+        sb_stat=$(echo -e "${yellow}[未安装]${plain}")
+    fi
+
+    # 10. BBR 状态检测 (查内核真实生效状态)
+    bbr_stat=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr && echo -e "${green}[加速中]${plain}" || echo -e "${yellow}[未生效]${plain}")
+
+    # 11. Fail2ban 状态检测
+    if command -v fail2ban-client &> /dev/null; then
+        f2b_stat=$(systemctl is-active --quiet fail2ban && echo -e "${green}[守护中]${plain}" || echo -e "${red}[已停止]${plain}")
+    else
+        f2b_stat=$(echo -e "${yellow}[未安装]${plain}")
+    fi
 
     clear
     echo -e "${cyan}=====================================================${plain}"
@@ -203,5 +217,5 @@ EOF2
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox Pro Max Ultra 大结局版安装完毕！请输入 velox 召唤终极面板！\033[0m"
+echo -e "\033[1;32m✅ Velox Pro Max Ultra (严谨防伪版) 安装完毕！请输入 velox 体验！\033[0m"
 velox
