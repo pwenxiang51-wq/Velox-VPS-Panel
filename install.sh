@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (全彩极客终极版)
+# 自动生成并运行 Velox 面板 (全彩极客 + 逻辑排版优化版)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash
@@ -16,27 +16,25 @@ while true; do
     echo -e "${cyan}=====================================================${plain}"
     echo -e "            🚀 ${green}Velox 专属 VPS 管理面板${plain} 🚀            "
     echo -e "${cyan}=====================================================${plain}"
-    # 这里把 emoji 后面的文字全部加上了颜色！
     echo -e "  ${yellow}1.${plain} 📊 ${green}查看系统基础信息${plain}"
     echo -e "  ${yellow}2.${plain} 💾 ${green}查看磁盘空间占用${plain}"
     echo -e "  ${yellow}3.${plain} ⏱️  ${green}查看运行时间与负载${plain}"
-    echo -e "  ${yellow}4.${plain} 📈 ${green}实时监控 CPU 与内存 (按 q 退出)${plain}"
-    echo -e "  ${yellow}5.${plain} 🌐 ${green}查看当前公网 IP${plain}"
-    echo -e "  ${yellow}6.${plain} 🔌 ${green}查看系统监听端口${plain}"
-    echo -e "  ${yellow}7.${plain} 📦 ${green}查看 Sing-box 运行状态${plain}"
-    echo -e "  ${yellow}8.${plain} ☁️  ${cyan}查看 WARP 与 Argo 状态 (含一键修复)${plain}"
-    echo -e "  ${yellow}9.${plain} 🚀 ${cyan}深度验证 BBR 加速状态${plain}"
-    echo -e "  ${yellow}10.${plain} 🧹 ${yellow}一键清理系统垃圾 (含安全防护)${plain}"
-    echo -e "  ${yellow}11.${plain} 🔄 ${green}重启服务器${plain}"
+    echo -e "  ${yellow}4.${plain} 📊 ${green}快速查看内存报告 (静态快照)${plain}"
+    echo -e "  ${yellow}5.${plain} 📈 ${green}实时监控 CPU 与内存 (按 q 退出)${plain}"
+    echo -e "  ${yellow}6.${plain} 🌐 ${green}查看当前公网 IP${plain}"
+    echo -e "  ${yellow}7.${plain} 🔌 ${green}查看系统监听端口${plain}"
+    echo -e "  ${yellow}8.${plain} 📦 ${green}查看 Sing-box 运行状态${plain}"
+    echo -e "  ${yellow}9.${plain} ☁️  ${cyan}查看 WARP 与 Argo 状态 (含一键修复)${plain}"
+    echo -e "  ${yellow}10.${plain} 🚀 ${cyan}深度验证 BBR 加速状态${plain}"
+    echo -e "  ${yellow}11.${plain} 🧹 ${yellow}一键清理系统垃圾 (含安全防护)${plain}"
+    echo -e "  ${yellow}12.${plain} 🔄 ${green}重启服务器${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
-    echo -e "  ${yellow}12.${plain} 🎬 ${blue}运行流媒体解锁测试 (第三方)${plain}"
-    echo -e "  ${yellow}13.${plain} 📊 ${blue}快速查看内存报告 (静态)${plain}"
+    echo -e "  ${yellow}13.${plain} 🎬 ${blue}运行流媒体解锁测试 (第三方独立)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain} 🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain} ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
-    # 修复了 read -p 颜色代码暴露的问题
     echo -ne "请选择操作 [${yellow}1-13${plain}]: "
     read choice
     
@@ -44,11 +42,12 @@ while true; do
         1) echo -e "\n${blue}--- 系统信息 ---${plain}"; hostnamectl; lsb_release -a 2>/dev/null ;;
         2) echo -e "\n${blue}--- 磁盘空间 ---${plain}"; df -h ;;
         3) echo -e "\n${blue}--- 运行状态 ---${plain}"; uptime ;;
-        4) echo -e "\n${cyan}--- 正在启动任务管理器 ---${plain}"; sleep 1; top ;;
-        5) echo -e "\n${blue}--- 公网 IP ---${plain}"; curl -s ifconfig.me; echo "" ;;
-        6) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
-        7) echo -e "\n${blue}--- Sing-box 状态 ---${plain}"; systemctl status sing-box --no-pager | grep -E "Active|Loaded" ;;
-        8) 
+        4) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
+        5) echo -e "\n${cyan}--- 正在启动任务管理器 ---${plain}"; sleep 1; top ;;
+        6) echo -e "\n${blue}--- 公网 IP ---${plain}"; curl -s ifconfig.me; echo "" ;;
+        7) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
+        8) echo -e "\n${blue}--- Sing-box 状态 ---${plain}"; systemctl status sing-box --no-pager | grep -E "Active|Loaded" ;;
+        9) 
             echo -e "\n${blue}--- 🌐 WARP 解锁状态 ---${plain}"
             curl -s https://www.cloudflare.com/cdn-cgi/trace | grep -E "warp=|ip="
             echo -e "\n${blue}--- 🚇 Argo 隧道进程检测 ---${plain}"
@@ -57,15 +56,16 @@ while true; do
             read -p "如果发现状态异常，是否尝试强制重启 Argo 隧道？(y/n): " fix_it
             if [[ "$fix_it" == "y" ]]; then
                 echo "正在尝试重启隧道服务..."
-                systemctl restart cloudflared && echo -e "${green}重启指令已发送，请稍后重新按 8 查看！${plain}"
+                # 这里细节帮你改了，重启后提示你按 9 查看（之前是按 8）
+                systemctl restart cloudflared && echo -e "${green}重启指令已发送，请稍后重新按 9 查看！${plain}"
             fi
             ;;
-        9) 
+        10) 
             echo -e "\n${blue}--- 🚀 BBR 状态诊断 ---${plain}"
             sysctl net.ipv4.tcp_congestion_control
             lsmod | grep bbr && echo -e "${green}BBR 模块正运行在系统底层，加速生效中！${plain}"
             ;;
-        10) 
+        11) 
             echo -e "\n${blue}--- 🧹 正在执行系统安全清理 ---${plain}"
             apt_before=$(du -sh /var/cache/apt/archives 2>/dev/null | cut -f1)
             echo -n "正在清理软件安装包缓存... "
@@ -91,9 +91,8 @@ while true; do
                 fi
             fi
             ;;
-        11) read -p "⚠️  确定要重启服务器吗？(y/n): " c; [[ "$c" == "y" ]] && sudo reboot ;;
-        12) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
-        13) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
+        12) read -p "⚠️  确定要重启服务器吗？(y/n): " c; [[ "$c" == "y" ]] && sudo reboot ;;
+        13) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
         U|u) 
              echo -e "\n${red}--- ⚠️  卸载操作 ---${plain}"
              read -p "确定卸载本面板吗？(y/n): " c
@@ -118,10 +117,10 @@ while true; do
         0) echo -e "\n${green}祝玩机愉快！${plain}\n"; exit ;;
         *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
-    # 修复底部回车键乱码
+    # 底部提示语
     echo -e "\n${cyan}按回车键继续...${plain}"; read
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ 面板进化成功！请输入 velox 体验全彩极客版！\033[0m"
+echo -e "\033[1;32m✅ 面板排版优化成功！请输入 velox 体验！\033[0m"
 velox
