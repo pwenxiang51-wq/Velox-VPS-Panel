@@ -15,8 +15,7 @@
 
 VPS 专用一键脚本如下，以后日常使用的快捷方式为：`velox`
 
-```bash
-bash <(curl -sL https://sink.222382.xyz/69z95b)
+```bashbash <(curl -sL https://sink.222382.xyz/rgkqsm)
 ```
 💡 使用说明
 首次安装：复制上方代码块在 VPS 终端运行，系统会自动安装并弹出面板。
