@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V3.3 作者专属极致版 - 移除不稳定项)
+# 自动生成并运行 Velox 面板 (V3.4 作者专属版 - 修复防盗门假性安装Bug)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash
@@ -130,10 +130,17 @@ while true; do
                 echo -e "${red}⚠️  检测到本机未安装 Fail2ban 防护${plain}"
                 read -p "是否立即一键安装并开启 SSH 防破译保护？(y/n): " install_f2b
                 if [[ "$install_f2b" == "y" ]]; then
-                    echo "正在安装防护插件，请稍候..."
-                    sudo apt-get update && sudo apt-get install fail2ban -y
-                    sudo systemctl enable fail2ban && sudo systemctl start fail2ban
-                    echo -e "✅ ${green}安装成功！你的 VPS 现在自带防盗门了。${plain}"
+                    echo "正在刷新系统软件源并安装防护插件，请稍候..."
+                    sudo apt-get update --fix-missing -y > /dev/null 2>&1
+                    sudo apt-get install fail2ban -y
+                    
+                    # 严谨校验：只有命令真实存在，才宣判成功
+                    if command -v fail2ban-client &> /dev/null; then
+                        sudo systemctl enable fail2ban && sudo systemctl start fail2ban
+                        echo -e "✅ ${green}安装成功！你的 VPS 现在自带防盗门了。${plain}"
+                    else
+                        echo -e "❌ ${red}安装失败！可能是网络抽风导致无法下载源文件。请稍后重试。${plain}"
+                    fi
                 fi
             fi
             ;;
@@ -239,5 +246,5 @@ EOF2
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox V3.3 (极致稳定版) 部署完毕！请输入 velox 享受丝滑！\033[0m"
+echo -e "\033[1;32m✅ Velox V3.4 (终极无死角版) 部署完毕！请输入 velox 体验！\033[0m"
 velox
