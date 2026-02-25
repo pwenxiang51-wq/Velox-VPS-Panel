@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V3.0 作者专属定制版)
+# 自动生成并运行 Velox 面板 (V3.1 作者专属版 - 修复测速引擎)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash
@@ -13,19 +13,15 @@ purple='\033[1;35m'
 plain='\033[0m'
 
 while true; do
-    # === 核心服务动态状态检测 (绝对严谨版) ===
-    
-    # 8. Sing-box 状态检测
+    # === 核心服务动态状态检测 ===
     if systemctl list-unit-files | grep -q "sing-box.service"; then
         sb_stat=$(systemctl is-active --quiet sing-box && echo -e "${green}[运行中]${plain}" || echo -e "${red}[已停止]${plain}")
     else
         sb_stat=$(echo -e "${yellow}[未安装]${plain}")
     fi
 
-    # 10. BBR 状态检测 (查内核真实生效状态)
     bbr_stat=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr && echo -e "${green}[加速中]${plain}" || echo -e "${yellow}[未生效]${plain}")
 
-    # 11. Fail2ban 状态检测
     if command -v fail2ban-client &> /dev/null; then
         f2b_stat=$(systemctl is-active --quiet fail2ban && echo -e "${green}[守护中]${plain}" || echo -e "${red}[已停止]${plain}")
     else
@@ -60,7 +56,7 @@ while true; do
     echo -e "  ${yellow}16.${plain} 🚨 ${red}设置 SSH 异地登录 TG 机器人报警${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}17.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
-    echo -e "  ${yellow}18.${plain} 🏎️ ${purple}基础三网测速 (修复版: 彻底解决403报错)${plain}"
+    echo -e "  ${yellow}18.${plain} 🏎️ ${purple}顶级三网测速 (Hyperspeed 极速测速引擎)${plain}"
     echo -e "  ${yellow}19.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (防爆内存)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
@@ -190,9 +186,9 @@ EOF2
             ip -s link | awk '/^[0-9]+:/ { iface=$2 } /RX:/ { getline; rx=$1 } /TX:/ { getline; tx=$1; printf "网卡 %s\n  ⬇️ 下载: %.2f MB\n  ⬆️ 上传: %.2f MB\n", iface, rx/1048576, tx/1048576 }'
             ;;
         18)
-            echo -e "\n${blue}--- 🏎️ 正在加载基础三网测速 (修复版) ---${plain}"
-            echo -e "💡 采用全新测速节点，彻底告别 403 报错..."
-            bash <(curl -sL network-speed.xyz)
+            echo -e "\n${blue}--- 🏎️ 正在呼叫顶级三网测速引擎 (Hyperspeed) ---${plain}"
+            echo -e "💡 即将测试国内多地节点的真实上行与下行带宽，请稍候..."
+            bash <(curl -Lso- https://bench.im/hyperspeed)
             ;;
         19)
             echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
@@ -250,5 +246,5 @@ EOF2
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox V3.0 (作者定制版) 部署完毕！请输入 velox 欣赏你的杰作！\033[0m"
+echo -e "\033[1;32m✅ Velox V3.1 (完美测速修复版) 部署完毕！请输入 velox 体验狂飙！\033[0m"
 velox
