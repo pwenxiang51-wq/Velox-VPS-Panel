@@ -34,6 +34,5 @@ bash <(curl -sL https://sink.222382.xyz/69z95b)
 <div align="center">
   <img src="coffee.jpg" alt="Velox 赞赏码" width="300" />
   <br>
-  <p><b>感谢 Velox 大佬！</b></p>
 </div>
 ---
