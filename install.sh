@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V3.1 作者专属版 - 修复测速引擎)
+# 自动生成并运行 Velox 面板 (V3.2 作者专属版 - 顶级 NodeBench 测速引擎)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash
@@ -56,7 +56,7 @@ while true; do
     echo -e "  ${yellow}16.${plain} 🚨 ${red}设置 SSH 异地登录 TG 机器人报警${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}17.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
-    echo -e "  ${yellow}18.${plain} 🏎️ ${purple}顶级三网测速 (Hyperspeed 极速测速引擎)${plain}"
+    echo -e "  ${yellow}18.${plain} 🏎️ ${purple}顶级三网测速 (NodeBench 最新防卡死引擎)${plain}"
     echo -e "  ${yellow}19.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (防爆内存)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
@@ -186,9 +186,9 @@ EOF2
             ip -s link | awk '/^[0-9]+:/ { iface=$2 } /RX:/ { getline; rx=$1 } /TX:/ { getline; tx=$1; printf "网卡 %s\n  ⬇️ 下载: %.2f MB\n  ⬆️ 上传: %.2f MB\n", iface, rx/1048576, tx/1048576 }'
             ;;
         18)
-            echo -e "\n${blue}--- 🏎️ 正在呼叫顶级三网测速引擎 (Hyperspeed) ---${plain}"
-            echo -e "💡 即将测试国内多地节点的真实上行与下行带宽，请稍候..."
-            bash <(curl -Lso- https://bench.im/hyperspeed)
+            echo -e "\n${blue}--- 🏎️ 正在呼叫顶级三网测速引擎 (NodeBench) ---${plain}"
+            echo -e "💡 采用最新存活节点库，专治卡顿不北..."
+            bash <(curl -sL bash.icu/speedtest)
             ;;
         19)
             echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
@@ -246,5 +246,5 @@ EOF2
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox V3.1 (完美测速修复版) 部署完毕！请输入 velox 体验狂飙！\033[0m"
+echo -e "\033[1;32m✅ Velox V3.2 (终极防卡死测速版) 部署完毕！请输入 velox 体验！\033[0m"
 velox
