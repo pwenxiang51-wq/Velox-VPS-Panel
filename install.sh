@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (Ultra 满血闭环版 V2.2)
+# 自动生成并运行 Velox 面板 (V3.0 作者专属定制版)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash
@@ -33,9 +33,14 @@ while true; do
     fi
 
     clear
+    # ================= 专属署名区 =================
     echo -e "${cyan}=====================================================${plain}"
     echo -e "         🚀 ${green}Velox 专属 VPS 管理面板 (Ultra 满血版)${plain} 🚀     "
     echo -e "${cyan}=====================================================${plain}"
+    echo -e "作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
+    echo -e "作者Velo.x博客 : ${blue}222382.xyz${plain}"
+    echo -e "${cyan}=====================================================${plain}"
+    # ==============================================
     echo -e "  ${yellow}1.${plain}  📊 ${green}查看系统基础信息${plain}"
     echo -e "  ${yellow}2.${plain}  💾 ${green}查看磁盘空间占用${plain}"
     echo -e "  ${yellow}3.${plain}  ⏱️  ${green}查看运行时间与负载${plain}"
@@ -55,8 +60,8 @@ while true; do
     echo -e "  ${yellow}16.${plain} 🚨 ${red}设置 SSH 异地登录 TG 机器人报警${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}17.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
-    echo -e "  ${yellow}18.${plain} 🏎️ ${purple}基础三网测速 (Speedtest 下载/上传)${plain}"
-    echo -e "  ${yellow}19.${plain} 💽 ${purple}一键管理虚拟内存 Swap (1G小鸡救星)${plain}"
+    echo -e "  ${yellow}18.${plain} 🏎️ ${purple}基础三网测速 (修复版: 彻底解决403报错)${plain}"
+    echo -e "  ${yellow}19.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (防爆内存)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
@@ -88,7 +93,6 @@ while true; do
             ;;
         10) 
             echo -e "\n${blue}--- 🚀 BBR 状态诊断与管理 ---${plain}"
-            # 获取当前真实生效的拥塞控制算法
             current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
             echo -e "当前系统正在使用的算法: ${yellow}${current_cc}${plain}"
             
@@ -105,7 +109,6 @@ while true; do
                     echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
                     sysctl -p >/dev/null 2>&1
                     
-                    # 再次验证是否开启成功
                     if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
                         echo -e "\n${green}🎉 开启成功！请按回车键返回主菜单，您将看到徽章已变为 [加速中]！${plain}"
                     else
@@ -187,11 +190,12 @@ EOF2
             ip -s link | awk '/^[0-9]+:/ { iface=$2 } /RX:/ { getline; rx=$1 } /TX:/ { getline; tx=$1; printf "网卡 %s\n  ⬇️ 下载: %.2f MB\n  ⬆️ 上传: %.2f MB\n", iface, rx/1048576, tx/1048576 }'
             ;;
         18)
-            echo -e "\n${blue}--- 🏎️ 正在加载全球测速节点 (可能需要几秒钟) ---${plain}"
-            curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -
+            echo -e "\n${blue}--- 🏎️ 正在加载基础三网测速 (修复版) ---${plain}"
+            echo -e "💡 采用全新测速节点，彻底告别 403 报错..."
+            bash <(curl -sL network-speed.xyz)
             ;;
         19)
-            echo -e "\n${blue}--- 💽 虚拟内存 (Swap) 管理 ---${plain}"
+            echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
             current_swap=$(free -m | grep Swap | awk '{print $2}')
             if [ "$current_swap" -gt "0" ]; then
                 echo -e "${green}✅ 检测到当前已开启 ${current_swap} MB 虚拟内存。${plain}"
@@ -204,14 +208,20 @@ EOF2
                 fi
             else
                 echo -e "${yellow}⚠️ 当前未开启虚拟内存，小内存机器极易爆内存宕机！${plain}"
-                read -p "是否立即【创建 1GB】虚拟内存文件？(y/n): " add_swap
+                read -p "是否立即创建虚拟内存文件？(y/n): " add_swap
                 if [[ "$add_swap" == "y" ]]; then
-                    sudo fallocate -l 1G /swapfile
-                    sudo chmod 600 /swapfile
-                    sudo mkswap /swapfile > /dev/null 2>&1
-                    sudo swapon /swapfile
-                    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab > /dev/null
-                    echo -e "${green}✅ 1GB 虚拟内存创建完毕！系统运行更稳定了。${plain}"
+                    read -p "请输入需要创建的容量大小 (纯数字，单位:GB，例如输入 2 代表 2GB): " swap_size
+                    if [[ "$swap_size" =~ ^[0-9]+$ ]]; then
+                        echo "正在创建 ${swap_size}GB 虚拟内存，请稍候..."
+                        sudo fallocate -l ${swap_size}G /swapfile
+                        sudo chmod 600 /swapfile
+                        sudo mkswap /swapfile > /dev/null 2>&1
+                        sudo swapon /swapfile
+                        echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab > /dev/null
+                        echo -e "${green}✅ ${swap_size}GB 虚拟内存创建完毕！系统运行更稳定了。${plain}"
+                    else
+                        echo -e "${red}❌ 输入错误，请输入纯数字！${plain}"
+                    fi
                 fi
             fi
             ;;
@@ -233,12 +243,12 @@ EOF2
                  echo -e "\n江湖再见！"; exit
              fi 
              ;;
-        0) echo -e "\n${green}祝大佬折腾愉快！${plain}\n"; exit ;;
+        0) echo -e "\n${green}祝作者大佬折腾愉快！${plain}\n"; exit ;;
         *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
     echo -e "\n${cyan}按回车键继续...${plain}"; read
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox Pro Max Ultra (逻辑闭环版) 安装完毕！请输入 velox 体验！\033[0m"
+echo -e "\033[1;32m✅ Velox V3.0 (作者定制版) 部署完毕！请输入 velox 欣赏你的杰作！\033[0m"
 velox
