@@ -307,13 +307,65 @@ EOF2
             fi
             echo -e "\n${green}✅ 系统底层库及组件已全部更新至最新状态！机器状态满血！${plain}"
             ;;
-        21)
+       21)
             echo -e "\n${blue}--- 🕵️ 查看当前在线 SSH 用户 ---${plain}"
-            echo "以下是目前正连接在您这台服务器上的所有终端会话："
+            echo "以下是目前正连接在您这台服务器上的所有终端会话: "
             echo -e "${cyan}---------------------------------------------------${plain}"
             w
             echo -e "${cyan}---------------------------------------------------${plain}"
-            echo -e "💡 如果您发现除了您自己之外的陌生 IP 正在登录，请立刻拉响警报！"
+            echo -e " 💡 如果您发现了除了您自己之外的陌生 IP 正在登录，请立刻拉响警报！ "
+            echo -e "${cyan}---------------------------------------------------${plain}"
+            read -p "请输入要制裁的终端号 (例如 pts/1，直接回车取消): " target_pts
+            
+            if [[ -n "$target_pts" ]]; then
+                # 校验终端是否存在
+                if w | grep -q "$target_pts"; then
+                    # 抓取对方真实 IP
+                    target_ip=$(w | grep "$target_pts" | awk '{print $3}')
+                    echo -e "\n${yellow}🎯 已锁定目标: 终端 [$target_pts] | 来源 IP: [$target_ip]${plain}"
+                    echo -e "  ${cyan}1.${plain} 🥾 强行踢出 (物理拔插头)"
+                    echo -e "  ${cyan}2.${plain} 🧱 永久拉黑 (封禁IP + 踢出)"
+                    echo -e "  ${cyan}3.${plain} 👻 极客恶搞 (发送恐怖警告并踢出)"
+                    read -p "请为该内鬼选择制裁套餐 [1-3]: " punish_choice
+                    
+                    case $punish_choice in
+                        1)
+                            sudo skill -9 "$target_pts"
+                            echo -e "${green}✅ 已将其一脚踹下线！${plain}"
+                            ;;
+                        2)
+                            # 尝试用 fail2ban 封禁，如果没装就用 iptables 备用方案
+                            if command -v fail2ban-client &> /dev/null; then
+                                sudo fail2ban-client set sshd banip "$target_ip" >/dev/null 2>&1
+                            else
+                                sudo iptables -A INPUT -s "$target_ip" -j DROP
+                            fi
+                            sudo skill -9 "$target_pts"
+                            echo -e "${green}✅ 关门打狗！IP [$target_ip] 已被永久拉黑，且已被踢出！${plain}"
+                            ;;
+                        3)
+                            echo -e "\n${purple}😈 正在向对方屏幕发送“死神警告”，准备欣赏对方的恐惧...${plain}"
+                            # 强行向对方的显示器输出红色恐吓文字
+                            sudo bash -c "echo -e '\n\n\033[1;31m[FATAL WARNING] UNAUTHORIZED ACCESS DETECTED.\033[0m' > /dev/$target_pts"
+                            sudo bash -c "echo -e '\033[1;31m[SYSTEM] YOUR REAL IP [$target_ip] HAS BEEN LOGGED AND REPORTED TO FBI CYBER DIVISION.\033[0m' > /dev/$target_pts"
+                            sudo bash -c "echo -e '\033[1;31m[SYSTEM] INITIATING COUNTER-HACK SEQUENCE IN 3...\033[0m' > /dev/$target_pts"
+                            sleep 1
+                            sudo bash -c "echo -e '\033[1;31m2...\033[0m' > /dev/$target_pts"
+                            sleep 1
+                            sudo bash -c "echo -e '\033[1;31m1...\033[0m' > /dev/$target_pts"
+                            sleep 1
+                            sudo bash -c "echo -e '\033[1;31mGOODBYE.\033[0m\n\n' > /dev/$target_pts"
+                            sudo skill -9 "$target_pts"
+                            echo -e "${green}✅ 恶搞完毕！对方看着满屏飘红的警告被强制断开，估计正在连夜扛着主机跑路！${plain}"
+                            ;;
+                        *)
+                            echo -e "${red}取消制裁。${plain}"
+                            ;;
+                    esac
+                else
+                    echo -e "${red}⚠️ 找不到指定的终端号 $target_pts，请重新按 21 核对！${plain}"
+                fi
+            fi
             ;;
         U|u) 
              echo -e "\n${red}--- ⚠️  卸载操作 ---${plain}"
