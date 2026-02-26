@@ -103,6 +103,16 @@ while true; do
             
             if [[ "$current_cc" == "bbr" ]]; then
                 echo -e "${green}✅ BBR 加速已完美生效，网络正在狂飙！${plain}"
+                echo -e "${cyan}---------------------------------------------------${plain}"
+                read -p "是否需要【彻底关闭并卸载】BBR 加速？(y/n): " remove_bbr
+                if [[ "$remove_bbr" == "y" ]]; then
+                    echo "正在执行 BBR 卸载程序..."
+                    sudo sysctl -w net.ipv4.tcp_congestion_control=cubic > /dev/null 2>&1
+                    sudo sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+                    sudo sed -i '/net.ipv4.tcp_congestion_control=bbr/d' /etc/sysctl.conf
+                    sudo sysctl -p > /dev/null 2>&1
+                    echo -e "${green}✅ BBR 已彻底关闭并恢复为系统默认算法 (cubic)！${plain}"
+                fi
             else
                 echo -e "${red}⚠️ 检测到当前未开启 BBR 加速！${plain}"
                 read -p "是否立即【一键开启 BBR 暴力加速】？(y/n): " enable_bbr
