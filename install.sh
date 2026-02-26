@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V3.4 作者专属版 - 修复防盗门假性安装Bug)
+# 自动生成并运行 Velox 面板 (V4.1 作者专属版 - 智能系统嗅探 + TG徽章)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash
@@ -28,10 +28,17 @@ while true; do
         f2b_stat=$(echo -e "${yellow}[未安装]${plain}")
     fi
 
+    # TG 报警状态检测
+    if [ -f "/etc/profile.d/ssh_tg_alert.sh" ]; then
+        tg_stat=$(echo -e "${green}[已部署]${plain}")
+    else
+        tg_stat=$(echo -e "${yellow}[未设置]${plain}")
+    fi
+
     clear
     # ================= 专属署名区 =================
     echo -e "${cyan}=====================================================${plain}"
-    echo -e "         🚀 ${green}Velox 专属 VPS 管理面板 (极致稳定版)${plain} 🚀     "
+    echo -e "         🚀 ${green}Velox 专属 VPS 管理面板 (全能满血版)${plain} 🚀     "
     echo -e "${cyan}=====================================================${plain}"
     echo -e "作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
     echo -e "作者Velo.x博客 : ${blue}222382.xyz${plain}"
@@ -53,15 +60,19 @@ while true; do
     echo -e "  ${yellow}13.${plain} 🎬 ${blue}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
     echo -e "  ${yellow}14.${plain} ⚡ ${blue}TCP 网络底层高阶调优 (极限压榨带宽)${plain}"
     echo -e "  ${yellow}15.${plain} 🛰️ ${blue}全球主流节点 Ping 延迟测速${plain}"
-    echo -e "  ${yellow}16.${plain} 🚨 ${red}设置 SSH 异地登录 TG 机器人报警${plain}"
+    echo -e "  ${yellow}16.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 ${tg_stat}${plain}"
+    echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}17.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
     echo -e "  ${yellow}18.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
+    echo -e "  ${yellow}19.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
+    echo -e "  ${yellow}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
+    echo -e "  ${yellow}21.${plain} 🕵️ ${purple}查看当前在线 SSH 用户 (抓内鬼排查)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
-    echo -ne "请选择操作 [${yellow}1-18${plain}]: "
+    echo -ne "请选择操作 [${yellow}1-21${plain}]: "
     read choice
     
     case $choice in
@@ -131,15 +142,21 @@ while true; do
                 read -p "是否立即一键安装并开启 SSH 防破译保护？(y/n): " install_f2b
                 if [[ "$install_f2b" == "y" ]]; then
                     echo "正在刷新系统软件源并安装防护插件，请稍候..."
-                    sudo apt-get update --fix-missing -y > /dev/null 2>&1
-                    sudo apt-get install fail2ban -y
+                    # 兼容不同系统安装 Fail2ban
+                    if command -v apt-get &> /dev/null; then
+                        sudo apt-get update --fix-missing -y > /dev/null 2>&1
+                        sudo apt-get install fail2ban -y
+                    elif command -v dnf &> /dev/null; then
+                        sudo dnf install epel-release -y && sudo dnf install fail2ban -y
+                    elif command -v yum &> /dev/null; then
+                        sudo yum install epel-release -y && sudo yum install fail2ban -y
+                    fi
                     
-                    # 严谨校验：只有命令真实存在，才宣判成功
                     if command -v fail2ban-client &> /dev/null; then
                         sudo systemctl enable fail2ban && sudo systemctl start fail2ban
                         echo -e "✅ ${green}安装成功！你的 VPS 现在自带防盗门了。${plain}"
                     else
-                        echo -e "❌ ${red}安装失败！可能是网络抽风导致无法下载源文件。请稍后重试。${plain}"
+                        echo -e "❌ ${red}安装失败！可能是网络抽风或系统不支持。${plain}"
                     fi
                 fi
             fi
@@ -167,12 +184,19 @@ while true; do
             echo -e "\n${green}✅ 测速完成！${plain}"
             ;;
         16)
-            echo -e "\n${blue}--- 🚨 设置 SSH 登录 Telegram 报警 ---${plain}"
-            echo -e "💡 本脚本开源安全，Token 仅保存在本机，不会上传网络！"
-            read -p "请输入你的 TG Bot Token: " tg_token
-            read -p "请输入你的 TG Chat ID: " tg_chatid
-            if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
-                cat << EOF2 > /etc/profile.d/ssh_tg_alert.sh
+            echo -e "\n${blue}--- 🚨 设置/管理 SSH 登录 Telegram 报警 ---${plain}"
+            if [ -f "/etc/profile.d/ssh_tg_alert.sh" ]; then
+                echo -e "${green}✅ 检测到当前已开启 TG 报警防线！${plain}"
+                read -p "请选择操作 (r:重新配置 / d:彻底卸载删除 / n:取消): " tg_choice
+                if [[ "$tg_choice" == "d" ]]; then
+                    sudo rm -f /etc/profile.d/ssh_tg_alert.sh
+                    echo -e "${green}✅ TG 报警防线已彻底卸载！您可以回到主菜单查看状态已变为 [未设置]。${plain}"
+                elif [[ "$tg_choice" == "r" ]]; then
+                    echo -e "\n💡 准备重新配置，Token 仅保存在本机，绝对安全！"
+                    read -p "请输入新的 TG Bot Token: " tg_token
+                    read -p "请输入新的 TG Chat ID: " tg_chatid
+                    if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
+                        cat << EOF2 > /etc/profile.d/ssh_tg_alert.sh
 #!/bin/bash
 USER_IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
 if [ -n "\$USER_IP" ]; then
@@ -180,10 +204,32 @@ if [ -n "\$USER_IP" ]; then
     curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1 &
 fi
 EOF2
-                chmod +x /etc/profile.d/ssh_tg_alert.sh
-                echo -e "\n${green}✅ TG 报警防线部署成功！下次只要这台机器被连上，你的手机就会立刻震动！${plain}"
+                        chmod +x /etc/profile.d/ssh_tg_alert.sh
+                        echo -e "\n${green}✅ TG 报警防线重新部署成功！${plain}"
+                    else
+                        echo -e "\n${red}❌ 输入不完整，已取消重新设置，您的旧配置仍保留生效。${plain}"
+                    fi
+                else
+                    echo -e "${cyan}操作已取消。${plain}"
+                fi
             else
-                echo -e "\n${red}❌ 输入不完整，已取消设置。${plain}"
+                echo -e "💡 本脚本开源安全，Token 仅保存在本机，不会上传网络！"
+                read -p "请输入你的 TG Bot Token: " tg_token
+                read -p "请输入你的 TG Chat ID: " tg_chatid
+                if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
+                    cat << EOF2 > /etc/profile.d/ssh_tg_alert.sh
+#!/bin/bash
+USER_IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
+if [ -n "\$USER_IP" ]; then
+    MSG="🚨 [神盾局警告] 大佬，你的服务器 \$(hostname) 刚刚被登录了！%0A👉 来源 IP: \$USER_IP%0A⏰ 时间: \$(date +'%Y-%m-%d %H:%M:%S')"
+    curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1 &
+fi
+EOF2
+                    chmod +x /etc/profile.d/ssh_tg_alert.sh
+                    echo -e "\n${green}✅ TG 报警防线部署成功！主菜单已点亮 [已部署] 徽章！${plain}"
+                else
+                    echo -e "\n${red}❌ 输入不完整，已取消设置。${plain}"
+                fi
             fi
             ;;
         17)
@@ -195,12 +241,12 @@ EOF2
             current_swap=$(free -m | grep Swap | awk '{print $2}')
             if [ "$current_swap" -gt "0" ]; then
                 echo -e "${green}✅ 检测到当前已开启 ${current_swap} MB 虚拟内存。${plain}"
-                read -p "是否需要【关闭并删除】现有的虚拟内存？(y/n): " del_swap
+                read -p "是否需要【彻底关闭并删除】现有的虚拟内存？(y/n): " del_swap
                 if [[ "$del_swap" == "y" ]]; then
                     sudo swapoff -a
                     sudo rm -f /swapfile
                     sudo sed -i '/swapfile/d' /etc/fstab
-                    echo -e "${green}✅ 虚拟内存已清空！${plain}"
+                    echo -e "${green}✅ 虚拟内存已彻底清空卸载！${plain}"
                 fi
             else
                 echo -e "${yellow}⚠️ 当前未开启虚拟内存，小内存机器极易爆内存宕机！${plain}"
@@ -221,6 +267,44 @@ EOF2
                 fi
             fi
             ;;
+        19)
+            echo -e "\n${blue}--- 📝 修改服务器主机名 (VPS 改名) ---${plain}"
+            echo -e "当前主机名: ${yellow}$(hostname)${plain}"
+            read -p "请输入新的主机名 (建议英文或数字，如 GCP-VeloX): " new_hostname
+            if [[ -n "$new_hostname" ]]; then
+                sudo hostnamectl set-hostname "$new_hostname"
+                echo -e "${green}✅ 主机名已成功修改为: $new_hostname ${plain}"
+                echo -e "💡 提示：按 12 重启服务器，或重新连接 SSH 终端后即可看到全新名称！"
+            else
+                echo -e "${red}❌ 输入为空，已取消修改。${plain}"
+            fi
+            ;;
+        20)
+            echo -e "\n${blue}--- 🔄 一键更新系统软件库 ---${plain}"
+            echo "正在智能识别系统环境，并拉取最新安全补丁，请耐心等待..."
+            if command -v apt-get &> /dev/null; then
+                sudo apt-get update -y
+                sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
+            elif command -v dnf &> /dev/null; then
+                sudo dnf check-update
+                sudo dnf upgrade -y
+            elif command -v yum &> /dev/null; then
+                sudo yum check-update
+                sudo yum upgrade -y
+            else
+                echo -e "${red}❌ 未知系统包管理器，无法自动更新！${plain}"
+                break
+            fi
+            echo -e "\n${green}✅ 系统底层库及组件已全部更新至最新状态！机器状态满血！${plain}"
+            ;;
+        21)
+            echo -e "\n${blue}--- 🕵️ 查看当前在线 SSH 用户 ---${plain}"
+            echo "以下是目前正连接在您这台服务器上的所有终端会话："
+            echo -e "${cyan}---------------------------------------------------${plain}"
+            w
+            echo -e "${cyan}---------------------------------------------------${plain}"
+            echo -e "💡 如果您发现除了您自己之外的陌生 IP 正在登录，请立刻拉响警报！"
+            ;;
         U|u) 
              echo -e "\n${red}--- ⚠️  卸载操作 ---${plain}"
              read -p "确定卸载本面板吗？(y/n): " c
@@ -231,8 +315,12 @@ EOF2
                  if command -v fail2ban-client &> /dev/null; then
                      read -p "是否一并【彻底强拆】防盗门？(y/n): " remove_f2b
                      if [[ "$remove_f2b" == "y" ]]; then
-                         sudo apt-get remove --purge fail2ban -y > /dev/null 2>&1
-                         sudo apt-get autoremove -y > /dev/null 2>&1
+                         if command -v apt-get &> /dev/null; then
+                             sudo apt-get remove --purge fail2ban -y > /dev/null 2>&1
+                             sudo apt-get autoremove -y > /dev/null 2>&1
+                         elif command -v yum &> /dev/null; then
+                             sudo yum remove fail2ban -y > /dev/null 2>&1
+                         fi
                          echo -e "${green}✅ 防盗门已彻底拆除！${plain}"
                      fi
                  fi
@@ -246,5 +334,5 @@ EOF2
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox V3.4 (终极无死角版) 部署完毕！请输入 velox 体验！\033[0m"
+echo -e "\033[1;32m✅ Velox V4.1 (智能UI细节修缮版) 部署完毕！请输入 velox 欣赏！\033[0m"
 velox
