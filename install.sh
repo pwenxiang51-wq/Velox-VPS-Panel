@@ -368,34 +368,59 @@ EOF2
                 fi
             fi
             ;;
-        22)
+       22)
             echo -e "\n${blue}======================================================${plain}"
-            echo -e "${yellow}      🚀 欢迎进入甬哥专业脚本调用中心 🚀${plain}"
+            echo -e "${yellow}      🚀 欢迎进入专业代理部署与维稳中心 🚀${plain}"
             echo -e "${blue}======================================================${plain}"
-            echo -e "  ${cyan}1.${plain} 📦 调用 【Sing-box 精装桶】 (终端黑框命令行版)"
-            echo -e "  ${cyan}2.${plain} 🖥️  调用 【X-UI 面板】 (带网页后台的多用户版)"
+            echo -e "  ${cyan}1.${plain} 📦 安装/管理 【Sing-box 核心】 (终端命令行版)"
+            echo -e "  ${cyan}2.${plain} 🖥️  安装/管理 【X-UI 面板】 (网页可视化多用户版)"
+            echo -e "  ${red}3.${plain} 🛑 停止 Sing-box 核心服务 (释放端口与内存)"
+            echo -e "  ${green}4.${plain} ⚡ 启动 Sing-box 核心服务 (恢复节点运行)"
+            echo -e "  ${red}5.${plain} 🛑 停止 X-UI 面板服务 (释放端口与内存)"
+            echo -e "  ${green}6.${plain} ⚡ 启动 X-UI 面板服务 (恢复节点运行)"
             echo -e "  ${cyan}0.${plain} ↩️  取消操作并返回上一级菜单"
             echo -e "${blue}------------------------------------------------------${plain}"
-            read -p "👉 请输入对应数字并回车 [0-2]: " yg_choice
+            read -p "👉 请输入对应数字并回车 [0-6]: " yg_choice
             
             case $yg_choice in
                 1)
-                    echo -e "\n${green}▶ 正在启动 Sing-box 脚本，请稍候...${plain}"
+                    echo -e "\n${green}▶ 正在启动 Sing-box 部署脚本，请稍候...${plain}"
                     sleep 1
-                    # 调用的就是你截图里的终端一键脚本
-                    bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/sb.sh)
+                    bash <(wget -qO- https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/sb.sh)
                     ;;
                 2)
-                    echo -e "\n${green}▶ 正在启动 X-UI 脚本，请稍候...${plain}"
+                    echo -e "\n${green}▶ 正在启动 X-UI 部署脚本，请稍候...${plain}"
                     sleep 1
-                    # 调用的就是你截图里带网页可视化的安装脚本
-                    bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/install.sh)
+                    bash <(wget -qO- https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/install.sh)
+                    ;;
+                3)
+                    echo -e "\n${yellow}▶ 正在停止 Sing-box 服务...${plain}"
+                    systemctl stop sing-box
+                    echo -e "${red}✅ 已停止！Sing-box 核心已退出，相关端口已释放。${plain}"
+                    sleep 2
+                    ;;
+                4)
+                    echo -e "\n${yellow}▶ 正在启动 Sing-box 服务...${plain}"
+                    systemctl start sing-box
+                    echo -e "${green}✅ 已启动！Sing-box 节点已恢复正常运行。${plain}"
+                    sleep 2
+                    ;;
+                5)
+                    echo -e "\n${yellow}▶ 正在停止 X-UI 服务...${plain}"
+                    systemctl stop x-ui
+                    echo -e "${red}✅ 已停止！X-UI 面板已退出，相关端口已释放。${plain}"
+                    sleep 2
+                    ;;
+                6)
+                    echo -e "\n${yellow}▶ 正在启动 X-UI 服务...${plain}"
+                    systemctl start x-ui
+                    echo -e "${green}✅ 已启动！X-UI 面板及节点已恢复正常运行。${plain}"
+                    sleep 2
                     ;;
                 0)
                     echo -e "\n${green}✅ 已取消操作，安全返回主菜单。${plain}"
                     ;;
                 *)
-                    # 万一手滑按成了别的数字或字母
                     echo -e "\n${red}❌ 错误：无效的选项，操作取消。${plain}"
                     ;;
             esac
