@@ -2,7 +2,7 @@
 # 自动生成并运行 Velox 面板 (V4.1 作者专属版 - 智能系统嗅探 + TG徽章)
 
 cat << 'EOF' > /usr/local/bin/velox
-#!/bin/bash
+#!/bin/bash 
 # 定义内部颜色变量
 blue='\033[1;34m'
 green='\033[1;32m'
