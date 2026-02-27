@@ -72,7 +72,7 @@ while true; do
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
-    echo -ne "请选择操作 [${yellow}1-21${plain}]: "
+    echo -ne "请选择操作 [${yellow}1-22${plain}]: "
     read choice
     
     case $choice in
