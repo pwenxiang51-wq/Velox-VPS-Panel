@@ -27,9 +27,8 @@ while true; do
     else
         f2b_stat=$(echo -e "${yellow}[未安装]${plain}")
     fi
-
-    # TG 报警状态检测
-    if [ -f "/etc/profile.d/ssh_tg_alert.sh" ]; then
+# TG 报警状态检测
+    if [ -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
         tg_stat=$(echo -e "${green}[已部署]${plain}")
     else
         tg_stat=$(echo -e "${yellow}[未设置]${plain}")
@@ -195,49 +194,82 @@ while true; do
             echo -e "\n${green}✅ 测速完成！${plain}"
             ;;
         16)
-            echo -e "\n${blue}--- 🚨 设置/管理 SSH 登录 Telegram 报警 ---${plain}"
-            if [ -f "/etc/profile.d/ssh_tg_alert.sh" ]; then
+            echo -e "\n${blue}--- 🚨 设置/管理 Telegram 智能报警监控 (全能通用版) ---${plain}"
+            
+            # 兼容性环境检查
+            if ! command -v curl &> /dev/null; then
+                echo -e "${yellow}正在安装必须的网络组件 curl...${plain}"
+                apt-get update -y && apt-get install curl -y >/dev/null 2>&1 || yum install curl -y >/dev/null 2>&1
+            fi
+
+            if [ -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
                 echo -e "${green}✅ 检测到当前已开启 TG 报警防线！${plain}"
                 read -p "请选择操作 (r:重新配置 / d:彻底卸载删除 / n:取消): " tg_choice
                 if [[ "$tg_choice" == "d" ]]; then
-                    sudo rm -f /etc/profile.d/ssh_tg_alert.sh
-                    echo -e "${green}✅ TG 报警防线已彻底卸载！您可以回到主菜单查看状态已变为 [未设置]。${plain}"
+                    # 彻底卸载清理
+                    sudo rm -f /usr/local/bin/ssh_tg_alert.sh
+                    sudo sed -i '/ssh_tg_alert.sh/d' /etc/profile
+                    sudo sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
+                    sudo systemctl disable --now tg_boot_alert.service 2>/dev/null
+                    sudo rm -f /etc/systemd/system/tg_boot_alert.service
+                    sudo systemctl daemon-reload
+                    echo -e "${green}✅ TG 报警防线已彻底无痕卸载！您可以回到主菜单查看状态。${plain}"
                 elif [[ "$tg_choice" == "r" ]]; then
-                    echo -e "\n💡 准备重新配置，Token 仅保存在本机，绝对安全！"
-                    read -p "请输入新的 TG Bot Token: " tg_token
-                    read -p "请输入新的 TG Chat ID: " tg_chatid
-                    if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
-                        cat << EOF2 > /etc/profile.d/ssh_tg_alert.sh
-#!/bin/bash
-USER_IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
-if [ -n "\$USER_IP" ]; then
-    MSG="🚨 [神盾局警告] 大佬，你的服务器 \$(hostname) 刚刚被登录了！%0A👉 来源 IP: \$USER_IP%0A⏰ 时间: \$(date +'%Y-%m-%d %H:%M:%S')"
-    curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1 &
-fi
-EOF2
-                        chmod +x /etc/profile.d/ssh_tg_alert.sh
-                        echo -e "\n${green}✅ TG 报警防线重新部署成功！${plain}"
-                    else
-                        echo -e "\n${red}❌ 输入不完整，已取消重新设置，您的旧配置仍保留生效。${plain}"
-                    fi
+                    tg_setup_flag=1
                 else
                     echo -e "${cyan}操作已取消。${plain}"
+                    tg_setup_flag=0
                 fi
             else
                 echo -e "💡 本脚本开源安全，Token 仅保存在本机，不会上传网络！"
+                tg_setup_flag=1
+            fi
+
+            if [[ "$tg_setup_flag" == "1" ]]; then
+                echo -e "\n💡 准备配置，Token 仅保存在本机，绝对安全！"
                 read -p "请输入你的 TG Bot Token: " tg_token
                 read -p "请输入你的 TG Chat ID: " tg_chatid
                 if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
-                    cat << EOF2 > /etc/profile.d/ssh_tg_alert.sh
+                    
+                    # 1. 编写核心发信脚本 (独立存放，防误删)
+                    cat << EOF2 > /usr/local/bin/ssh_tg_alert.sh
 #!/bin/bash
-USER_IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
-if [ -n "\$USER_IP" ]; then
-    MSG="🚨 [神盾局警告] 大佬，你的服务器 \$(hostname) 刚刚被登录了！%0A👉 来源 IP: \$USER_IP%0A⏰ 时间: \$(date +'%Y-%m-%d %H:%M:%S')"
-    curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1 &
+# 避免一次登录触发两条相同的通知
+if [ -z "\$TG_ALERT_TRIGGERED" ]; then
+    export TG_ALERT_TRIGGERED=1
+    USER_IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
+    if [ -n "\$USER_IP" ]; then
+        MSG="🚨 [神盾局警告] 大佬，你的服务器 \$(hostname) 刚刚被登录了！%0A👉 来源 IP: \$USER_IP%0A⏰ 时间: \$(date +'%Y-%m-%d %H:%M:%S')"
+        curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1 &
+    fi
 fi
 EOF2
-                    chmod +x /etc/profile.d/ssh_tg_alert.sh
-                    echo -e "\n${green}✅ TG 报警防线部署成功！主菜单已点亮 [已部署] 徽章！${plain}"
+                    chmod +x /usr/local/bin/ssh_tg_alert.sh
+                    
+                    # 2. 双重注入全局变量，无视系统阉割，覆盖所有登录模式
+                    sed -i '/ssh_tg_alert.sh/d' /etc/profile
+                    sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
+                    echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/profile
+                    echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/bash.bashrc
+                    
+                    # 3. 放弃孱弱的 crontab，改用工业级 Systemd 守护进程处理开机汇报
+                    cat << EOF3 > /etc/systemd/system/tg_boot_alert.service
+[Unit]
+Description=Telegram Boot Alert
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c "sleep 10 && curl -s -X POST 'https://api.telegram.org/bot${tg_token}/sendMessage' -d chat_id='${tg_chatid}' -d text='✅ [系统复苏通知] 大佬，你的服务器 \$(hostname) 已完成重启并成功连网！⏰ \$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")'"
+
+[Install]
+WantedBy=multi-user.target
+EOF3
+                    systemctl daemon-reload
+                    systemctl enable tg_boot_alert.service > /dev/null 2>&1
+                    
+                    echo -e "\n${green}✅ TG 工业级报警防线部署成功！主菜单已点亮 [已部署] 徽章！${plain}"
                 else
                     echo -e "\n${red}❌ 输入不完整，已取消设置。${plain}"
                 fi
