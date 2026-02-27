@@ -59,7 +59,7 @@ while true; do
     echo -e "  ${yellow}13.${plain} 🎬 ${blue}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
     echo -e "  ${yellow}14.${plain} ⚡ ${blue}TCP 网络底层高阶调优 (极限压榨带宽)${plain}"
     echo -e "  ${yellow}15.${plain} 🛰️ ${blue}全球主流节点 Ping 延迟测速${plain}"
-    echo -e "  ${yellow}16.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 ${tg_stat}${plain}"
+    echo -e "  ${yellow}16.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 (含开机秒报 & 环境深度兼容) ${tg_stat}${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}17.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
     echo -e "  ${yellow}18.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
@@ -206,13 +206,35 @@ while true; do
                 echo -e "${green}✅ 检测到当前已开启 TG 报警防线！${plain}"
                 read -p "请选择操作 (r:重新配置 / d:彻底卸载删除 / n:取消): " tg_choice
                 if [[ "$tg_choice" == "d" ]]; then
-                    # 彻底卸载清理
                     sudo rm -f /usr/local/bin/ssh_tg_alert.sh
+                    sudo rm -f /usr/local/bin/tg_boot_alert.sh
                     sudo sed -i '/ssh_tg_alert.sh/d' /etc/profile
                     sudo sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
                     sudo systemctl disable --now tg_boot_alert.service 2>/dev/null
                     sudo rm -f /etc/systemd/system/tg_boot_alert.service
                     sudo systemctl daemon-reload
+                    
+                    # --- 智能排雷与预览逻辑 ---
+                    echo -e "\n${yellow}正在扫描系统定时任务 (crontab) 中的旧版残余报警指令...${plain}"
+                    if crontab -l 2>/dev/null | grep -q "api.telegram.org"; then
+                        echo -e "${red}发现以下残留的旧版发信指令（即将被清理，其余任务将保留）：${plain}"
+                        crontab -l 2>/dev/null | grep "api.telegram.org"
+                        echo -e "${cyan}---------------------------------------------------${plain}"
+                        echo -e "${yellow}清理后，您的系统定时任务将变为以下状态（请预览确认）：${plain}"
+                        crontab -l 2>/dev/null | grep -v "api.telegram.org"
+                        echo -e "${cyan}---------------------------------------------------${plain}"
+                        read -p "是否确认执行清理？(y/n): " confirm_clean
+                        if [[ "$confirm_clean" == "y" ]]; then
+                            crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -
+                            echo -e "${green}✅ 旧版定时报警指令已彻底清理干净！${plain}"
+                        else
+                            echo -e "${yellow}已取消清理残留。${plain}"
+                        fi
+                    else
+                        echo -e "${green}未发现旧版定时报警残留，您的系统很干净！${plain}"
+                    fi
+                    # -------------------------
+                    
                     echo -e "${green}✅ TG 报警防线已彻底无痕卸载！您可以回到主菜单查看状态。${plain}"
                 elif [[ "$tg_choice" == "r" ]]; then
                     tg_setup_flag=1
@@ -231,10 +253,9 @@ while true; do
                 read -p "请输入你的 TG Chat ID: " tg_chatid
                 if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
                     
-                    # 1. 编写核心发信脚本 (独立存放，防误删)
+                    # 1. 编写 SSH 登录发信脚本
                     cat << EOF2 > /usr/local/bin/ssh_tg_alert.sh
 #!/bin/bash
-# 避免一次登录触发两条相同的通知
 if [ -z "\$TG_ALERT_TRIGGERED" ]; then
     export TG_ALERT_TRIGGERED=1
     USER_IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
@@ -246,13 +267,22 @@ fi
 EOF2
                     chmod +x /usr/local/bin/ssh_tg_alert.sh
                     
-                    # 2. 双重注入全局变量，无视系统阉割，覆盖所有登录模式
+                    # 2. 双重注入环境变量
                     sed -i '/ssh_tg_alert.sh/d' /etc/profile
                     sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
                     echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/profile
                     echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/bash.bashrc
                     
-                    # 3. 放弃孱弱的 crontab，改用工业级 Systemd 守护进程处理开机汇报
+                    # 3. 编写开机复苏发信脚本
+                    cat << 'EOF_BOOT' > /usr/local/bin/tg_boot_alert.sh
+#!/bin/bash
+sleep 15
+MSG="✅ [系统复苏通知] 大佬，你的服务器 $(hostname) 已完成重启并成功连网！%0A⏰ 时间: $(date +'%Y-%m-%d %H:%M:%S')"
+curl -s -X POST "https://api.telegram.org/bot${1}/sendMessage" -d chat_id="${2}" -d text="$MSG" > /dev/null 2>&1
+EOF_BOOT
+                    chmod +x /usr/local/bin/tg_boot_alert.sh
+                    
+                    # 4. 部署工业级 Systemd 守护进程
                     cat << EOF3 > /etc/systemd/system/tg_boot_alert.service
 [Unit]
 Description=Telegram Boot Alert
@@ -261,7 +291,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash -c "sleep 10 && curl -s -X POST 'https://api.telegram.org/bot${tg_token}/sendMessage' -d chat_id='${tg_chatid}' -d text='✅ [系统复苏通知] 大佬，你的服务器 \$(hostname) 已完成重启并成功连网！⏰ \$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")'"
+ExecStart=/usr/local/bin/tg_boot_alert.sh "${tg_token}" "${tg_chatid}"
 
 [Install]
 WantedBy=multi-user.target
@@ -461,11 +491,36 @@ EOF3
              echo -e "\n${red}--- ⚠️  卸载操作 ---${plain}"
              read -p "确定卸载本面板吗？(y/n): " c
              if [[ "$c" == "y" ]]; then 
+                 # 1. 删除面板本体及独立组件
                  rm -f /usr/local/bin/velox
-                 rm -f /etc/profile.d/ssh_tg_alert.sh
+                 rm -f /usr/local/bin/ssh_tg_alert.sh
+                 rm -f /usr/local/bin/tg_boot_alert.sh
+                 sed -i '/ssh_tg_alert.sh/d' /etc/profile
+                 sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
+                 
+                 # 2. 停止并删除 Systemd 守护服务
+                 systemctl disable --now tg_boot_alert.service 2>/dev/null
+                 rm -f /etc/systemd/system/tg_boot_alert.service
+                 systemctl daemon-reload
+                 
                  echo -e "${green}✅ 面板本体及报警组件已卸载！${plain}"
+                 
+                 # 3. 智能排雷与预览逻辑
+                 if crontab -l 2>/dev/null | grep -q "api.telegram.org"; then
+                     echo -e "\n${yellow}正在扫描定时任务，发现旧版报警残留！${plain}"
+                     echo -e "${cyan}---------------------------------------------------${plain}"
+                     echo -e "${yellow}清理后您的定时任务将保留如下内容（请确认）：${plain}"
+                     crontab -l 2>/dev/null | grep -v "api.telegram.org"
+                     echo -e "${cyan}---------------------------------------------------${plain}"
+                     read -p "是否顺手清理掉这些残留报警指令？(y/n): " clean_cron
+                     if [[ "$clean_cron" == "y" ]]; then
+                         crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -
+                         echo -e "${green}✅ 定时任务残留已清空！${plain}"
+                     fi
+                 fi
+                 
                  if command -v fail2ban-client &> /dev/null; then
-                     read -p "是否一并【彻底强拆】防盗门？(y/n): " remove_f2b
+                     read -p "是否一并【彻底强拆】防盗门(Fail2ban)？(y/n): " remove_f2b
                      if [[ "$remove_f2b" == "y" ]]; then
                          if command -v apt-get &> /dev/null; then
                              sudo apt-get remove --purge fail2ban -y > /dev/null 2>&1
