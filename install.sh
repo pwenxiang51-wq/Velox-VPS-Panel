@@ -550,7 +550,7 @@ EOF3
                  echo -e "\n江湖再见！"; exit
              fi 
              ;;
-        0) echo -e "\n${green}祝作者大佬折腾愉快！${plain}\n"; exit ;;
+        0) echo -e "\n${green}祝Velox折腾愉快！${plain}\n"; exit ;;
         *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
     echo -e "\n${cyan}按回车键继续...${plain}"; read
