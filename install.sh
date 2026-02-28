@@ -253,7 +253,7 @@ while true; do
                 read -p "请输入你的 TG Chat ID: " tg_chatid
                 if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
                     
-                    # 1. 编写 SSH 登录发信脚本
+                    # 1. 编写 SSH 登录发信脚本 (集成物理网卡绕过 WARP)
                     cat << EOF2 > /usr/local/bin/ssh_tg_alert.sh
 #!/bin/bash
 if [ -z "\$TG_ALERT_TRIGGERED" ]; then
@@ -261,7 +261,15 @@ if [ -z "\$TG_ALERT_TRIGGERED" ]; then
     USER_IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
     if [ -n "\$USER_IP" ]; then
         MSG="🚨 [神盾局警告] 大佬，你的服务器 \$(hostname) 刚刚被登录了！%0A👉 来源 IP: \$USER_IP%0A⏰ 时间: \$(date +'%Y-%m-%d %H:%M:%S')"
-        curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1 &
+        
+        # --- 核心绝杀：强制绕过 WARP，抓取物理主网卡 ---
+        MAIN_IF=\$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print \$5}' | head -n 1)
+        
+        if [ -n "\$MAIN_IF" ]; then
+            curl --interface "\$MAIN_IF" -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1 &
+        else
+            curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1 &
+        fi
     fi
 fi
 EOF2
@@ -273,16 +281,24 @@ EOF2
                     echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/profile
                     echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/bash.bashrc
                     
-                    # 3. 编写开机复苏发信脚本
-                    cat << 'EOF_BOOT' > /usr/local/bin/tg_boot_alert.sh
+                    # 3. 编写开机复苏发信脚本 (集成物理网卡绕过 WARP)
+                    cat << EOF2 > /usr/local/bin/tg_boot_alert.sh
 #!/bin/bash
 sleep 15
-MSG="✅ [系统复苏通知] 大佬，你的服务器 $(hostname) 已完成重启并成功连网！%0A⏰ 时间: $(date +'%Y-%m-%d %H:%M:%S')"
-curl -s -X POST "https://api.telegram.org/bot${1}/sendMessage" -d chat_id="${2}" -d text="$MSG" > /dev/null 2>&1
-EOF_BOOT
+MSG="✅ [系统复苏通知] 大佬，你的服务器 \$(hostname) 已完成重启并成功连网！%0A⏰ 时间: \$(date +'%Y-%m-%d %H:%M:%S')"
+
+# --- 核心绝杀：强制绕过 WARP，抓取物理主网卡 ---
+MAIN_IF=\$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print \$5}' | head -n 1)
+
+if [ -n "\$MAIN_IF" ]; then
+    curl --interface "\$MAIN_IF" -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1
+else
+    curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1
+fi
+EOF2
                     chmod +x /usr/local/bin/tg_boot_alert.sh
                     
-                    # 4. 部署工业级 Systemd 守护进程
+                    # 4. 部署工业级 Systemd 守护进程 (简化参数传递，更稳健)
                     cat << EOF3 > /etc/systemd/system/tg_boot_alert.service
 [Unit]
 Description=Telegram Boot Alert
@@ -291,7 +307,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/tg_boot_alert.sh "${tg_token}" "${tg_chatid}"
+ExecStart=/usr/local/bin/tg_boot_alert.sh
 
 [Install]
 WantedBy=multi-user.target
