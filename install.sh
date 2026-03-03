@@ -50,7 +50,7 @@ while true; do
     echo -e "  ${yellow}5.${plain}  📈 ${green}实时监控 CPU 与内存 (按 q 退出)${plain}"
     echo -e "  ${yellow}6.${plain}  🌐 ${green}查看当前公网 IP${plain}"
     echo -e "  ${yellow}7.${plain}  🔌 ${green}查看系统监听端口${plain}"
-    echo -e "  ${yellow}8.${plain}  📦 ${green}查看 Sing-box 运行状态 ${sb_stat}${plain}"
+    echo -e "  ${yellow}8.${plain}  📦 ${green}查看代理服务运行状态 (多核心智能检测) ${sb_stat}${plain}"
     echo -e "  ${yellow}9.${plain}  ☁️  ${cyan}查看 WARP 与 Argo 状态 (含一键修复)${plain}"
     echo -e "  ${yellow}10.${plain} 🚀 ${cyan}深度验证与管理 BBR 加速 ${bbr_stat}${plain}"
     echo -e "  ${yellow}11.${plain} 🧹 ${yellow}一键清理系统垃圾与防盗门 ${f2b_stat}${plain}"
@@ -69,7 +69,7 @@ while true; do
     echo -e "  ${yellow}22.${plain} 🚀 ${purple}召唤甬哥全家桶 (Sing-box 终端版 / X-UI 网页版)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}23.${plain} ⏱️  ${cyan}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
-    echo -e "  ${yellow}24.${plain} 🔄  ${green}重启代理服务 (仅重启 Sing-box/Argo 等节点程序，VPS 不断线)${plain}"
+    echo -e "  ${yellow}24.${plain} 🔄  ${green}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
     echo -e "  ${yellow}25.${plain} 🔗  ${purple}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
     echo -e "  ${yellow}26.${plain} 🔐  ${blue}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
@@ -88,8 +88,47 @@ while true; do
         5) echo -e "\n${cyan}--- 正在启动任务管理器 ---${plain}"; sleep 1; top ;;
         6) echo -e "\n${blue}--- 公网 IP ---${plain}"; curl -s ifconfig.me; echo "" ;;
         7) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
-        8) echo -e "\n${blue}--- Sing-box 状态 ---${plain}"; systemctl status sing-box --no-pager | grep -E "Active|Loaded" ;;
-        9) 
+     8)
+        echo -e "\n${blue}=== 📦 代理核心状态智能侦测 ===${plain}"
+        echo -e "${yellow}说明：系统正在自动扫描底层服务，识别已安装的代理核心...${plain}\n"
+
+        # --- 侦测 Sing-box (甬哥sb、小钢炮等通用) ---
+        if systemctl list-unit-files | grep -qw sing-box.service; then
+            if systemctl is-active --quiet sing-box; then
+                echo -e " 🚀 Sing-box 核心 : ${green}运行中 ✅${plain}"
+            else
+                echo -e " 🚀 Sing-box 核心 : ${red}已停止/出故障 ❌${plain}"
+            fi
+        else
+            echo -e " 🚀 Sing-box 核心 : ${yellow}未安装 ⚠️${plain}"
+        fi
+
+        # --- 侦测 Xray (X-UI、Mack-a等通用) ---
+        if systemctl list-unit-files | grep -qw xray.service; then
+            if systemctl is-active --quiet xray; then
+                echo -e " 🛸 Xray 核心     : ${green}运行中 ✅${plain}"
+            else
+                echo -e " 🛸 Xray 核心     : ${red}已停止/出故障 ❌${plain}"
+            fi
+        else
+            echo -e " 🛸 Xray 核心     : ${yellow}未安装 ⚠️${plain}"
+        fi
+
+        # --- 侦测 Argo 隧道 (Cloudflared) ---
+        if command -v cloudflared >/dev/null 2>&1 || systemctl list-unit-files | grep -qw cloudflared.service; then
+            if pgrep -x "cloudflared" >/dev/null || systemctl is-active --quiet cloudflared 2>/dev/null; then
+                echo -e " 🚇 Argo 隧道     : ${green}运行中 ✅${plain}"
+            else
+                echo -e " 🚇 Argo 隧道     : ${red}已停止/出故障 ❌${plain}"
+            fi
+        else
+            echo -e " 🚇 Argo 隧道     : ${yellow}未安装 ⚠️${plain}"
+        fi
+        
+        echo ""
+        read -p "👉 按【回车键】返回主菜单..."
+        ;;
+      9) 
             echo -e "\n${blue}--- 🌐 WARP 解锁状态 ---${plain}"
             curl -s https://www.cloudflare.com/cdn-cgi/trace | grep -E "warp=|ip="
             echo -e "\n${blue}--- 🚇 Argo 隧道进程检测 ---${plain}"
@@ -633,16 +672,64 @@ EOF3
         ;;
         
     24)
-        echo -e "\n${blue}=== ⚡ 代理节点服务无痛重启 ===${plain}"
-        echo -e "${yellow}小白科普：当你发现节点连不上、断流时使用此功能。此操作【不会】重启整台 VPS，SSH 终端【不会】断开，瞬间完成。${plain}\n"
-        echo -e "1. 仅重启 Sing-box 核心 (修复直连节点连不上)\n2. 仅重启 Xray 核心\n3. 仅重启 Cloudflared 进程 (修复 Argo 隧道/节点报-1假死)\n4. 🚀 一键重启所有翻墙相关服务 (最推荐)\n0. 取消返回"
-        read -p "请选择操作 [0-4]: " res_choice
-        case $res_choice in
-            1) systemctl restart sing-box; echo -e "${green}✅ Sing-box 代理核心已重新启动${plain}" ;;
-            2) systemctl restart xray; echo -e "${green}✅ Xray 代理核心已重新启动${plain}" ;;
-            3) pkill -9 cloudflared; systemctl restart cloudflared 2>/dev/null || agsbx res 2>/dev/null; echo -e "${green}✅ Argo 隧道已刷新连接，请稍等 10 秒后重新测速${plain}" ;;
-            4) systemctl restart sing-box xray; pkill -9 cloudflared; agsbx res 2>/dev/null; echo -e "${green}✅ 所有节点代理程序已全部满血复活！${plain}" ;;
-        esac
+        while true; do
+            echo -e "\n${blue}=== ⚡ 代理节点服务无痛重启 ===${plain}"
+            echo -e "${yellow}小白科普：当你发现节点连不上、断流时使用此功能。此操作【不会】重启整台 VPS，SSH 终端【不会】断开，瞬间完成。${plain}\n"
+            echo -e "1. 仅重启 Sing-box 核心 (修复直连节点连不上)\n2. 仅重启 Xray 核心\n3. 仅重启 Cloudflared 进程 (修复 Argo 隧道/节点报-1假死)\n4. 🚀 一键通用重启所有代理服务 (最推荐)\n0. ${yellow}取消并返回主菜单${plain}"
+            read -p "请选择操作 [0-4]: " res_choice
+            
+            case $res_choice in
+                1) 
+                    systemctl restart sing-box >/dev/null 2>&1
+                    if [ $? -eq 0 ]; then 
+                        echo -e "\n${green}✅ Sing-box 代理核心已成功重启！${plain}"
+                    else 
+                        echo -e "\n${yellow}⚠️ 未检测到 Sing-box 正在运行，或当前系统未安装该核心。${plain}"
+                    fi
+                    ;;
+                2) 
+                    systemctl restart xray >/dev/null 2>&1
+                    if [ $? -eq 0 ]; then 
+                        echo -e "\n${green}✅ Xray 代理核心已成功重启！${plain}"
+                    else 
+                        echo -e "\n${yellow}⚠️ 未检测到 Xray 正在运行，或当前系统未安装该核心。${plain}"
+                    fi
+                    ;;
+                3) 
+                    if command -v cloudflared >/dev/null 2>&1 || ps -ef | grep -v grep | grep -q cloudflared; then
+                        # 先暴力杀进程，再优雅重启服务，专治 Argo 假死
+                        pkill -9 cloudflared >/dev/null 2>&1
+                        systemctl restart cloudflared >/dev/null 2>&1
+                        echo -e "\n${green}✅ Argo 隧道已刷新连接，请稍等 10 秒后重新测速！${plain}"
+                    else
+                        echo -e "\n${yellow}⚠️ 当前环境未启用 Argo 隧道进程，无需刷新。${plain}"
+                    fi
+                    ;;
+                4) 
+                    echo -e "\n${cyan}正在执行系统级底层服务重启，通杀所有脚本环境...${plain}"
+                    
+                    # 直接针对系统服务下手，不管什么脚本装的，有就重启，没有就不管
+                    systemctl restart sing-box >/dev/null 2>&1
+                    systemctl restart xray >/dev/null 2>&1
+                    pkill -9 cloudflared >/dev/null 2>&1
+                    systemctl restart cloudflared >/dev/null 2>&1
+                    
+                    echo -e "\n${green}✅ 当前系统中存在的所有代理服务已全部满血复活！${plain}"
+                    ;;
+                0) 
+                    echo -e "\n${green}返回主菜单...${plain}"
+                    break
+                    ;;
+                *) 
+                    echo -e "\n${red}❌ 无效选项，请重新输入。${plain}"
+                    ;;
+            esac
+            
+            if [[ "$res_choice" != "0" ]]; then
+                echo ""
+                read -p "👉 按【回车键】继续..."
+            fi
+        done
         ;;
         
     25)
