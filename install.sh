@@ -513,30 +513,33 @@ EOF3
                     ;;
             esac
             ;;
-      23)
+     23)
         while true; do
             echo -e "\n${blue}=== ⏱️ VPS 高级定时任务管理 ===${plain}"
-            echo -e "${yellow}说明：设置后 VPS 会在指定时间自动干活。若已设置，再次设置将覆盖旧任务。${plain}"
+            echo -e "${yellow}说明：设置后 VPS 会在指定时间自动干活。若已设置，再次设置将自动覆盖旧任务。${plain}"
             timedatectl set-timezone Asia/Shanghai
             echo -e "当前北京时间：${green}$(date +"%Y-%m-%d %H:%M:%S")${plain}\n"
             
             echo -e "${cyan}【VPS 整机自动重启】 (清理内存垃圾，防卡死)${plain}"
-            echo -e "1. 设置 [每天] 定时整机重启      11. ${red}删除${plain} [整机重启] 任务"
+            echo -e "1. 设置 [每天] 定时整机重启      11. ${red}彻底删除${plain} [整机重启] 任务"
             echo -e "2. 设置 [每周] 定时整机重启"
             echo -e "3. 设置 [每月] 定时整机重启"
             echo -e "\n${cyan}【WARP IP 自动刷新】 (防 Netflix/ChatGPT 封锁)${plain}"
-            echo -e "4. 设置 [每天] 定时刷新 WARP     44. ${red}删除${plain} [刷新WARP] 任务"
+            echo -e "4. 设置 [每天] 定时刷新 WARP     44. ${red}彻底删除${plain} [刷新WARP] 任务"
             echo -e "\n${cyan}【综合任务管理】${plain}"
-            echo -e "5. 查看当前已生效的任务列表      0. ${yellow}退出并返回主菜单${plain}"
+            echo -e "5. 查看当前已生效的任务列表      55. ${red}一键清空${plain} 所有定时任务 (慎用)"
+            echo -e "0. ${yellow}退出并返回主菜单${plain}"
             echo -e "--------------------------------------------------------"
-            read -p "请输入指令 [0-5, 11, 44]: " cron_choice
+            read -p "请输入指令 [0-5, 11, 44, 55]: " cron_choice
 
             case $cron_choice in
                 1) 
                     read -p "请输入每天重启的小时(0-23) [直接回车则取消]: " h
-                    # 严格校验：不能为空、必须是纯数字、必须在0-23之间
                     if [[ -n "$h" && "$h" =~ ^[0-9]+$ && "$h" -ge 0 && "$h" -le 23 ]]; then
-                        (crontab -l 2>/dev/null | grep -v "/sbin/reboot"; echo "0 $h * * * /sbin/reboot") | crontab -
+                        crontab -l 2>/dev/null | grep -v "reboot" | sed '/^$/d' > /tmp/cron_tmp
+                        echo "0 $h * * * /sbin/reboot" >> /tmp/cron_tmp
+                        crontab /tmp/cron_tmp
+                        rm -f /tmp/cron_tmp
                         echo -e "${green}✅ 设置成功！每天北京时间 $h:00 会自动执行 VPS 整机重启。${plain}"
                     else
                         echo -e "${yellow}⚠️ 检测到无效输入或已直接回车，取消设置，未做任何修改。${plain}"
@@ -547,7 +550,10 @@ EOF3
                     read -p "几点重启(0-23) [直接回车取消]: " h
                     if [[ -n "$d" && "$d" =~ ^[1-7]$ && -n "$h" && "$h" =~ ^[0-9]+$ && "$h" -ge 0 && "$h" -le 23 ]]; then
                         [ "$d" == "7" ] && d=0
-                        (crontab -l 2>/dev/null | grep -v "/sbin/reboot"; echo "0 $h * * $d /sbin/reboot") | crontab -
+                        crontab -l 2>/dev/null | grep -v "reboot" | sed '/^$/d' > /tmp/cron_tmp
+                        echo "0 $h * * $d /sbin/reboot" >> /tmp/cron_tmp
+                        crontab /tmp/cron_tmp
+                        rm -f /tmp/cron_tmp
                         echo -e "${green}✅ 设置成功！每周 $d 的北京时间 $h:00 会自动重启 VPS。${plain}"
                     else
                         echo -e "${yellow}⚠️ 检测到无效输入或已直接回车，取消设置，未做任何修改。${plain}"
@@ -557,33 +563,52 @@ EOF3
                     read -p "每月几号执行整机重启(1-28) [直接回车取消]: " d
                     read -p "几点重启(0-23) [直接回车取消]: " h
                     if [[ -n "$d" && "$d" =~ ^([1-9]|1[0-9]|2[0-8])$ && -n "$h" && "$h" =~ ^[0-9]+$ && "$h" -ge 0 && "$h" -le 23 ]]; then
-                        (crontab -l 2>/dev/null | grep -v "/sbin/reboot"; echo "0 $h $d * * /sbin/reboot") | crontab -
+                        crontab -l 2>/dev/null | grep -v "reboot" | sed '/^$/d' > /tmp/cron_tmp
+                        echo "0 $h $d * * /sbin/reboot" >> /tmp/cron_tmp
+                        crontab /tmp/cron_tmp
+                        rm -f /tmp/cron_tmp
                         echo -e "${green}✅ 设置成功！每月 $d 号的北京时间 $h:00 会自动重启 VPS。${plain}"
                     else
                         echo -e "${yellow}⚠️ 检测到无效输入或已直接回车，取消设置，未做任何修改。${plain}"
                     fi
                     ;;
                 11)
-                    (crontab -l 2>/dev/null | grep -v "/sbin/reboot") | crontab -
-                    echo -e "${green}✅ 成功！已彻底删除 [VPS整机自动重启] 定时任务。${plain}"
+                    crontab -l 2>/dev/null | grep -v "reboot" | sed '/^$/d' > /tmp/cron_tmp
+                    crontab /tmp/cron_tmp
+                    rm -f /tmp/cron_tmp
+                    echo -e "${green}✅ 成功！已彻底抹除 [VPS整机自动重启] 相关的定时任务。${plain}"
                     ;;
                 4) 
                     read -p "请输入每天刷新 WARP 的小时(0-23) [直接回车取消]: " h
                     if [[ -n "$h" && "$h" =~ ^[0-9]+$ && "$h" -ge 0 && "$h" -le 23 ]]; then
-                        (crontab -l 2>/dev/null | grep -v "warp-go"; echo "0 $h * * * systemctl stop warp-go;systemctl restart warp-go;systemctl restart wg-quick@wgcf;systemctl restart warp-svc") | crontab -
+                        crontab -l 2>/dev/null | grep -i -v "warp" | sed '/^$/d' > /tmp/cron_tmp
+                        echo "0 $h * * * systemctl stop warp-go;systemctl restart warp-go;systemctl restart wg-quick@wgcf;systemctl restart warp-svc" >> /tmp/cron_tmp
+                        crontab /tmp/cron_tmp
+                        rm -f /tmp/cron_tmp
                         echo -e "${green}✅ 设置成功！每天北京时间 $h:00 会自动彻底更换一次 WARP 的 IP。${plain}"
                     else
                         echo -e "${yellow}⚠️ 检测到无效输入或已直接回车，取消设置，未做任何修改。${plain}"
                     fi
                     ;;
                 44)
-                    (crontab -l 2>/dev/null | grep -v "warp-go") | crontab -
-                    echo -e "${green}✅ 成功！已彻底删除 [WARP IP 自动刷新] 定时任务。${plain}"
+                    crontab -l 2>/dev/null | grep -i -v "warp" | sed '/^$/d' > /tmp/cron_tmp
+                    crontab /tmp/cron_tmp
+                    rm -f /tmp/cron_tmp
+                    echo -e "${green}✅ 成功！已彻底抹除 [WARP IP 自动刷新] 相关的定时任务。${plain}"
                     ;;
                 5) 
                     echo -e "\n${yellow}👇 当前系统已生效的定时任务列表如下 (如果下方没内容则代表暂无任务)：${plain}"
                     crontab -l 2>/dev/null
                     echo -e "${yellow}--------------------------------------------------------${plain}"
+                    ;;
+                55)
+                    read -p "⚠️ 警告：这会清空当前用户所有的定时任务，确定要执行吗？(y/n): " clear_all
+                    if [[ "$clear_all" == "y" || "$clear_all" == "Y" ]]; then
+                        crontab -r 2>/dev/null
+                        echo -e "${red}🔥 已清空当前用户下的所有定时任务！${plain}"
+                    else
+                        echo -e "${yellow}已取消清空操作。${plain}"
+                    fi
                     ;;
                 0) 
                     echo -e "${green}退出定时任务管理，返回主菜单...${plain}"
