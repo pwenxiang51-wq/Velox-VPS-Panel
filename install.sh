@@ -812,7 +812,7 @@ EOF3
         ;;
         
     24)
-        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与迷你二维码提取 ===${plain}"
+        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (聚合版) ===${plain}"
         
         # 0. 自动安装终端二维码画图组件
         if ! command -v qrencode >/dev/null 2>&1; then
@@ -820,63 +820,41 @@ EOF3
             apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1 || yum install qrencode -y >/dev/null 2>&1
         fi
 
-        # 核心画图函数：采用 UTF8 编码，二维码体积缩小一半，手机也能扫！
-        draw_qr() {
-            local link=$1
-            echo -e "\n${cyan}------------------------------------------------${plain}"
-            echo -e "${green}🔗 提取到节点：${plain}${link}"
-            echo -e "${yellow}👇 扫描下方 [迷你二维码] 导入客户端：${plain}"
-            qrencode -m 2 -t UTF8 "$link"
-            echo -e "${cyan}------------------------------------------------${plain}"
-        }
+        echo -e "${cyan}📡 正在启动全局底层正则扫描，为您搜罗所有隐藏节点...${plain}"
 
-        found_node=0
-        
-        # 终极正则匹配库：加入 # 号支持，通杀 anytls, tuic, hy2, vmess 等所有主流/非主流协议
+        # 终极正则匹配库：通杀所有主流协议
         REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
 
-        # 1. 精准狙击：小钢炮 (AnyTLS) 
-        if [ -f "/root/agsbx/jh.txt" ]; then
-            echo -e "\n${cyan}🎯 扫描到 [小钢炮/AnyTLS] 配置文件，正在提取所有节点...${plain}"
-            # 提取所有命中规则的链接
-            agsbx_links=$(grep -oE "$REGEX_PATTERN" /root/agsbx/jh.txt)
-            if [ -n "$agsbx_links" ]; then
-                for link in $agsbx_links; do
-                    draw_qr "$link"
-                done
-                found_node=1
-            fi
-        fi
+        # 核心绝杀：全盘扫描 + 自动去重 (sort -u 完美解决重复抓取) + 清除隐藏换行符 (tr -d '\r')
+        ALL_LINKS=$(grep -rhoE "$REGEX_PATTERN" /root/ /etc/s-box/ /etc/sing-box/ /usr/local/ 2>/dev/null | sort -u | tr -d '\r')
 
-        # 2. 精准狙击：甬哥 sb 脚本
-        if command -v sb >/dev/null 2>&1; then
-            echo -e "\n${cyan}🎯 扫描到 [甬哥 sb 一键脚本] 运行环境，正在提取所有节点...${plain}"
-            # 搜索常见目录，去除冗余，获取所有链接 (去掉 head -n 1 限制)
-            sb_links=$(grep -rhoE "$REGEX_PATTERN" /etc/s-box/ /etc/sing-box/ /root/ 2>/dev/null | sort -u)
+        if [ -n "$ALL_LINKS" ]; then
+            # ==========================================
+            # 1. 电脑端专属：聚合节点一键复制区
+            # ==========================================
+            echo -e "\n${green}🎉 扫描完毕！成功为您抓取到以下所有不重复的节点：${plain}"
+            echo -e "${yellow}================= 📦 聚合节点列表 (供电脑端一次性复制) =================${plain}"
+            echo -e "${cyan}${ALL_LINKS}${plain}"
+            echo -e "${yellow}======================================================================${plain}"
             
-            if [ -n "$sb_links" ]; then
-                for link in $sb_links; do
-                    draw_qr "$link"
-                done
-                found_node=1
-            else
-                echo -e "${yellow}💡 提示：未在明文文件中扫到 sb 节点。sb 脚本原生自带精美二维码，请退回主界面输入 sb 查看。${plain}"
-                found_node=1
-            fi
-        fi
+            # 防呆提示：解决 V2rayN 复制报错的千古难题
+            echo -e "💡 ${red}复制失败必看${plain}：如果电脑端 V2rayN 导入报错，是因为终端太窄导致链接折行，你复制进了多余的【回车符或空格】！"
+            echo -e "👉 ${green}解决办法${plain}：请把 SSH 软件窗口【拉到最宽】，让每条链接显示在同一行后再复制；或者复制后去 TXT 记事本里把换行删掉！\n"
 
-        # 3. 万能兜底：全盘正则暴力盲扫
-        if [ "$found_node" -eq 0 ]; then
-            echo -e "\n${cyan}📡 未发现常见脚本特征，启动底层正则全盘盲扫 (通杀模式)...${plain}"
-            blind_links=$(grep -rhoE "$REGEX_PATTERN" /root/ 2>/dev/null | sort -u)
-            
-            if [ -n "$blind_links" ]; then
-                echo -e "${green}🎉 暴力扫描命中！为您挖出以下隐藏节点：${plain}"
-                for link in $blind_links; do
-                    draw_qr "$link"
-                done
-            else
-                echo -e "${red}❌ 扫描结束：未能提取到明文节点链接。部分高级脚本需使用专属快捷键查看。${plain}"
+            # ==========================================
+            # 2. 手机端专属：迷你二维码瀑布流
+            # ==========================================
+            echo -e "${cyan}👇 下面为您逐一生成手机端专属的【迷你二维码】：${plain}"
+            for link in $ALL_LINKS; do
+                echo -e "\n${green}🔗 当前节点：${plain}${link}"
+                qrencode -m 2 -t UTF8 "$link"
+                echo -e "${cyan}------------------------------------------------${plain}"
+            done
+
+        else
+            echo -e "\n${red}❌ 扫描结束：未能提取到明文节点链接。${plain}"
+            if command -v sb >/dev/null 2>&1; then
+                echo -e "${yellow}💡 提示：检测到甬哥 sb 脚本。其节点可能启用了高度加密，请退回主界面直接输入 sb 命令查看。${plain}"
             fi
         fi
 
