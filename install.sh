@@ -54,7 +54,7 @@ while true; do
     echo -e "  ${yellow}9.${plain}  ☁️  ${cyan}查看 WARP 与 Argo 状态 (含一键修复)${plain}"
     echo -e "  ${yellow}10.${plain} 🚀 ${cyan}深度验证与管理 BBR 加速 ${bbr_stat}${plain}"
     echo -e "  ${yellow}11.${plain} 🧹 ${yellow}一键清理系统垃圾与防盗门 ${f2b_stat}${plain}"
-    echo -e "  ${yellow}12.${plain} 🔄 ${green}重启服务器${plain}"
+    echo -e "  ${yellow}12.${plain} 🔄  ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}13.${plain} 🎬 ${blue}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
     echo -e "  ${yellow}14.${plain} ⚡ ${blue}TCP 网络底层高阶调优 (极限压榨带宽)${plain}"
@@ -67,6 +67,11 @@ while true; do
     echo -e "  ${yellow}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
     echo -e "  ${yellow}21.${plain} 🕵️ ${purple}查看当前在线 SSH 用户 (抓内鬼排查)${plain}"
     echo -e "  ${yellow}22.${plain} 🚀 ${purple}召唤甬哥全家桶 (Sing-box 终端版 / X-UI 网页版)${plain}"
+    echo -e "${cyan}  ---------------------------------------------------${plain}"
+    echo -e "  ${yellow}23.${plain} ⏱️  ${cyan}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
+    echo -e "  ${yellow}24.${plain} 🔄  ${green}重启代理服务 (仅重启 Sing-box/Argo 等节点程序，VPS 不断线)${plain}"
+    echo -e "  ${yellow}25.${plain} 🔗  ${purple}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
+    echo -e "  ${yellow}26.${plain} 🔐  ${blue}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
@@ -171,7 +176,12 @@ while true; do
                 fi
             fi
             ;;
-        12) read -p "⚠️  确定要重启服务器吗？(y/n): " c; [[ "$c" == "y" ]] && sudo reboot ;;
+        12) 
+        echo -e "\n${red}⚠️ 警告：此操作将物理重启整台 VPS 服务器！${plain}"
+        echo -e "${yellow}执行后，当前的 SSH 连接将会立即断开，请等待 1-2 分钟后再重新连接。${plain}"
+        read -p "确定要整机重启吗？(y/n): " c
+        [[ "$c" == "y" || "$c" == "Y" ]] && sudo reboot 
+        ;;
         13) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
         14) 
             echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ---${plain}"
@@ -503,8 +513,114 @@ EOF3
                     ;;
             esac
             ;;
-        U|u) 
-             echo -e "\n${red}--- ⚠️  卸载操作 ---${plain}"
+        23)
+        echo -e "\n${blue}=== ⏱️ VPS 高级定时任务管理 ===${plain}"
+        echo -e "${yellow}说明：这里可以设置让 VPS 在指定时间自动干活，不用你手动去点。${plain}"
+        timedatectl set-timezone Asia/Shanghai
+        echo -e "当前系统时间已强制校准为北京时间：${green}$(date +"%Y-%m-%d %H:%M:%S")${plain}\n"
+        
+        echo -e "${cyan}【VPS 整机自动重启】 (清理系统内存垃圾，防卡死)${plain}"
+        echo -e "1. 设置 [每天] 定时整机重启\n2. 设置 [每周] 定时整机重启\n3. 设置 [每月] 定时整机重启"
+        echo -e "\n${cyan}【WARP IP 自动刷新】 (防 Netflix/ChatGPT 封锁，防减速)${plain}"
+        echo -e "4. 设置 [每天] 定时刷新 WARP 出站 IP"
+        echo -e "\n${cyan}【任务管理】${plain}"
+        echo -e "5. 查看当前已设置的所有定时任务\n6. 手动修改/清空定时任务\n0. 取消返回"
+        echo -e "--------------------------------------------------------"
+        read -p "请选择操作 [0-6]: " cron_choice
+        case $cron_choice in
+            1) 
+                read -p "请输入每天【VPS整机重启】的小时(填写0-23, 比如填4代表凌晨4点): " h
+                (crontab -l 2>/dev/null | grep -v "/sbin/reboot"; echo "0 $h * * * /sbin/reboot") | crontab -
+                echo -e "\n${green}✅ 设置成功！每天北京时间 $h:00 会自动执行 VPS 整机重启。${plain}"
+                echo -e "${cyan}👇 当前系统已生效的定时任务列表如下：${plain}"
+                crontab -l | grep --color=auto "/sbin/reboot"
+                ;;
+            2) 
+                read -p "星期几执行【VPS整机重启】(填1-7, 7代表周日): " d
+                read -p "几点重启(填写0-23): " h
+                [ "$d" == "7" ] && d=0
+                (crontab -l 2>/dev/null | grep -v "/sbin/reboot"; echo "0 $h * * $d /sbin/reboot") | crontab -
+                echo -e "\n${green}✅ 设置成功！每周 $d 的北京时间 $h:00 会自动重启 VPS。${plain}"
+                echo -e "${cyan}👇 当前系统已生效的定时任务列表如下：${plain}"
+                crontab -l | grep --color=auto "/sbin/reboot"
+                ;;
+            3) 
+                read -p "每月几号执行【VPS整机重启】(填1-28, 为了防错不支持29-31号): " d
+                read -p "几点重启(填写0-23): " h
+                (crontab -l 2>/dev/null | grep -v "/sbin/reboot"; echo "0 $h $d * * /sbin/reboot") | crontab -
+                echo -e "\n${green}✅ 设置成功！每月 $d 号的北京时间 $h:00 会自动重启 VPS。${plain}"
+                echo -e "${cyan}👇 当前系统已生效的定时任务列表如下：${plain}"
+                crontab -l | grep --color=auto "/sbin/reboot"
+                ;;
+            4) 
+                read -p "请输入每天【刷新 WARP IP】的小时(填写0-23): " h
+                (crontab -l 2>/dev/null | grep -v "warp-go"; echo "0 $h * * * systemctl stop warp-go;systemctl restart warp-go;systemctl restart wg-quick@wgcf;systemctl restart warp-svc") | crontab -
+                echo -e "\n${green}✅ 设置成功！每天北京时间 $h:00 会自动更换一次 WARP 的 IP。${plain}"
+                echo -e "${cyan}👇 当前系统已生效的定时任务列表如下：${plain}"
+                crontab -l | grep --color=auto "warp"
+                ;;
+            5) 
+                echo -e "\n${yellow}当前系统的所有定时任务如下 (空则代表没有任务)：${plain}"
+                crontab -l 
+                ;;
+            6) 
+                crontab -e 
+                ;;
+            *) 
+                echo -e "${yellow}已取消${plain}" 
+                ;;
+        esac
+        ;;
+        
+    24)
+        echo -e "\n${blue}=== ⚡ 代理节点服务无痛重启 ===${plain}"
+        echo -e "${yellow}小白科普：当你发现节点连不上、断流时使用此功能。此操作【不会】重启整台 VPS，SSH 终端【不会】断开，瞬间完成。${plain}\n"
+        echo -e "1. 仅重启 Sing-box 核心 (修复直连节点连不上)\n2. 仅重启 Xray 核心\n3. 仅重启 Cloudflared 进程 (修复 Argo 隧道/节点报-1假死)\n4. 🚀 一键重启所有翻墙相关服务 (最推荐)\n0. 取消返回"
+        read -p "请选择操作 [0-4]: " res_choice
+        case $res_choice in
+            1) systemctl restart sing-box; echo -e "${green}✅ Sing-box 代理核心已重新启动${plain}" ;;
+            2) systemctl restart xray; echo -e "${green}✅ Xray 代理核心已重新启动${plain}" ;;
+            3) pkill -9 cloudflared; systemctl restart cloudflared 2>/dev/null || agsbx res 2>/dev/null; echo -e "${green}✅ Argo 隧道已刷新连接，请稍等 10 秒后重新测速${plain}" ;;
+            4) systemctl restart sing-box xray; pkill -9 cloudflared; agsbx res 2>/dev/null; echo -e "${green}✅ 所有节点代理程序已全部满血复活！${plain}" ;;
+        esac
+        ;;
+        
+    25)
+        echo -e "\n${blue}=== 🔗 节点链接与配置速查 ===${plain}"
+        if [ -f "/root/agsbx/jh.txt" ]; then
+            echo -e "${green}✅ 成功提取到小钢炮节点配置：${plain}\n"
+            cat /root/agsbx/jh.txt
+            echo ""
+        elif [ -f "/root/sb/list.txt" ]; then
+            echo -e "${green}✅ 成功提取到 Sing-box 节点配置：${plain}\n"
+            cat /root/sb/list.txt
+            echo ""
+        else
+            echo -e "${red}❌ 未在标准路径找到节点文本，请使用菜单 22 召唤原脚本查看。${plain}"
+        fi
+        ;;
+        
+    26)
+        echo -e "\n${blue}=== 🔐 Acme 证书查询与续签 ===${plain}"
+        if [ -f "/root/.acme.sh/acme.sh" ]; then
+            echo -e "${yellow}当前域名证书列表及到期时间如下：${plain}"
+            /root/.acme.sh/acme.sh --list
+            echo ""
+            read -p "是否需要强制执行续签并重启服务？(y/n): " force_renew
+            if [[ "$force_renew" == "y" || "$force_renew" == "Y" ]]; then
+                echo -e "${cyan}正在向 Let's Encrypt 申请强制续签，请稍候...${plain}"
+                /root/.acme.sh/acme.sh --cron --force
+                systemctl restart sing-box xray
+                echo -e "${green}✅ 续签尝试完成，并已重启代理服务。${plain}"
+            else
+                echo -e "${yellow}已取消强制续签。${plain}"
+            fi
+        else
+            echo -e "${red}❌ 未检测到 Acme.sh 安装环境，说明当前使用的是自签证书或纯 IP 节点。${plain}"
+        fi
+        ;;
+     U|u) 
+            echo -e "\n${red}--- ⚠️  卸载操作 ---${plain}"
              read -p "确定卸载本面板吗？(y/n): " c
              if [[ "$c" == "y" ]]; then 
                  # 1. 删除面板本体及独立组件
