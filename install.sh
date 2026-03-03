@@ -812,7 +812,7 @@ EOF3
         ;;
         
     24)
-        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (聚合版) ===${plain}"
+        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (聚合编码版) ===${plain}"
         
         # 0. 自动安装终端二维码画图组件
         if ! command -v qrencode >/dev/null 2>&1; then
@@ -825,37 +825,48 @@ EOF3
         # 终极正则匹配库：通杀所有主流协议
         REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
 
-        # 核心绝杀：全盘扫描 + 自动去重 (sort -u 完美解决重复抓取) + 清除隐藏换行符 (tr -d '\r')
+        # 全盘扫描 + 自动去重
         ALL_LINKS=$(grep -rhoE "$REGEX_PATTERN" /root/ /etc/s-box/ /etc/sing-box/ /usr/local/ 2>/dev/null | sort -u | tr -d '\r')
 
         if [ -n "$ALL_LINKS" ]; then
-            # ==========================================
-            # 1. 电脑端专属：聚合节点一键复制区
-            # ==========================================
-            echo -e "\n${green}🎉 扫描完毕！成功为您抓取到以下所有不重复的节点：${plain}"
-            echo -e "${yellow}================= 📦 聚合节点列表 (供电脑端一次性复制) =================${plain}"
-            echo -e "${cyan}${ALL_LINKS}${plain}"
+            # 1. 自动生成 Base64 聚合订阅编码
+            # Linux 原生 base64 命令，-w 0 保证长字符串不断行
+            BASE64_SUB=$(echo -e "$ALL_LINKS" | base64 -w 0)
+
+            echo -e "\n${green}🎉 扫描完毕！成功为您抓取到以下不重复的节点：${plain}"
             echo -e "${yellow}======================================================================${plain}"
             
-            # 防呆提示：解决 V2rayN 复制报错的千古难题
-            echo -e "💡 ${red}复制失败必看${plain}：如果电脑端 V2rayN 导入报错，是因为终端太窄导致链接折行，你复制进了多余的【回车符或空格】！"
-            echo -e "👉 ${green}解决办法${plain}：请把 SSH 软件窗口【拉到最宽】，让每条链接显示在同一行后再复制；或者复制后去 TXT 记事本里把换行删掉！\n"
+            # 模块 A：Base64 聚合订阅 (高级玩法)
+            echo -e "🚀【 全节点聚合订阅 (Base64编码) 】节点信息如下："
+            echo -e "分享链接（可直接粘贴到客户端的“从剪贴板导入订阅”）："
+            echo -e "${cyan}${BASE64_SUB}${plain}\n"
+            
+            # 模块 B：明文聚合直连 (防呆玩法)
+            echo -e "📦【 纯净明文节点列表 (供一次性批量复制) 】："
+            echo -e "${cyan}${ALL_LINKS}${plain}\n"
+            echo -e "${yellow}======================================================================${plain}"
+            echo -e "💡 ${red}复制提示${plain}：现在链接独占一行，鼠标【双击链接】即可精准全选，不会再粘到汉字了！\n"
 
-            # ==========================================
-            # 2. 手机端专属：迷你二维码瀑布流
-            # ==========================================
-            echo -e "${cyan}👇 下面为您逐一生成手机端专属的【迷你二维码】：${plain}"
+            # 模块 C：单节点瀑布流 + 迷你二维码 (甬哥同款排版)
+            echo -e "${cyan}👇 下面为您逐一展示单节点详情与【迷你二维码】：${plain}"
+            echo -e "${yellow}------------------------------------------------${plain}"
+            
             for link in $ALL_LINKS; do
-                echo -e "\n${green}🔗 当前节点：${plain}${link}"
+                # 智能提取协议名称并转大写，用于展示酷炫标题 (比如 VLESS, ANYTLS)
+                PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
+                
+                echo -e "🚀【 ${PROTO} 】节点信息如下："
+                echo -e "\n分享链接："
+                # 链接独占一行，解决鼠标双击复制的痛点
+                echo -e "${cyan}${link}${plain}\n"
+                
+                echo -e "二维码："
                 qrencode -m 2 -t UTF8 "$link"
-                echo -e "${cyan}------------------------------------------------${plain}"
+                echo -e "${yellow}------------------------------------------------${plain}"
             done
 
         else
             echo -e "\n${red}❌ 扫描结束：未能提取到明文节点链接。${plain}"
-            if command -v sb >/dev/null 2>&1; then
-                echo -e "${yellow}💡 提示：检测到甬哥 sb 脚本。其节点可能启用了高度加密，请退回主界面直接输入 sb 命令查看。${plain}"
-            fi
         fi
 
         echo -e "\n${yellow}------------------------------------------${plain}"
