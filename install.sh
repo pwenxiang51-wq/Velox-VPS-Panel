@@ -873,24 +873,58 @@ EOF3
         read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-    25)
-        echo -e "\n${blue}=== 🔐 Acme 证书查询与续签 ===${plain}"
+   25)
+        echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 ===${plain}"
+        
+        # 智能侦测 Acme.sh 真实路径
+        ACME_BIN=""
         if [ -f "/root/.acme.sh/acme.sh" ]; then
-            echo -e "${yellow}当前域名证书列表及到期时间如下：${plain}"
-            /root/.acme.sh/acme.sh --list
+            ACME_BIN="/root/.acme.sh/acme.sh"
+        elif [ -f "$HOME/.acme.sh/acme.sh" ]; then
+            ACME_BIN="$HOME/.acme.sh/acme.sh"
+        fi
+
+        if [ -z "$ACME_BIN" ]; then
+            echo -e "${yellow}⚠️ 未检测到 Acme.sh 安装路径。${plain}"
+            echo -e "可能原因：当前 VPS 未申请过本地证书，或使用了 Certbot 等其他证书管理工具。"
+        else
+            echo -e "${cyan}👇 当前 VPS 本地已申请的证书列表与到期时间如下：${plain}"
+            echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
+            "$ACME_BIN" --list
+            echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
+            
+            echo -e "\n${green}💡 小白防坑科普：${plain}"
+            echo -e "虽然域名托管在 Cloudflare，但这层证书是签发并保存在 ${red}VPS 本地硬盘${plain} 上的（用于节点底层加密）。"
+            echo -e "正常的 Acme 脚本会自动在后台续签。但若发现节点突然断流，且距离到期不足 10 天，请手动强制续签！"
+            
             echo ""
-            read -p "是否需要强制执行续签并重启服务？(y/n): " force_renew
+            read -p "👉 是否需要强制执行续签，并自动重启所有代理服务？(y/n): " force_renew
             if [[ "$force_renew" == "y" || "$force_renew" == "Y" ]]; then
-                echo -e "${cyan}正在向 Let's Encrypt 申请强制续签，请稍候...${plain}"
-                /root/.acme.sh/acme.sh --cron --force
-                systemctl restart sing-box xray
-                echo -e "${green}✅ 续签尝试完成，并已重启代理服务。${plain}"
+                read -p "✍️ 请输入上方列表中你需要续签的【主域名 Main_Domain】 (例如 bwg.123.xyz): " renew_domain
+                if [ -n "$renew_domain" ]; then
+                    echo -e "\n${cyan}⏳ 正在向签发机构强制请求续签域名 [ ${renew_domain} ]，请耐心等待...${plain}"
+                    
+                    # 采用 Acme 官方标准续签语法，并兼容 ECC 证书
+                    "$ACME_BIN" --renew -d "$renew_domain" --force --ecc 2>/dev/null
+                    if [ $? -ne 0 ]; then
+                        # 若 ECC 失败，则尝试普通 RSA 证书续签模式
+                        "$ACME_BIN" --renew -d "$renew_domain" --force
+                    fi
+                    
+                    echo -e "\n${cyan}⚡ 续签流程结束！正在联动重启底层代理核心，让新证书瞬间生效...${plain}"
+                    systemctl restart sing-box >/dev/null 2>&1
+                    systemctl restart xray >/dev/null 2>&1
+                    echo -e "${green}✅ 操作完毕！代理服务已满血复活！${plain}"
+                else
+                    echo -e "${red}❌ 域名输入为空，已取消续签操作。${plain}"
+                fi
             else
                 echo -e "${yellow}已取消强制续签。${plain}"
             fi
-        else
-            echo -e "${red}❌ 未检测到 Acme.sh 安装环境，说明当前使用的是自签证书或纯 IP 节点。${plain}"
         fi
+
+        echo -e "\n${yellow}------------------------------------------${plain}"
+        read -p "👉 按【回车键】返回主菜单..."
         ;;
      U|u) 
             echo -e "\n${red}--- ⚠️  卸载操作 ---${plain}"
