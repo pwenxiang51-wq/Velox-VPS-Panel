@@ -1126,8 +1126,7 @@ EOF3
             tar -czf "Velox_Assets_Backup.tar.gz" "$(basename "$BACKUP_DIR")" >/dev/null 2>&1
             rm -rf "$BACKUP_DIR"
             
-            # 动态获取当前机器 IP 和端口，方便生成精准的克隆命令
-            CURRENT_IP=$(curl -s4m 3 https://api.ipify.org 2>/dev/null || echo "当前VPS的IP")
+            # 动态获取当前 SSH 端口（IP让用户自己填）
             SSH_PORT=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
             [ -z "$SSH_PORT" ] && SSH_PORT="22"
 
@@ -1141,14 +1140,15 @@ EOF3
             echo -e "  2. 登录【新机器】，直接将该包拖拽上传到新机器的 /root 目录下。\n"
             
             echo -e "${cyan}👉 方案 B：使用纯命令行工具 (CMD / PowerShell / Mac 终端)${plain}"
-            echo -e "  📥 【第一步：下载到本地电脑】打开电脑本地新终端，粘贴执行："
-            echo -e "   - ${yellow}[Windows 用户]${plain} (存至 D 盘): ${green}scp -P $SSH_PORT root@$CURRENT_IP:/root/Velox_Assets_Backup.tar.gz D:\\${plain}"
-            echo -e "   - ${yellow}[Mac/Linux 用户]${plain} (存至桌面): ${green}scp -P $SSH_PORT root@$CURRENT_IP:/root/Velox_Assets_Backup.tar.gz ~/Desktop/${plain}\n"
-            
-            echo -e "  📤 【第二步：上传至新机器】(请将下方 ${red}新VPS的IP${plain} 替换后执行)："
-            echo -e "   - ${yellow}[Windows 用户]${plain}: ${green}scp -P 22 D:\\Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/${plain}"
-            echo -e "   - ${yellow}[Mac/Linux 用户]${plain}: ${green}scp -P 22 ~/Desktop/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/${plain}\n"
-
+            echo -e "  📥 【第一步：下载到本地电脑】打开电脑本地新终端，复制执行 (请修改旧IP)："
+            # 下面两行故意去掉了颜色变量，彻底杜绝隐藏乱码 033[0m 被复制
+            echo "   - [Windows 用户] (存至 D 盘): scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz D:/"
+            echo "   - [Mac/Linux 用户] (存至桌面): scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz ~/Desktop/"
+            echo ""
+            echo -e "  📤 【第二步：上传至新机器】(请修改新IP及端口)："
+            echo "   - [Windows 用户]: scp -P 22 D:/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
+            echo "   - [Mac/Linux 用户]: scp -P 22 ~/Desktop/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
+            echo ""
             echo -e "${purple}🔥 【第三步：终极恢复指令】 (全平台通用，在新 VPS 的 SSH 窗口执行)：${plain}"
             echo -e "当备份包成功传到【新机器】后，直接复制运行以下长命令实现一键满血复活："
             echo -e "  ${cyan}cd /root && tar -xzf Velox_Assets_Backup.tar.gz && BACKUP_NAME=\$(ls -d velox_backup_*) && cp -rf \$BACKUP_NAME/agsbx /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/s-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/sing-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/x-ui /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/.acme.sh /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/custom_assets/* / 2>/dev/null; crontab \$BACKUP_NAME/crontab_backup.txt 2>/dev/null; rm -rf Velox_Assets_Backup.tar.gz \$BACKUP_NAME; echo -e \"\\n✅ 资产覆盖恢复成功！节点与证书已满血复活！\"${plain}"
