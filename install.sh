@@ -43,22 +43,30 @@ while true; do
     echo -e "作者Velo.x博客 : ${blue}222382.xyz${plain}"
     echo -e "${cyan}=====================================================${plain}"
     # ==============================================
+    # --- 第一板块：系统核心运维 ---
+    echo -e "${blue}[ 板块一：🛡️ 系统核心运维 ]${plain}"
     echo -e "  ${yellow}1.${plain}  📊 ${green}查看系统基础信息${plain}"
     echo -e "  ${yellow}2.${plain}  💾 ${green}查看磁盘空间占用${plain}"
     echo -e "  ${yellow}3.${plain}  ⏱️  ${green}查看运行时间与负载${plain}"
     echo -e "  ${yellow}4.${plain}  📊 ${green}快速查看内存报告 (静态快照)${plain}"
     echo -e "  ${yellow}5.${plain}  📈 ${green}实时监控 CPU 与内存 (按 q 退出)${plain}"
     echo -e "  ${yellow}6.${plain}  🔌 ${green}查看系统监听端口${plain}"
+    # --- 第二板块：网络高阶调优 ---
+    echo -e "\n${blue}[ 板块二：🚀 网络高阶调优 ]${plain}"
     echo -e "  ${yellow}7.${plain}  📦 ${green}查看代理服务运行状态 (深度体检与 IP 查询) ${sb_stat}${plain}"
     echo -e "  ${yellow}8.${plain}  🌐  ${cyan}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
     echo -e "  ${yellow}9.${plain} 🚀 ${cyan}深度验证与管理 BBR 加速 ${bbr_stat}${plain}"
     echo -e "  ${yellow}10.${plain} 🧹 ${yellow}一键清理系统垃圾与防盗门 ${f2b_stat}${plain}"
     echo -e "  ${yellow}11.${plain} 🔄  ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
+    # --- 第三板块：代理核心管理 ---
+    echo -e "\n${blue}[ 板块三：🔌 代理核心管理 ]${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}12.${plain} 🎬 ${blue}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
     echo -e "  ${yellow}13.${plain} ⚡ ${blue}TCP 网络底层高阶调优 (极限压榨带宽)${plain}"
     echo -e "  ${yellow}14.${plain} 🛰️ ${blue}全球主流节点 Ping 延迟测速${plain}"
     echo -e "  ${yellow}15.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 (含开机秒报 & 环境深度兼容) ${tg_stat}${plain}"
+    # --- 第四板块：自动化与工具 ---
+    echo -e "\n${blue}[ 板块四：🛠️ 自动化与高阶工具 ]${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}16.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
     echo -e "  ${yellow}17${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
@@ -66,6 +74,8 @@ while true; do
     echo -e "  ${yellow}19.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
     echo -e "  ${yellow}20.${plain} 🕵️ ${purple}查看当前在线 SSH 用户 (抓内鬼排查)${plain}"
     echo -e "  ${yellow}21.${plain} 🚀 ${purple}召唤甬哥全家桶 (Sing-box 终端版 / X-UI 网页版)${plain}"
+    # --- 第五板块：核心修复与导出 ---
+    echo -e "\n${blue}[ 板块五：⚡ 核心修复与配置提取 ]${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}22.${plain} ⏱️  ${cyan}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
     echo -e "  ${yellow}23.${plain} 🔄  ${green}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
