@@ -1101,22 +1101,31 @@ EOF3
 
         echo -e "${cyan}--------------------------------------------------------${plain}"
         
-        # --- 4. 极客专属：自定义目录打包引擎 ---
+        # --- 4. 极客专属：自定义目录打包引擎 (带保姆级小抄) ---
         echo -e "💡 ${green}除了以上标准资产，您是否还有其他应用需要一起打包搬家？${plain}"
-        echo -e "（例如：Docker 挂载目录 /opt/docker_data，或网盘配置 /opt/alist/data）"
+        echo -e "${purple}📚 【常见应用路径小抄】 (如需打包，请直接复制下方路径)：${plain}"
+        echo -e "   - ☁️ Alist 网盘数据:  ${yellow}/opt/alist/data${plain}"
+        echo -e "   - 🤖 哪吒探针面板:  ${yellow}/opt/nezha${plain}"
+        echo -e "   - 🐳 Docker 数据卷:  ${yellow}/var/lib/docker/volumes${plain}"
+        echo -e "   - 🌐 Nginx 网站目录:  ${yellow}/var/www/html${plain}"
+        echo -e "   - 博客/私有文件等:  ${yellow}您自己创建的其他绝对路径${plain}"
         read -p "👉 请输入完整路径 (多个路径用空格隔开，直接回车则跳过): " custom_paths
 
         if [ -n "$custom_paths" ]; then
+            mkdir -p "$BACKUP_DIR/custom_assets"
             for path in $custom_paths; do
                 if [ -d "$path" ] || [ -f "$path" ]; then
-                    mkdir -p "$BACKUP_DIR/custom_assets"
-                    cp -r "$path" "$BACKUP_DIR/custom_assets/"
-                    echo -e "📦 成功将自定义路径追加至包裹: ${yellow}$path${plain}"
+                    # 切换到根目录执行，利用 --parents 完美保留绝对路径层级 (例如 opt/alist/data)
+                    cd /
+                    rel_path="${path#/}"
+                    cp --parents -r "$rel_path" "$BACKUP_DIR/custom_assets/" 2>/dev/null
+                    echo -e "📦 成功将自定义路径追加至包裹 (已锁定目录结构): ${yellow}$path${plain}"
                     has_data=1
                 else
                     echo -e "⚠️ ${red}找不到指定的文件或目录，已跳过: $path${plain}"
                 fi
             done
+            cd /root
         fi
 
         if [ "$has_data" -eq 1 ]; then
@@ -1126,7 +1135,7 @@ EOF3
             tar -czf "Velox_Assets_Backup.tar.gz" "$(basename "$BACKUP_DIR")" >/dev/null 2>&1
             rm -rf "$BACKUP_DIR"
             
-            # 动态获取当前 SSH 端口（IP让用户自己填）
+            # 动态获取当前 SSH 端口
             SSH_PORT=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
             [ -z "$SSH_PORT" ] && SSH_PORT="22"
 
@@ -1141,7 +1150,6 @@ EOF3
             
             echo -e "${cyan}👉 方案 B：使用纯命令行工具 (CMD / PowerShell / Mac 终端)${plain}"
             echo -e "  📥 【第一步：下载到本地电脑】打开电脑本地新终端，复制执行 (请修改旧IP)："
-            # 下面两行故意去掉了颜色变量，彻底杜绝隐藏乱码 033[0m 被复制
             echo "   - [Windows 用户] (存至 D 盘): scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz D:/"
             echo "   - [Mac/Linux 用户] (存至桌面): scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz ~/Desktop/"
             echo ""
