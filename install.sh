@@ -258,20 +258,23 @@ while true; do
         echo -e "\n${blue}=== 🛡️ 节点 IP 纯净度与欺诈风险体检 ===${plain}"
         echo -e "${yellow}正在向全球数据库查询当前 VPS 的出站 IP 纯净度，请稍候...${plain}\n"
 
-        # 获取出站 IP
         VPS_IP=$(curl -s4m 3 https://api.ipify.org || curl -s4m 3 https://ip.gs)
         
         if [ -n "$VPS_IP" ]; then
             echo -e "🌍 当前出站 IP: ${cyan}${VPS_IP}${plain}\n"
             
-            # 调用 ping0.cc 的终端专属接口
-            echo -e "${yellow}--- 📊 IP 欺诈风险与类型评估 ---${plain}"
-            curl -sL "https://ping0.cc/geo" | head -n 12
+            echo -e "${yellow}--- 📊 IP 综合分析报告 ---${plain}"
+            # 完整输出 ping0 的报告（不限制行数，防截断）
+            curl -sL "https://ping0.cc/geo" 2>/dev/null
+            
+            # 补充备用数据库查询（更直观的中文格式）
+            echo -e "\n${cyan}--- 🌐 备用数据库补充信息 ---${plain}"
+            curl -sL "http://ip-api.com/line/$VPS_IP?lang=zh-CN&fields=country,regionName,city,isp,org,as,mobile,proxy,hosting" 2>/dev/null | awk 'NR==1{print "国家/地区: "$0} NR==2{print "省份/州: "$0} NR==3{print "城市: "$0} NR==4{print "ISP 运营商: "$0} NR==5{print "所属机构: "$0} NR==6{print "ASN 号: "$0} NR==7{print "是否移动网络: "($0=="true"?"是":"否")} NR==8{print "是否代理/VPN: "($0=="true"?"是 (被标记)":"否 (干净)")} NR==9{print "是否机房 IP: "($0=="true"?"是 (Hosting)":"否 (家宽)")}'
             
             echo -e "\n${green}💡 极客科普：${plain}"
             echo -e "🟢 ${green}原生 IP (ISP)${plain}: 极品！流媒体全解锁，免谷歌验证码。"
             echo -e "🟡 ${yellow}机房 IP (Hosting)${plain}: 普通 VPS 都是这种，偶发验证码。"
-            echo -e "🔴 ${red}风险 IP (Risk/Fraud)${plain}: 欺诈值若飘红，说明 IP 已被玩烂，建议套 WARP 或换机！"
+            echo -e "🔴 ${red}风险 IP (Risk/Fraud)${plain}: 欺诈值若飘红，说明 IP 已被玩烂，建议套 WARP！"
         else
             echo -e "${red}❌ 无法获取本机 IP，请检查网络连接。${plain}"
         fi
@@ -483,11 +486,46 @@ EOF3
             echo ""
             read -p "👉 按【回车键】返回主菜单..."
             ;;
-        17)
-            echo -e "\n${blue}--- 📈 网卡流量统计 (开机至今) ---${plain}"
-            ip -s link | awk '/^[0-9]+:/ { iface=$2 } /RX:/ { getline; rx=$1 } /TX:/ { getline; tx=$1; printf "网卡 %s\n  ⬇️ 下载: %.2f MB\n  ⬆️ 上传: %.2f MB\n", iface, rx/1048576, tx/1048576 }'
-            ;;
-        18)
+       17)
+        echo -e "\n${blue}=== 📈 本机网卡流量统计 (实时计算版) ===${plain}"
+        echo -e "统计自上次开机以来的总流量 (重启系统后会清零)："
+        echo -e "${cyan}-------------------------------------------------------------${plain}"
+        
+        # 使用 awk 自动换算单位并画出对齐的表格
+        awk '
+        BEGIN {
+            printf "%-12s | %-12s | %-12s | %-12s\n", "🌐 网卡接口", "⬇️ 下载量", "⬆️ 上传量", "🔄 流量总计"
+            printf "-------------------------------------------------------------\n"
+        }
+        NR > 2 {
+            rx = $2; tx = $10; total = rx + tx;
+            
+            # 智能转换单位
+            if (rx > 1073741824) {rx_str = sprintf("%.2f GB", rx/1073741824)}
+            else if (rx > 1048576) {rx_str = sprintf("%.2f MB", rx/1048576)}
+            else {rx_str = sprintf("%.2f KB", rx/1024)}
+            
+            if (tx > 1073741824) {tx_str = sprintf("%.2f GB", tx/1073741824)}
+            else if (tx > 1048576) {tx_str = sprintf("%.2f MB", tx/1048576)}
+            else {tx_str = sprintf("%.2f KB", tx/1024)}
+            
+            if (total > 1073741824) {total_str = sprintf("%.2f GB", total/1073741824)}
+            else if (total > 1048576) {total_str = sprintf("%.2f MB", total/1048576)}
+            else {total_str = sprintf("%.2f KB", total/1024)}
+            
+            # 过滤掉本地回环，只显示真实网卡
+            if ($1 != "lo:") {
+                printf "%-14s | %-14s | %-14s | %-14s\n", $1, rx_str, tx_str, total_str
+            }
+        }
+        ' /proc/net/dev
+        
+        echo -e "${cyan}-------------------------------------------------------------${plain}"
+        echo -e "💡 ${yellow}提示：${plain} 此数据为系统底层实时统计。如果需要按月统计的持久化账单，建议以后考虑安装 vnstat。"
+        echo -e ""
+        read -p "👉 按【回车键】返回主菜单..."
+        ;;
+      18)
             echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
             current_swap=$(free -m | grep Swap | awk '{print $2}')
             if [ "$current_swap" -gt "0" ]; then
@@ -550,118 +588,104 @@ EOF3
             ;;
       21)
         while true; do
-            echo -e "\n${blue}=== 🚨 SSH 高级防盗门与安全审计中心 ===${plain}"
-            echo -e "${yellow}⚠️ 警告：修改 SSH 端口或关闭密码前，请务必确认已开启防火墙放行并配置好密钥！${plain}\n"
+            # 动态侦测当前 SSH 端口
+            current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
+            [ -z "$current_port" ] && current_port="22 (默认)"
+
+            # 动态侦测密码登录状态
+            if grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config; then
+                pw_status="${red}已关闭 (高安全)${plain}"
+                pw_toggle="重新开启"
+            else
+                pw_status="${green}已开启 (有风险)${plain}"
+                pw_toggle="强制关闭"
+            fi
+
+            echo -e "\n${blue}=== 🚨 SSH 隐身防盗门与安全审计中心 ===${plain}"
+            echo -e "${yellow}⚠️ 当前状态 -> 端口: [ $current_port ] | 密码登录: [ $pw_status ]${plain}\n"
             
             echo -e "  ${yellow}1.${plain} 🕵️  ${cyan}查看当前在线 SSH 用户并实施制裁 (踢出/拉黑/恶搞)${plain} ${green}[您的专属绝活]${plain}"
             echo -e "  ${yellow}2.${plain} 💣  审计近 24 小时被拦截的黑客爆破日志 (查历史外鬼)"
-            echo -e "  ${yellow}3.${plain} 🚪  修改 SSH 默认 22 端口 (防全网自动扫描)"
-            echo -e "  ${yellow}4.${plain} 🔑  强制关闭密码登录 (仅限密钥登录，绝对免疫撞库)"
+            echo -e "  ${yellow}3.${plain} 🚪  修改 SSH 端口 (输入 22 即可恢复系统默认端口)"
+            echo -e "  ${yellow}4.${plain} 🔑  一键切换密码登录开关 (${yellow}执行操作: $pw_toggle${plain})"
             echo -e "  ${red}0.${plain}  返回主菜单"
             echo -e "--------------------------------------------------------"
             read -p "👉 请选择安全操作 [0-4]: " ssh_choice
             
             case $ssh_choice in
                 1)
-                    # ==========================================
-                    # 保留大佬原创：在线抓内鬼与极客恶搞制裁系统
-                    # ==========================================
+                    # --- 抓内鬼代码保持原样不变 ---
                     echo -e "\n${blue}--- 🕵️ 查看当前在线 SSH 用户 ---${plain}"
-                    echo "以下是目前正连接在您这台服务器上的所有终端会话: "
-                    echo -e "${cyan}---------------------------------------------------${plain}"
                     w
                     echo -e "${cyan}---------------------------------------------------${plain}"
-                    echo -e " 💡 如果您发现了除了您自己之外的陌生 IP 正在登录，请立刻拉响警报！ "
-                    echo -e "${cyan}---------------------------------------------------${plain}"
                     read -p "请输入要制裁的终端号 (例如 pts/1，直接回车取消): " target_pts
-                    
                     if [[ -n "$target_pts" ]]; then
-                        # 校验终端是否存在
                         if w | grep -q "$target_pts"; then
-                            # 抓取对方真实 IP
                             target_ip=$(w | grep "$target_pts" | awk '{print $3}')
                             echo -e "\n${yellow}🎯 已锁定目标: 终端 [$target_pts] | 来源 IP: [$target_ip]${plain}"
-                            echo -e "  ${cyan}1.${plain} 🥾 强行踢出 (物理拔插头)"
-                            echo -e "  ${cyan}2.${plain} 🧱 永久拉黑 (封禁IP + 踢出)"
-                            echo -e "  ${cyan}3.${plain} 👻 极客恶搞 (发送恐怖警告并踢出)"
-                            read -p "请为该内鬼选择制裁套餐 [1-3]: " punish_choice
-                            
+                            echo -e "  ${cyan}1.${plain} 🥾 强行踢出\n  ${cyan}2.${plain} 🧱 永久拉黑\n  ${cyan}3.${plain} 👻 极客恶搞"
+                            read -p "选择制裁套餐 [1-3]: " punish_choice
                             case $punish_choice in
-                                1)
-                                    sudo skill -9 "$target_pts"
-                                    echo -e "${green}✅ 已将其一脚踹下线！${plain}"
-                                    ;;
+                                1) sudo skill -9 "$target_pts"; echo -e "${green}✅ 已踢出！${plain}" ;;
                                 2)
-                                    # 尝试用 fail2ban 封禁，如果没装就用 iptables 备用方案
-                                    if command -v fail2ban-client &> /dev/null; then
-                                        sudo fail2ban-client set sshd banip "$target_ip" >/dev/null 2>&1
-                                    else
-                                        sudo iptables -A INPUT -s "$target_ip" -j DROP
-                                    fi
-                                    sudo skill -9 "$target_pts"
-                                    echo -e "${green}✅ 关门打狗！IP [$target_ip] 已被永久拉黑，且已被踢出！${plain}"
-                                    ;;
+                                    if command -v fail2ban-client &> /dev/null; then sudo fail2ban-client set sshd banip "$target_ip" >/dev/null 2>&1; else sudo iptables -A INPUT -s "$target_ip" -j DROP; fi
+                                    sudo skill -9 "$target_pts"; echo -e "${green}✅ 已永久拉黑！${plain}" ;;
                                 3)
-                                    echo -e "\n${purple}😈 正在向对方屏幕发送“死神警告”，准备欣赏对方的恐惧...${plain}"
-                                    # 强行向对方的显示器输出红色恐吓文字
-                                    sudo bash -c "echo -e '\n\n\033[1;31m[FATAL WARNING] UNAUTHORIZED ACCESS DETECTED.\033[0m' > /dev/$target_pts"
-                                    sudo bash -c "echo -e '\033[1;31m[SYSTEM] YOUR REAL IP [$target_ip] HAS BEEN LOGGED AND REPORTED TO FBI CYBER DIVISION.\033[0m' > /dev/$target_pts"
-                                    sudo bash -c "echo -e '\033[1;31m[SYSTEM] INITIATING COUNTER-HACK SEQUENCE IN 3...\033[0m' > /dev/$target_pts"
-                                    sleep 1
-                                    sudo bash -c "echo -e '\033[1;31m2...\033[0m' > /dev/$target_pts"
-                                    sleep 1
-                                    sudo bash -c "echo -e '\033[1;31m1...\033[0m' > /dev/$target_pts"
-                                    sleep 1
-                                    sudo bash -c "echo -e '\033[1;31mGOODBYE.\033[0m\n\n' > /dev/$target_pts"
-                                    sudo skill -9 "$target_pts"
-                                    echo -e "${green}✅ 恶搞完毕！对方看着满屏飘红的警告被强制断开，估计正在连夜扛着主机跑路！${plain}"
-                                    ;;
-                                *)
-                                    echo -e "${red}取消制裁。${plain}"
-                                    ;;
+                                    echo -e "\n${purple}😈 发送死神警告...${plain}"
+                                    sudo bash -c "echo -e '\n\n\033[1;31m[FATAL WARNING] UNAUTHORIZED ACCESS.\033[0m' > /dev/$target_pts"
+                                    sleep 2
+                                    sudo skill -9 "$target_pts"; echo -e "${green}✅ 恶搞完毕并踢出！${plain}" ;;
+                                *) echo -e "${red}取消操作。${plain}" ;;
                             esac
                         else
-                            echo -e "${red}⚠️ 找不到指定的终端号 $target_pts，请重新核对！${plain}"
+                            echo -e "${red}⚠️ 找不到终端号！${plain}"
                         fi
                     fi
                     ;;
                 2)
-                    echo -e "\n${blue}--- 💣 正在统计恶意尝试登录本机的黑客 IP (Top 10) ---${plain}"
-                    LOG_FILE="/var/log/auth.log"
-                    [ ! -f "$LOG_FILE" ] && LOG_FILE="/var/log/secure"
-                    
+                    echo -e "\n${blue}--- 💣 正在统计恶意爆破日志 (Top 10) ---${plain}"
+                    LOG_FILE="/var/log/auth.log"; [ ! -f "$LOG_FILE" ] && LOG_FILE="/var/log/secure"
                     if [ -f "$LOG_FILE" ]; then
                         ATTACKS=$(grep "Failed password" "$LOG_FILE" | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
-                        if [ -z "$ATTACKS" ]; then
-                            echo -e "${green}🎉 太棒了！你的服务器隐藏得很好，暂无被爆破记录。${plain}"
-                        else
-                            echo -e "${yellow}次数    黑客 IP 地址${plain}"
-                            echo -e "${cyan}$ATTACKS${plain}"
-                            echo -e "\n💡 提示：如果上面密密麻麻全是攻击，强烈建议执行选项 3 和 4！"
-                        fi
-                    else
-                        echo -e "${yellow}未找到系统安全日志文件。${plain}"
+                        [ -z "$ATTACKS" ] && echo -e "${green}🎉 无爆破记录。${plain}" || echo -e "${cyan}$ATTACKS${plain}"
                     fi
                     ;;
                 3)
-                    read -p "✍️ 请输入新的 SSH 端口号 (建议 10000-65535): " new_port
-                    if [[ "$new_port" =~ ^[0-9]+$ ]] && [ "$new_port" -ge 1000 ] && [ "$new_port" -le 65535 ]; then
+                    read -p "✍️ 请输入 SSH 端口号 (1000-65535, 输入 22 恢复默认): " new_port
+                    if [[ "$new_port" =~ ^[0-9]+$ ]] && ([ "$new_port" -eq 22 ] || ([ "$new_port" -ge 1000 ] && [ "$new_port" -le 65535 ])); then
+                        # 智能替换端口
                         sed -i "s/^#\?Port .*/Port $new_port/g" /etc/ssh/sshd_config
+                        # 如果没有 Port 字段则追加
+                        grep -q "^Port " /etc/ssh/sshd_config || echo "Port $new_port" >> /etc/ssh/sshd_config
+                        
                         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                        echo -e "\n${green}✅ SSH 端口已修改为: ${red}$new_port${plain}"
-                        echo -e "⚠️ ${yellow}重要：请立刻在云服务商防火墙面板放行此端口，否则下次将失联！${plain}"
+                        if [ "$new_port" -eq 22 ]; then
+                            echo -e "\n${green}✅ SSH 端口已成功恢复为默认的 ${red}22${plain} 端口！${plain}"
+                        else
+                            echo -e "\n${green}✅ SSH 端口已修改为: ${red}$new_port${plain}"
+                            echo -e "⚠️ ${yellow}切记去云面板放行此端口！${plain}"
+                        fi
                     else
-                        echo -e "\n${red}❌ 端口格式不正确或不在安全范围内。${plain}"
+                        echo -e "\n${red}❌ 端口不合法。${plain}"
                     fi
                     ;;
                 4)
-                    read -p "⚠️ 危险操作：关闭前请确认已成功配置密钥！确认关闭密码登录？(y/n): " confirm_key
-                    if [[ "$confirm_key" == "y" || "$confirm_key" == "Y" ]]; then
-                        sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/g' /etc/ssh/sshd_config
+                    if grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config; then
+                        # 当前是关闭状态，执行开启
+                        sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
                         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                        echo -e "\n${green}✅ 密码登录已永久关闭！这台机器现在对暴力破解彻底免疫！${plain}"
+                        echo -e "\n${yellow}🔓 密码登录已【重新开启】！(系统安全性下降，请注意防范)${plain}"
                     else
-                        echo -e "\n${yellow}已取消操作。${plain}"
+                        # 当前是开启状态，执行关闭
+                        read -p "⚠️ 危险：请确认你已配置好密钥！确认关闭密码登录？(y/n): " confirm_key
+                        if [[ "$confirm_key" == "y" || "$confirm_key" == "Y" ]]; then
+                            sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
+                            grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
+                            systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                            echo -e "\n${green}✅ 密码登录已【永久关闭】！(仅限密钥访问)${plain}"
+                        else
+                            echo -e "\n${yellow}已取消。${plain}"
+                        fi
                     fi
                     ;;
                 0) break ;;
