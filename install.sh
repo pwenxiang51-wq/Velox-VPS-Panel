@@ -51,7 +51,7 @@ while true; do
     echo -e "  ${yellow}6.${plain}  🌐 ${green}查看当前公网 IP${plain}"
     echo -e "  ${yellow}7.${plain}  🔌 ${green}查看系统监听端口${plain}"
     echo -e "  ${yellow}8.${plain}  📦 ${green}查看代理服务运行状态 (多核心智能检测) ${sb_stat}${plain}"
-    echo -e "  ${yellow}9.${plain}  ☁️  ${cyan}查看 WARP 与 Argo 状态 (含一键修复)${plain}"
+    echo -e "  ${yellow}9.${plain}  🌐  ${cyan}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
     echo -e "  ${yellow}10.${plain} 🚀 ${cyan}深度验证与管理 BBR 加速 ${bbr_stat}${plain}"
     echo -e "  ${yellow}11.${plain} 🧹 ${yellow}一键清理系统垃圾与防盗门 ${f2b_stat}${plain}"
     echo -e "  ${yellow}12.${plain} 🔄  ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
@@ -89,58 +89,83 @@ while true; do
         6) echo -e "\n${blue}--- 公网 IP ---${plain}"; curl -s ifconfig.me; echo "" ;;
         7) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
      8)
-        echo -e "\n${blue}=== 📦 代理核心状态智能侦测 ===${plain}"
-        echo -e "${yellow}说明：系统正在自动扫描底层服务，识别已安装的代理核心...${plain}\n"
+        echo -e "\n${blue}=== 📦 代理核心深度体检 (系统底层) ===${plain}"
+        echo -e "${yellow}当前北京时间：${green}$(date +"%Y-%m-%d %H:%M:%S")${plain}\n"
 
-        # --- 侦测 Sing-box (甬哥sb、小钢炮等通用) ---
-        if systemctl list-unit-files | grep -qw sing-box.service; then
-            if systemctl is-active --quiet sing-box; then
-                echo -e " 🚀 Sing-box 核心 : ${green}运行中 ✅${plain}"
-            else
-                echo -e " 🚀 Sing-box 核心 : ${red}已停止/出故障 ❌${plain}"
-            fi
-        else
-            echo -e " 🚀 Sing-box 核心 : ${yellow}未安装 ⚠️${plain}"
-        fi
+        check_detail() {
+            local service=$1
+            local display=$2
+            if systemctl list-unit-files | grep -qw "${service}.service"; then
+                # 自动提取版本号
+                local version=$($service version 2>/dev/null | head -n 1 | awk '{print $2}')
+                [ -z "$version" ] && version=$($service -version 2>/dev/null | head -n 1 | awk '{print $3}')
+                [ -z "$version" ] && version="未知版本"
 
-        # --- 侦测 Xray (X-UI、Mack-a等通用) ---
-        if systemctl list-unit-files | grep -qw xray.service; then
-            if systemctl is-active --quiet xray; then
-                echo -e " 🛸 Xray 核心     : ${green}运行中 ✅${plain}"
-            else
-                echo -e " 🛸 Xray 核心     : ${red}已停止/出故障 ❌${plain}"
-            fi
-        else
-            echo -e " 🛸 Xray 核心     : ${yellow}未安装 ⚠️${plain}"
-        fi
+                # 提取监听端口
+                local ports=$(ss -tlnp | grep "$service" | awk '{print $4}' | awk -F':' '{print $NF}' | sort -u | tr '\n' ' ')
+                [ -z "$ports" ] && ports="无外部监听"
 
-        # --- 侦测 Argo 隧道 (Cloudflared) ---
-        if command -v cloudflared >/dev/null 2>&1 || systemctl list-unit-files | grep -qw cloudflared.service; then
-            if pgrep -x "cloudflared" >/dev/null || systemctl is-active --quiet cloudflared 2>/dev/null; then
-                echo -e " 🚇 Argo 隧道     : ${green}运行中 ✅${plain}"
+                if systemctl is-active --quiet "$service"; then
+                    echo -e " ${display} : ${green}运行中 ✅${plain}"
+                    echo -e "    └─ 版本: ${cyan}${version}${plain}  端口: ${cyan}${ports}${plain}"
+                else
+                    echo -e " ${display} : ${red}已停止/出故障 ❌${plain}"
+                fi
             else
-                echo -e " 🚇 Argo 隧道     : ${red}已停止/出故障 ❌${plain}"
+                echo -e " ${display} : ${yellow}未安装/未启用 ⚠️${plain}"
             fi
-        else
-            echo -e " 🚇 Argo 隧道     : ${yellow}未安装 ⚠️${plain}"
-        fi
+        }
+
+        check_detail "sing-box" "🚀 Sing-box 核心"
+        check_detail "xray"     "🛸 Xray     核心"
+
+        echo -e "\n${blue}--- 🌍 服务器当前公网出口详情 ---${plain}"
+        curl -sS --max-time 3 https://ip.gs || echo -e "${yellow}获取 IP 失败，请检查网络连接${plain}"
         
-        echo ""
+        echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-      9) 
-            echo -e "\n${blue}--- 🌐 WARP 解锁状态 ---${plain}"
-            curl -s https://www.cloudflare.com/cdn-cgi/trace | grep -E "warp=|ip="
-            echo -e "\n${blue}--- 🚇 Argo 隧道进程检测 ---${plain}"
-            ps aux | grep -i "cloudflared" | grep -v "grep" || echo -e "${red}[ 警告 ] 未发现 Argo 隧道进程运行！${plain}"
-            echo -e "\n${cyan}---------------------------------------------------${plain}"
-            read -p "如果发现状态异常，是否尝试强制重启 Argo 隧道？(y/n): " fix_it
-            if [[ "$fix_it" == "y" ]]; then
-                echo "正在尝试重启隧道服务..."
-                systemctl restart cloudflared && echo -e "${green}重启指令已发送，请稍后重新按 9 查看！${plain}"
+     9)
+        echo -e "\n${blue}=== 🌐 WARP 与 Argo 隧道出站详情 ===${plain}"
+        echo -e "${yellow}正在侦测网络出站链路，请稍候...${plain}\n"
+        
+        # 1. 侦测 WARP 状态与虚拟 IP
+        echo -e "${cyan}[ WARP 解锁状态 ]${plain}"
+        # 检查是否有 warp 服务在运行
+        if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null; then
+            # 获取 Cloudflare trace 信息
+            local trace=$(curl -s4m 3 https://www.cloudflare.com/cdn-cgi/trace)
+            if echo "$trace" | grep -q "warp=on"; then
+                local warp_ip=$(echo "$trace" | grep ip= | cut -d= -f2)
+                echo -e " 🛡️  WARP 状态 : ${green}已开启并接管流量 ✅${plain}"
+                echo -e " 🛡️  出口 IP   : ${cyan}${warp_ip}${plain} (Cloudflare 节点)"
+            else
+                echo -e " 🛡️  WARP 状态 : ${yellow}服务已启动但未成功接管流量 ⚠️${plain}"
             fi
-            ;;
-        10) 
+        else
+            echo -e " 🛡️  WARP 状态 : ${red}未开启或未安装 ❌${plain}"
+        fi
+
+        # 2. 侦测 Argo 隧道域名
+        echo -e "\n${cyan}[ Argo 隧道状态 ]${plain}"
+        if pgrep -x "cloudflared" >/dev/null; then
+            echo -e " 🚇 Argo 进程 : ${green}运行中 ✅${plain}"
+            # 这里的正则专门抓取你朋友那种 AnyTLS 或是甬哥脚本产生的临时 trycloudflare 域名
+            local argo_url=$(ps -ef | grep cloudflared | grep -oE "[a-zA-Z0-9.-]+\.trycloudflare\.com" | head -n 1)
+            if [ -n "$argo_url" ]; then
+                echo -e " 🚇 临时域名 : ${cyan}https://${argo_url}${plain}"
+            else
+                echo -e " 🚇 临时域名 : ${yellow}未能提取到临时域名 (可能使用固定域名或正在启动)${plain}"
+            fi
+        else
+            echo -e " 🚇 Argo 进程 : ${red}未运行 ❌${plain}"
+        fi
+
+        echo -e "\n${yellow}提示：如需修复以上出站异常，请返回主菜单使用第 24 项。${plain}"
+        echo -e "${yellow}------------------------------------------${plain}"
+        read -p "👉 按【回车键】继续..."
+        ;;
+     10) 
             echo -e "\n${blue}--- 🚀 BBR 状态诊断与管理 ---${plain}"
             current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
             echo -e "当前系统正在使用的算法: ${yellow}${current_cc}${plain}"
