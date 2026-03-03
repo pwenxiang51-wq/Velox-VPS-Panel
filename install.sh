@@ -1058,13 +1058,11 @@ EOF3
         has_data=0
 
         # --- 1. 代理脚本与面板全家桶扫描 ---
-        # 小钢炮 (AnyTLS)
         if [ -d "/root/agsbx" ]; then
             cp -r /root/agsbx "$BACKUP_DIR/"
             echo -e "✅ 成功提取 [小钢炮/AnyTLS] 核心配置"
             has_data=1
         fi
-        # 甬哥 sb 脚本
         if [ -d "/etc/s-box" ]; then
             cp -r /etc/s-box "$BACKUP_DIR/"
             echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"
@@ -1074,7 +1072,6 @@ EOF3
             echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"
             has_data=1
         fi
-        # X-UI / 3X-UI 面板数据库 (包含所有节点和流量数据)
         if [ -d "/etc/x-ui" ]; then
             cp -r /etc/x-ui "$BACKUP_DIR/"
             echo -e "✅ 成功提取 [X-UI / 3X-UI 面板] 数据库与配置"
@@ -1082,7 +1079,6 @@ EOF3
         fi
 
         # --- 2. 核心护盾扫描 ---
-        # Acme 证书
         if [ -d "/root/.acme.sh" ]; then
             cp -r /root/.acme.sh "$BACKUP_DIR/"
             echo -e "✅ 成功提取 [Acme 域名证书资产]"
@@ -1094,7 +1090,6 @@ EOF3
         fi
 
         # --- 3. 自动化任务扫描 ---
-        # Crontab 定时任务
         if crontab -l > "$BACKUP_DIR/crontab_backup.txt" 2>/dev/null; then
             if [ -s "$BACKUP_DIR/crontab_backup.txt" ]; then
                 echo -e "✅ 成功提取 [系统定时任务 (crontab)]"
@@ -1114,7 +1109,6 @@ EOF3
         if [ -n "$custom_paths" ]; then
             for path in $custom_paths; do
                 if [ -d "$path" ] || [ -f "$path" ]; then
-                    # 为了防止路径冲突，将自定义文件统一放进 custom_assets 目录
                     mkdir -p "$BACKUP_DIR/custom_assets"
                     cp -r "$path" "$BACKUP_DIR/custom_assets/"
                     echo -e "📦 成功将自定义路径追加至包裹: ${yellow}$path${plain}"
@@ -1131,16 +1125,31 @@ EOF3
             cd /root
             tar -czf "Velox_Assets_Backup.tar.gz" "$(basename "$BACKUP_DIR")" >/dev/null 2>&1
             rm -rf "$BACKUP_DIR"
+            
+            # 动态获取当前机器 IP 和端口，方便生成精准的克隆命令
+            CURRENT_IP=$(curl -s4m 3 https://api.ipify.org 2>/dev/null || echo "当前VPS的IP")
+            SSH_PORT=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
+            [ -z "$SSH_PORT" ] && SSH_PORT="22"
 
             echo -e "\n${green}🎉 资产克隆打包完毕！您的全域备份文件已生成：${plain}"
             echo -e "${cyan}📂 文件绝对路径：/root/Velox_Assets_Backup.tar.gz${plain}"
             
-            echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (极客必读)：${plain}"
-            echo -e "1. 将此压缩包下载后，传至 ${green}新机器${plain} 的 /root 目录下。"
-            echo -e "2. 在新机器解压：${cyan}tar -xzf Velox_Assets_Backup.tar.gz${plain}"
-            echo -e "3. 将解压出的配置文件夹（如 agsbx, .acme.sh, x-ui）分别覆盖回新系统根目录对应的位置。"
-            echo -e "4. 恢复定时任务：${cyan}crontab /root/velox_backup_*/crontab_backup.txt${plain}"
-            echo -e "5. ${red}注意：Docker 项目请在新机器重装 Docker 后，再将你打包的数据卷覆盖过去并重新执行 docker-compose up -d。${plain}"
+            echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (保姆级全平台通用版)：${plain}"
+            echo -e "--------------------------------------------------------"
+            echo -e "${cyan}👉 方案 A：使用图形化 SSH 软件 (如 FinalShell / Xshell / Termius 等)${plain}"
+            echo -e "  1. 在软件的文件管理界面，进入 /root 目录，右键下载备份包到电脑桌面。"
+            echo -e "  2. 登录【新 VPS】，直接将该包拖拽上传到新机器的 /root 目录下。\n"
+            
+            echo -e "${cyan}👉 方案 B：使用纯命令行工具 (如 CMD / PowerShell / Mac 终端)${plain}"
+            echo -e "  1. 📥 下载到本地：打开电脑本地新终端执行："
+            echo -e "     ${green}scp -P $SSH_PORT root@$CURRENT_IP:/root/Velox_Assets_Backup.tar.gz 本地电脑的文件夹路径${plain}"
+            echo -e "  2. 📤 上传至新机：(替换新机器的 IP 及其 SSH 端口后执行)"
+            echo -e "     ${green}scp -P 22 本地电脑的文件夹路径/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/${plain}\n"
+
+            echo -e "${purple}🔥 终极恢复指令 (全平台通用！)：${plain}"
+            echo -e "当备份包成功放入【新 VPS】的 /root 目录后，登录新机器执行以下一键复活长命令："
+            echo -e "  ${cyan}cd /root && tar -xzf Velox_Assets_Backup.tar.gz && BACKUP_NAME=\$(ls -d velox_backup_*) && cp -rf \$BACKUP_NAME/agsbx /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/s-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/sing-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/x-ui /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/.acme.sh /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/custom_assets/* / 2>/dev/null; crontab \$BACKUP_NAME/crontab_backup.txt 2>/dev/null; rm -rf Velox_Assets_Backup.tar.gz \$BACKUP_NAME; echo -e \"\\n✅ 资产覆盖恢复成功！节点与证书已满血复活！\"${plain}"
+            echo -e "--------------------------------------------------------"
         else
             echo -e "\n${red}❌ 扫描结束：未提取到任何资产，打包已取消。${plain}"
             rm -rf "$BACKUP_DIR"
