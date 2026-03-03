@@ -812,7 +812,7 @@ EOF3
         ;;
         
     24)
-        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 ===${plain}"
+        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与迷你二维码提取 ===${plain}"
         
         # 0. 自动安装终端二维码画图组件
         if ! command -v qrencode >/dev/null 2>&1; then
@@ -820,64 +820,63 @@ EOF3
             apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1 || yum install qrencode -y >/dev/null 2>&1
         fi
 
-        # 定义画二维码和打印链接的专属函数
+        # 核心画图函数：采用 UTF8 编码，二维码体积缩小一半，手机也能扫！
         draw_qr() {
             local link=$1
-            echo -e "\n${green}✅ 成功提取到底层节点链接：${plain}"
-            echo -e "${cyan}${link}${plain}\n"
-            echo -e "${yellow}👇 请使用 V2rayN / Shadowrocket / Nekobox 等客户端扫码导入：${plain}"
-            qrencode -t ANSI256 "$link"
+            echo -e "\n${cyan}------------------------------------------------${plain}"
+            echo -e "${green}🔗 提取到节点：${plain}${link}"
+            echo -e "${yellow}👇 扫描下方 [迷你二维码] 导入客户端：${plain}"
+            qrencode -m 2 -t UTF8 "$link"
+            echo -e "${cyan}------------------------------------------------${plain}"
         }
 
         found_node=0
+        
+        # 终极正则匹配库：加入 # 号支持，通杀 anytls, tuic, hy2, vmess 等所有主流/非主流协议
+        REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
 
-        # 1. 精准狙击：小钢炮 (AnyTLS)
+        # 1. 精准狙击：小钢炮 (AnyTLS) 
         if [ -f "/root/agsbx/jh.txt" ]; then
-            echo -e "\n${cyan}🎯 扫描到 [小钢炮/AnyTLS] 配置文件...${plain}"
-            agsbx_link=$(grep -oE "(anytls|vless|vmess|trojan|hysteria2)://[^ ]+" /root/agsbx/jh.txt | head -n 1)
-            if [ -n "$agsbx_link" ]; then
-                draw_qr "$agsbx_link"
+            echo -e "\n${cyan}🎯 扫描到 [小钢炮/AnyTLS] 配置文件，正在提取所有节点...${plain}"
+            # 提取所有命中规则的链接
+            agsbx_links=$(grep -oE "$REGEX_PATTERN" /root/agsbx/jh.txt)
+            if [ -n "$agsbx_links" ]; then
+                for link in $agsbx_links; do
+                    draw_qr "$link"
+                done
                 found_node=1
             fi
         fi
 
         # 2. 精准狙击：甬哥 sb 脚本
         if command -v sb >/dev/null 2>&1; then
-            echo -e "\n${cyan}🎯 扫描到 [甬哥 sb 一键脚本] 运行环境...${plain}"
+            echo -e "\n${cyan}🎯 扫描到 [甬哥 sb 一键脚本] 运行环境，正在提取所有节点...${plain}"
+            # 搜索常见目录，去除冗余，获取所有链接 (去掉 head -n 1 限制)
+            sb_links=$(grep -rhoE "$REGEX_PATTERN" /etc/s-box/ /etc/sing-box/ /root/ 2>/dev/null | sort -u)
             
-            # 尝试暴力正则提取 sb 目录下的隐藏链接
-            sb_link=$(grep -roE "(vless|vmess|trojan|hysteria2)://[^\"' ]+" /etc/s-box/ /etc/sing-box/ /root/ 2>/dev/null | grep -v "agsbx" | head -n 1 | awk -F ':' '{out=$2; for(i=3;i<=NF;i++){out=out":"$i} print out}')
-            
-            if [ -n "$sb_link" ]; then
-                draw_qr "$sb_link"
+            if [ -n "$sb_links" ]; then
+                for link in $sb_links; do
+                    draw_qr "$link"
+                done
                 found_node=1
             else
-                echo -e "${yellow}💡 提示：sb 脚本的节点是动态混淆加密的，且原生自带精美二维码。${plain}"
-                echo -e "👉 请退回 SSH 主界面，直接输入 ${green}sb${plain} 进入其独立面板提取即可。"
+                echo -e "${yellow}💡 提示：未在明文文件中扫到 sb 节点。sb 脚本原生自带精美二维码，请退回主界面输入 sb 查看。${plain}"
                 found_node=1
             fi
         fi
-        
-        # 3. 精准狙击：X-UI 面板
-        if command -v x-ui >/dev/null 2>&1 || systemctl list-unit-files | grep -qw x-ui.service; then
-            echo -e "\n${cyan}🎯 扫描到 [X-UI 面板] 运行环境...${plain}"
-            echo -e "${yellow}💡 提示：X-UI 的节点存在数据库加密结构中，请直接在浏览器登录 X-UI 后台扫码。${plain}"
-            found_node=1
-        fi
 
-        # 4. 万能兜底：全盘正则暴力盲扫 (通杀各种偏门脚本)
+        # 3. 万能兜底：全盘正则暴力盲扫
         if [ "$found_node" -eq 0 ]; then
             echo -e "\n${cyan}📡 未发现常见脚本特征，启动底层正则全盘盲扫 (通杀模式)...${plain}"
+            blind_links=$(grep -rhoE "$REGEX_PATTERN" /root/ 2>/dev/null | sort -u)
             
-            # 盲扫 /root 目录下的所有明文链接
-            blind_link=$(grep -roE "(vless|vmess|trojan|hysteria2|ss)://[^\"' <]+" /root/ 2>/dev/null | head -n 1 | awk -F ':' '{out=$2; for(i=3;i<=NF;i++){out=out":"$i} print out}')
-            
-            if [ -n "$blind_link" ]; then
-                echo -e "${green}🎉 暴力扫描命中！为您挖出隐藏节点：${plain}"
-                draw_qr "$blind_link"
+            if [ -n "$blind_links" ]; then
+                echo -e "${green}🎉 暴力扫描命中！为您挖出以下隐藏节点：${plain}"
+                for link in $blind_links; do
+                    draw_qr "$link"
+                done
             else
-                echo -e "${red}❌ 扫描结束：未能在当前系统中提取到明文节点链接。${plain}"
-                echo -e "建议：部分高级脚本（如 Mack-a）节点高度隐蔽，需使用其专属快捷键（如 vasma）查看。"
+                echo -e "${red}❌ 扫描结束：未能提取到明文节点链接。部分高级脚本需使用专属快捷键查看。${plain}"
             fi
         fi
 
