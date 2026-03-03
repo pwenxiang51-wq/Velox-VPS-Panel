@@ -586,10 +586,10 @@ EOF3
             fi
             echo -e "\n${green}✅ 系统底层库及组件已全部更新至最新状态！机器状态满血！${plain}"
             ;;
-      21)
+     21)
         while true; do
             # 动态侦测当前 SSH 端口
-            current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
+            current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
             [ -z "$current_port" ] && current_port="22 (默认)"
 
             # 动态侦测密码登录状态
@@ -604,79 +604,87 @@ EOF3
             echo -e "\n${blue}=== 🚨 SSH 隐身防盗门与安全审计中心 ===${plain}"
             echo -e "${yellow}⚠️ 当前状态 -> 端口: [ $current_port ] | 密码登录: [ $pw_status ]${plain}\n"
             
-            echo -e "  ${yellow}1.${plain} 🕵️  ${cyan}查看当前在线 SSH 用户并实施制裁 (踢出/拉黑/恶搞)${plain} ${green}[您的专属绝活]${plain}"
-            echo -e "  ${yellow}2.${plain} 💣  审计近 24 小时被拦截的黑客爆破日志 (查历史外鬼)"
-            echo -e "  ${yellow}3.${plain} 🚪  修改 SSH 端口 (输入 22 即可恢复系统默认端口)"
-            echo -e "  ${yellow}4.${plain} 🔑  一键切换密码登录开关 (${yellow}执行操作: $pw_toggle${plain})"
+            echo -e "  ${yellow}1.${plain} 🕵️  查看当前在线 SSH 用户并实施制裁"
+            echo -e "  ${yellow}2.${plain} 💣  审计被拦截的黑客爆破日志 (查外鬼)"
+            echo -e "  ${yellow}3.${plain} 🚪  修改 SSH 端口 (输入 22 即可恢复默认)"
+            echo -e "  ${yellow}4.${plain} 🔑  一键切换密码登录开关 (执行: $pw_toggle)"
+            echo -e "  ${yellow}5.${plain} 🛡️  ${green}一键添加 SSH 公钥 (配置免密登录必备)${plain}"
             echo -e "  ${red}0.${plain}  返回主菜单"
             echo -e "--------------------------------------------------------"
-            read -p "👉 请选择安全操作 [0-4]: " ssh_choice
+            read -p "👉 请选择安全操作 [0-5]: " ssh_choice
             
             case $ssh_choice in
                 1)
-                    # --- 抓内鬼代码保持原样不变 ---
                     echo -e "\n${blue}--- 🕵️ 查看当前在线 SSH 用户 ---${plain}"
                     w
                     echo -e "${cyan}---------------------------------------------------${plain}"
-                    read -p "请输入要制裁的终端号 (例如 pts/1，直接回车取消): " target_pts
+                    read -p "请输入要制裁的终端号 (例如 pts/1，必须完整输入): " target_pts
                     if [[ -n "$target_pts" ]]; then
-                        if w | grep -q "$target_pts"; then
-                            target_ip=$(w | grep "$target_pts" | awk '{print $3}')
+                        # 加入 -w 严格匹配，防止输入不完整导致抓取错乱
+                        if w | awk '{print $2}' | grep -wq "$target_pts"; then
+                            target_ip=$(w | grep -w "$target_pts" | awk '{print $3}')
                             echo -e "\n${yellow}🎯 已锁定目标: 终端 [$target_pts] | 来源 IP: [$target_ip]${plain}"
                             echo -e "  ${cyan}1.${plain} 🥾 强行踢出\n  ${cyan}2.${plain} 🧱 永久拉黑\n  ${cyan}3.${plain} 👻 极客恶搞"
                             read -p "选择制裁套餐 [1-3]: " punish_choice
                             case $punish_choice in
-                                1) sudo skill -9 "$target_pts"; echo -e "${green}✅ 已踢出！${plain}" ;;
+                                1) sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 已踢出！${plain}" ;;
                                 2)
                                     if command -v fail2ban-client &> /dev/null; then sudo fail2ban-client set sshd banip "$target_ip" >/dev/null 2>&1; else sudo iptables -A INPUT -s "$target_ip" -j DROP; fi
-                                    sudo skill -9 "$target_pts"; echo -e "${green}✅ 已永久拉黑！${plain}" ;;
+                                    sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 已永久拉黑！${plain}" ;;
                                 3)
                                     echo -e "\n${purple}😈 发送死神警告...${plain}"
-                                    sudo bash -c "echo -e '\n\n\033[1;31m[FATAL WARNING] UNAUTHORIZED ACCESS.\033[0m' > /dev/$target_pts"
+                                    sudo bash -c "echo -e '\n\n\033[1;31m[FATAL WARNING] UNAUTHORIZED ACCESS.\033[0m' > /dev/$target_pts" 2>/dev/null
                                     sleep 2
-                                    sudo skill -9 "$target_pts"; echo -e "${green}✅ 恶搞完毕并踢出！${plain}" ;;
+                                    sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 恶搞完毕并踢出！${plain}" ;;
                                 *) echo -e "${red}取消操作。${plain}" ;;
                             esac
                         else
-                            echo -e "${red}⚠️ 找不到终端号！${plain}"
+                            echo -e "${red}⚠️ 找不到指定的终端号！请检查是否拼写完整 (必须是如 pts/1 这样的格式)。${plain}"
                         fi
                     fi
                     ;;
                 2)
                     echo -e "\n${blue}--- 💣 正在统计恶意爆破日志 (Top 10) ---${plain}"
-                    LOG_FILE="/var/log/auth.log"; [ ! -f "$LOG_FILE" ] && LOG_FILE="/var/log/secure"
-                    if [ -f "$LOG_FILE" ]; then
-                        ATTACKS=$(grep "Failed password" "$LOG_FILE" | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
-                        [ -z "$ATTACKS" ] && echo -e "${green}🎉 无爆破记录。${plain}" || echo -e "${cyan}$ATTACKS${plain}"
+                    ATTACKS=""
+                    # 智能适配 Debian 12 / Ubuntu 22+ 的新型系统日志
+                    if [ -f "/var/log/auth.log" ]; then
+                        ATTACKS=$(grep "Failed password" /var/log/auth.log | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
+                    elif [ -f "/var/log/secure" ]; then
+                        ATTACKS=$(grep "Failed password" /var/log/secure | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
+                    elif command -v journalctl &> /dev/null; then
+                        ATTACKS=$(journalctl -u ssh -u sshd --no-pager 2>/dev/null | grep "Failed password" | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
+                    fi
+                    
+                    if [ -z "$ATTACKS" ]; then
+                        echo -e "${green}🎉 太棒了，当前系统底层未查到任何被爆破的记录！${plain}"
+                    else
+                        echo -e "${yellow}次数   |   攻击者 IP${plain}"
+                        echo -e "${cyan}$ATTACKS${plain}"
                     fi
                     ;;
                 3)
-                    read -p "✍️ 请输入 SSH 端口号 (1000-65535, 输入 22 恢复默认): " new_port
+                    read -p "✍️ 请输入新的 SSH 端口号 (1000-65535, 输入 22 恢复默认): " new_port
                     if [[ "$new_port" =~ ^[0-9]+$ ]] && ([ "$new_port" -eq 22 ] || ([ "$new_port" -ge 1000 ] && [ "$new_port" -le 65535 ])); then
-                        # 智能替换端口
                         sed -i "s/^#\?Port .*/Port $new_port/g" /etc/ssh/sshd_config
-                        # 如果没有 Port 字段则追加
                         grep -q "^Port " /etc/ssh/sshd_config || echo "Port $new_port" >> /etc/ssh/sshd_config
                         
                         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
                         if [ "$new_port" -eq 22 ]; then
-                            echo -e "\n${green}✅ SSH 端口已成功恢复为默认的 ${red}22${plain} 端口！${plain}"
+                            echo -e "\n${green}✅ SSH 端口已成功恢复为默认的 ${red}22${plain} 端口！(之前的自定义端口已被抹除)${plain}"
                         else
-                            echo -e "\n${green}✅ SSH 端口已修改为: ${red}$new_port${plain}"
-                            echo -e "⚠️ ${yellow}切记去云面板放行此端口！${plain}"
+                            echo -e "\n${green}✅ SSH 端口已成功修改为: ${red}$new_port${plain}"
+                            echo -e "⚠️ ${yellow}切记去云面板 (如 阿里云/腾讯云/GCP) 的防火墙放行此端口！${plain}"
                         fi
                     else
-                        echo -e "\n${red}❌ 端口不合法。${plain}"
+                        echo -e "\n${red}❌ 端口不合法，操作已取消。${plain}"
                     fi
                     ;;
                 4)
                     if grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config; then
-                        # 当前是关闭状态，执行开启
                         sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
                         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
                         echo -e "\n${yellow}🔓 密码登录已【重新开启】！(系统安全性下降，请注意防范)${plain}"
                     else
-                        # 当前是开启状态，执行关闭
                         read -p "⚠️ 危险：请确认你已配置好密钥！确认关闭密码登录？(y/n): " confirm_key
                         if [[ "$confirm_key" == "y" || "$confirm_key" == "Y" ]]; then
                             sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
@@ -686,6 +694,24 @@ EOF3
                         else
                             echo -e "\n${yellow}已取消。${plain}"
                         fi
+                    fi
+                    ;;
+                5)
+                    echo -e "\n${blue}--- 🛡️ 一键添加 SSH 公钥 (配置免密登录) ---${plain}"
+                    echo -e "请用记事本打开您电脑上的 .pub 公钥文件，将里面的长串字符复制进来。"
+                    read -p "👉 请粘贴公钥 (通常以 ssh-rsa 或 ssh-ed25519 开头): " ssh_pub_key
+                    
+                    if [[ "$ssh_pub_key" == ssh-rsa* ]] || [[ "$ssh_pub_key" == ssh-ed25519* ]] || [[ "$ssh_pub_key" == ecdsa-sha2* ]]; then
+                        # 自动创建目录并赋予最高安全级别的底层权限
+                        mkdir -p ~/.ssh
+                        chmod 700 ~/.ssh
+                        echo "$ssh_pub_key" >> ~/.ssh/authorized_keys
+                        chmod 600 ~/.ssh/authorized_keys
+                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                        echo -e "\n${green}✅ 公钥已成功注入系统底座！${plain}"
+                        echo -e "💡 ${yellow}极客建议：请立刻新开一个 SSH 窗口测试能否直接免密连上。确认成功后，再使用【选项 4】焊死密码登录！${plain}"
+                    else
+                        echo -e "\n${red}❌ 格式识别失败！您粘贴的不是标准的公钥格式。${plain}"
                     fi
                     ;;
                 0) break ;;
