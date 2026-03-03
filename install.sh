@@ -620,26 +620,35 @@ EOF3
                     echo -e "${cyan}---------------------------------------------------${plain}"
                     read -p "请输入要制裁的终端号 (例如 pts/1，必须完整输入): " target_pts
                     if [[ -n "$target_pts" ]]; then
-                        # 加入 -w 严格匹配，防止输入不完整导致抓取错乱
-                        if w | awk '{print $2}' | grep -wq "$target_pts"; then
-                            target_ip=$(w | grep -w "$target_pts" | awk '{print $3}')
-                            echo -e "\n${yellow}🎯 已锁定目标: 终端 [$target_pts] | 来源 IP: [$target_ip]${plain}"
-                            echo -e "  ${cyan}1.${plain} 🥾 强行踢出\n  ${cyan}2.${plain} 🧱 永久拉黑\n  ${cyan}3.${plain} 👻 极客恶搞"
-                            read -p "选择制裁套餐 [1-3]: " punish_choice
-                            case $punish_choice in
-                                1) sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 已踢出！${plain}" ;;
-                                2)
-                                    if command -v fail2ban-client &> /dev/null; then sudo fail2ban-client set sshd banip "$target_ip" >/dev/null 2>&1; else sudo iptables -A INPUT -s "$target_ip" -j DROP; fi
-                                    sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 已永久拉黑！${plain}" ;;
-                                3)
-                                    echo -e "\n${purple}😈 发送死神警告...${plain}"
-                                    sudo bash -c "echo -e '\n\n\033[1;31m[FATAL WARNING] UNAUTHORIZED ACCESS.\033[0m' > /dev/$target_pts" 2>/dev/null
-                                    sleep 2
-                                    sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 恶搞完毕并踢出！${plain}" ;;
-                                *) echo -e "${red}取消操作。${plain}" ;;
-                            esac
+                        # 采用正则强校验，必须是 pts/数字 的格式，防止小白乱填
+                        if [[ "$target_pts" =~ ^pts/[0-9]+$ ]]; then
+                            if w | grep -q "$target_pts"; then
+                                # 智能提取 IP：无视系统排版错位，利用正则精准抓取 IPv4
+                                target_ip=$(w | grep "$target_pts" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+                                [ -z "$target_ip" ] && target_ip="未知IP或隐藏来源"
+                                
+                                echo -e "\n${yellow}🎯 已锁定目标: 终端 [$target_pts] | 来源 IP: [$target_ip]${plain}"
+                                echo -e "  ${cyan}1.${plain} 🥾 强行踢出\n  ${cyan}2.${plain} 🧱 永久拉黑\n  ${cyan}3.${plain} 👻 极客恶搞"
+                                read -p "选择制裁套餐 [1-3]: " punish_choice
+                                case $punish_choice in
+                                    1) sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 已踢出！${plain}" ;;
+                                    2)
+                                        if [ "$target_ip" != "未知IP或隐藏来源" ]; then
+                                            if command -v fail2ban-client &> /dev/null; then sudo fail2ban-client set sshd banip "$target_ip" >/dev/null 2>&1; else sudo iptables -A INPUT -s "$target_ip" -j DROP; fi
+                                        fi
+                                        sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 已永久拉黑！${plain}" ;;
+                                    3)
+                                        echo -e "\n${purple}😈 发送死神警告...${plain}"
+                                        sudo bash -c "echo -e '\n\n\033[1;31m[FATAL WARNING] UNAUTHORIZED ACCESS.\033[0m' > /dev/$target_pts" 2>/dev/null
+                                        sleep 2
+                                        sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 恶搞完毕并踢出！${plain}" ;;
+                                    *) echo -e "${red}取消操作。${plain}" ;;
+                                esac
+                            else
+                                echo -e "${red}⚠️ 当前在线记录中找不到终端 [$target_pts]！${plain}"
+                            fi
                         else
-                            echo -e "${red}⚠️ 找不到指定的终端号！请检查是否拼写完整 (必须是如 pts/1 这样的格式)。${plain}"
+                            echo -e "${red}⚠️ 格式错误！必须严格输入如 pts/1 这样的格式，不能只输入一部分。${plain}"
                         fi
                     fi
                     ;;
@@ -702,7 +711,6 @@ EOF3
                     read -p "👉 请粘贴公钥 (通常以 ssh-rsa 或 ssh-ed25519 开头): " ssh_pub_key
                     
                     if [[ "$ssh_pub_key" == ssh-rsa* ]] || [[ "$ssh_pub_key" == ssh-ed25519* ]] || [[ "$ssh_pub_key" == ecdsa-sha2* ]]; then
-                        # 自动创建目录并赋予最高安全级别的底层权限
                         mkdir -p ~/.ssh
                         chmod 700 ~/.ssh
                         echo "$ssh_pub_key" >> ~/.ssh/authorized_keys
