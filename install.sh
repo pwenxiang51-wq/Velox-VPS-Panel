@@ -60,33 +60,32 @@ while true; do
     echo -e "  ${yellow}11.${plain} 🔄  ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
     # --- 第三板块：代理核心管理 ---
     echo -e "\n${blue}[ 板块三：🔌 代理核心管理 ]${plain}"
-    echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${yellow}12.${plain} 🎬 ${blue}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
-    echo -e "  ${yellow}13.${plain} ⚡ ${blue}TCP 网络底层高阶调优 (极限压榨带宽)${plain}"
-    echo -e "  ${yellow}14.${plain} 🛰️ ${blue}全球主流节点 Ping 延迟测速${plain}"
-    echo -e "  ${yellow}15.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 (含开机秒报 & 环境深度兼容) ${tg_stat}${plain}"
+    echo -e "  ${yellow}13.${plain} 🛡️ ${green}IP 纯净度与欺诈风险体检 (精准排雷)${plain}"
+    echo -e "  ${yellow}14.${plain} ⚡ ${blue}TCP 网络底层高阶调优 (极限压榨带宽)${plain}"
+    echo -e "  ${yellow}15.${plain} 🛰️ ${blue}全球主流节点 Ping 延迟测速${plain}"
+    echo -e "  ${yellow}16.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 (含开机秒报 & 环境深度兼容) ${tg_stat}${plain}"
     # --- 第四板块：自动化与工具 ---
     echo -e "\n${blue}[ 板块四：🛠️ 自动化与高阶工具 ]${plain}"
-    echo -e "${cyan}  ---------------------------------------------------${plain}"
-    echo -e "  ${yellow}16.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
-    echo -e "  ${yellow}17${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
-    echo -e "  ${yellow}18.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
-    echo -e "  ${yellow}19.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
-    echo -e "  ${yellow}20.${plain} 🕵️ ${purple}查看当前在线 SSH 用户 (抓内鬼排查)${plain}"
-    echo -e "  ${yellow}21.${plain} 🚀 ${purple}召唤甬哥全家桶 (Sing-box 终端版 / X-UI 网页版)${plain}"
+    echo -e "  ${yellow}17.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
+    echo -e "  ${yellow}18.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
+    echo -e "  ${yellow}19.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
+    echo -e "  ${yellow}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
+    echo -e "  ${yellow}21.${plain} 🚨 ${red}SSH 隐身防盗门与安全审计中心 (抓内鬼/改端口/锁密码)${plain}"
+    echo -e "  ${yellow}22.${plain} 🚀 ${purple}召唤甬哥全家桶 (Sing-box 终端版 / X-UI 网页版)${plain}"
     # --- 第五板块：核心修复与导出 ---
     echo -e "\n${blue}[ 板块五：⚡ 核心修复与配置提取 ]${plain}"
-    echo -e "${cyan}  ---------------------------------------------------${plain}"
-    echo -e "  ${yellow}22.${plain} ⏱️  ${cyan}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
-    echo -e "  ${yellow}23.${plain} 🔄  ${green}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
-    echo -e "  ${yellow}24.${plain} 🔗  ${purple}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
-    echo -e "  ${yellow}25.${plain} 🔐  ${blue}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
+    echo -e "  ${yellow}23.${plain} ⏱️  ${cyan}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
+    echo -e "  ${yellow}24.${plain} 🔄  ${green}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
+    echo -e "  ${yellow}25.${plain} 🔗  ${purple}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
+    echo -e "  ${yellow}26.${plain} 🔐  ${blue}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
+    echo -e "  ${yellow}27.${plain} 🧳 ${green}全域资产一键打包与跨机搬家 (数据克隆)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
-    echo -ne "请选择操作 [${yellow}1-22${plain}]: "
+    echo -ne "请选择操作 [${yellow}1-27${plain}]: "
     read choice
     
     case $choice in
@@ -248,14 +247,39 @@ while true; do
                 fi
             fi
             ;;
-        11) 
+     11) 
         echo -e "\n${red}⚠️ 警告：此操作将物理重启整台 VPS 服务器！${plain}"
         echo -e "${yellow}执行后，当前的 SSH 连接将会立即断开，请等待 1-2 分钟后再重新连接。${plain}"
         read -p "确定要整机重启吗？(y/n): " c
         [[ "$c" == "y" || "$c" == "Y" ]] && sudo reboot 
         ;;
-        12) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
-        13) 
+     12) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
+     13)
+        echo -e "\n${blue}=== 🛡️ 节点 IP 纯净度与欺诈风险体检 ===${plain}"
+        echo -e "${yellow}正在向全球数据库查询当前 VPS 的出站 IP 纯净度，请稍候...${plain}\n"
+
+        # 获取出站 IP
+        VPS_IP=$(curl -s4m 3 https://api.ipify.org || curl -s4m 3 https://ip.gs)
+        
+        if [ -n "$VPS_IP" ]; then
+            echo -e "🌍 当前出站 IP: ${cyan}${VPS_IP}${plain}\n"
+            
+            # 调用 ping0.cc 的终端专属接口
+            echo -e "${yellow}--- 📊 IP 欺诈风险与类型评估 ---${plain}"
+            curl -sL "https://ping0.cc/geo" | head -n 12
+            
+            echo -e "\n${green}💡 极客科普：${plain}"
+            echo -e "🟢 ${green}原生 IP (ISP)${plain}: 极品！流媒体全解锁，免谷歌验证码。"
+            echo -e "🟡 ${yellow}机房 IP (Hosting)${plain}: 普通 VPS 都是这种，偶发验证码。"
+            echo -e "🔴 ${red}风险 IP (Risk/Fraud)${plain}: 欺诈值若飘红，说明 IP 已被玩烂，建议套 WARP 或换机！"
+        else
+            echo -e "${red}❌ 无法获取本机 IP，请检查网络连接。${plain}"
+        fi
+        
+        echo -e "\n${yellow}------------------------------------------${plain}"
+        read -p "👉 按【回车键】返回主菜单..."
+        ;;
+     14) 
             echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ---${plain}"
             sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
             sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
@@ -268,14 +292,14 @@ while true; do
             sysctl -p > /dev/null 2>&1
             echo -e "${green}✅ TCP 读写窗口缓冲区已强行扩展！大文件下载起步将变得更加残暴！${plain}"
             ;;
-        14)
+        15)
             echo -e "\n${blue}--- 🛰️ 正在测试全球主流节点延迟 ---${plain}"
             echo -ne "🇺🇸 Cloudflare: " && ping -c 3 1.1.1.1 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -ne "🇺🇸 Google: " && ping -c 3 8.8.8.8 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -ne "🇨🇳 百度 (中国大陆): " && ping -c 3 220.181.38.251 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -e "\n${green}✅ 测速完成！${plain}"
             ;;
-        15)
+        16)
             echo -e "\n${blue}--- 🚨 设置/管理 Telegram 智能报警监控 (全能体检版) ---${plain}"
             
             # 兼容性环境检查
@@ -459,11 +483,11 @@ EOF3
             echo ""
             read -p "👉 按【回车键】返回主菜单..."
             ;;
-        16)
+        17)
             echo -e "\n${blue}--- 📈 网卡流量统计 (开机至今) ---${plain}"
             ip -s link | awk '/^[0-9]+:/ { iface=$2 } /RX:/ { getline; rx=$1 } /TX:/ { getline; tx=$1; printf "网卡 %s\n  ⬇️ 下载: %.2f MB\n  ⬆️ 上传: %.2f MB\n", iface, rx/1048576, tx/1048576 }'
             ;;
-        17)
+        18)
             echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
             current_swap=$(free -m | grep Swap | awk '{print $2}')
             if [ "$current_swap" -gt "0" ]; then
@@ -494,7 +518,7 @@ EOF3
                 fi
             fi
             ;;
-        18)
+        19)
             echo -e "\n${blue}--- 📝 修改服务器主机名 (VPS 改名) ---${plain}"
             echo -e "当前主机名: ${yellow}$(hostname)${plain}"
             read -p "请输入新的主机名 (建议英文或数字，如 GCP-VeloX): " new_hostname
@@ -506,7 +530,7 @@ EOF3
                 echo -e "${red}❌ 输入为空，已取消修改。${plain}"
             fi
             ;;
-        19)
+        20)
             echo -e "\n${blue}--- 🔄 一键更新系统软件库 ---${plain}"
             echo "正在智能识别系统环境，并拉取最新安全补丁，请耐心等待..."
             if command -v apt-get &> /dev/null; then
@@ -524,67 +548,133 @@ EOF3
             fi
             echo -e "\n${green}✅ 系统底层库及组件已全部更新至最新状态！机器状态满血！${plain}"
             ;;
-       20)
-            echo -e "\n${blue}--- 🕵️ 查看当前在线 SSH 用户 ---${plain}"
-            echo "以下是目前正连接在您这台服务器上的所有终端会话: "
-            echo -e "${cyan}---------------------------------------------------${plain}"
-            w
-            echo -e "${cyan}---------------------------------------------------${plain}"
-            echo -e " 💡 如果您发现了除了您自己之外的陌生 IP 正在登录，请立刻拉响警报！ "
-            echo -e "${cyan}---------------------------------------------------${plain}"
-            read -p "请输入要制裁的终端号 (例如 pts/1，直接回车取消): " target_pts
+      21)
+        while true; do
+            echo -e "\n${blue}=== 🚨 SSH 高级防盗门与安全审计中心 ===${plain}"
+            echo -e "${yellow}⚠️ 警告：修改 SSH 端口或关闭密码前，请务必确认已开启防火墙放行并配置好密钥！${plain}\n"
             
-            if [[ -n "$target_pts" ]]; then
-                # 校验终端是否存在
-                if w | grep -q "$target_pts"; then
-                    # 抓取对方真实 IP
-                    target_ip=$(w | grep "$target_pts" | awk '{print $3}')
-                    echo -e "\n${yellow}🎯 已锁定目标: 终端 [$target_pts] | 来源 IP: [$target_ip]${plain}"
-                    echo -e "  ${cyan}1.${plain} 🥾 强行踢出 (物理拔插头)"
-                    echo -e "  ${cyan}2.${plain} 🧱 永久拉黑 (封禁IP + 踢出)"
-                    echo -e "  ${cyan}3.${plain} 👻 极客恶搞 (发送恐怖警告并踢出)"
-                    read -p "请为该内鬼选择制裁套餐 [1-3]: " punish_choice
+            echo -e "  ${yellow}1.${plain} 🕵️  ${cyan}查看当前在线 SSH 用户并实施制裁 (踢出/拉黑/恶搞)${plain} ${green}[您的专属绝活]${plain}"
+            echo -e "  ${yellow}2.${plain} 💣  审计近 24 小时被拦截的黑客爆破日志 (查历史外鬼)"
+            echo -e "  ${yellow}3.${plain} 🚪  修改 SSH 默认 22 端口 (防全网自动扫描)"
+            echo -e "  ${yellow}4.${plain} 🔑  强制关闭密码登录 (仅限密钥登录，绝对免疫撞库)"
+            echo -e "  ${red}0.${plain}  返回主菜单"
+            echo -e "--------------------------------------------------------"
+            read -p "👉 请选择安全操作 [0-4]: " ssh_choice
+            
+            case $ssh_choice in
+                1)
+                    # ==========================================
+                    # 保留大佬原创：在线抓内鬼与极客恶搞制裁系统
+                    # ==========================================
+                    echo -e "\n${blue}--- 🕵️ 查看当前在线 SSH 用户 ---${plain}"
+                    echo "以下是目前正连接在您这台服务器上的所有终端会话: "
+                    echo -e "${cyan}---------------------------------------------------${plain}"
+                    w
+                    echo -e "${cyan}---------------------------------------------------${plain}"
+                    echo -e " 💡 如果您发现了除了您自己之外的陌生 IP 正在登录，请立刻拉响警报！ "
+                    echo -e "${cyan}---------------------------------------------------${plain}"
+                    read -p "请输入要制裁的终端号 (例如 pts/1，直接回车取消): " target_pts
                     
-                    case $punish_choice in
-                        1)
-                            sudo skill -9 "$target_pts"
-                            echo -e "${green}✅ 已将其一脚踹下线！${plain}"
-                            ;;
-                        2)
-                            # 尝试用 fail2ban 封禁，如果没装就用 iptables 备用方案
-                            if command -v fail2ban-client &> /dev/null; then
-                                sudo fail2ban-client set sshd banip "$target_ip" >/dev/null 2>&1
-                            else
-                                sudo iptables -A INPUT -s "$target_ip" -j DROP
-                            fi
-                            sudo skill -9 "$target_pts"
-                            echo -e "${green}✅ 关门打狗！IP [$target_ip] 已被永久拉黑，且已被踢出！${plain}"
-                            ;;
-                        3)
-                            echo -e "\n${purple}😈 正在向对方屏幕发送“死神警告”，准备欣赏对方的恐惧...${plain}"
-                            # 强行向对方的显示器输出红色恐吓文字
-                            sudo bash -c "echo -e '\n\n\033[1;31m[FATAL WARNING] UNAUTHORIZED ACCESS DETECTED.\033[0m' > /dev/$target_pts"
-                            sudo bash -c "echo -e '\033[1;31m[SYSTEM] YOUR REAL IP [$target_ip] HAS BEEN LOGGED AND REPORTED TO FBI CYBER DIVISION.\033[0m' > /dev/$target_pts"
-                            sudo bash -c "echo -e '\033[1;31m[SYSTEM] INITIATING COUNTER-HACK SEQUENCE IN 3...\033[0m' > /dev/$target_pts"
-                            sleep 1
-                            sudo bash -c "echo -e '\033[1;31m2...\033[0m' > /dev/$target_pts"
-                            sleep 1
-                            sudo bash -c "echo -e '\033[1;31m1...\033[0m' > /dev/$target_pts"
-                            sleep 1
-                            sudo bash -c "echo -e '\033[1;31mGOODBYE.\033[0m\n\n' > /dev/$target_pts"
-                            sudo skill -9 "$target_pts"
-                            echo -e "${green}✅ 恶搞完毕！对方看着满屏飘红的警告被强制断开，估计正在连夜扛着主机跑路！${plain}"
-                            ;;
-                        *)
-                            echo -e "${red}取消制裁。${plain}"
-                            ;;
-                    esac
-                else
-                    echo -e "${red}⚠️ 找不到指定的终端号 $target_pts，请重新按 21 核对！${plain}"
-                fi
+                    if [[ -n "$target_pts" ]]; then
+                        # 校验终端是否存在
+                        if w | grep -q "$target_pts"; then
+                            # 抓取对方真实 IP
+                            target_ip=$(w | grep "$target_pts" | awk '{print $3}')
+                            echo -e "\n${yellow}🎯 已锁定目标: 终端 [$target_pts] | 来源 IP: [$target_ip]${plain}"
+                            echo -e "  ${cyan}1.${plain} 🥾 强行踢出 (物理拔插头)"
+                            echo -e "  ${cyan}2.${plain} 🧱 永久拉黑 (封禁IP + 踢出)"
+                            echo -e "  ${cyan}3.${plain} 👻 极客恶搞 (发送恐怖警告并踢出)"
+                            read -p "请为该内鬼选择制裁套餐 [1-3]: " punish_choice
+                            
+                            case $punish_choice in
+                                1)
+                                    sudo skill -9 "$target_pts"
+                                    echo -e "${green}✅ 已将其一脚踹下线！${plain}"
+                                    ;;
+                                2)
+                                    # 尝试用 fail2ban 封禁，如果没装就用 iptables 备用方案
+                                    if command -v fail2ban-client &> /dev/null; then
+                                        sudo fail2ban-client set sshd banip "$target_ip" >/dev/null 2>&1
+                                    else
+                                        sudo iptables -A INPUT -s "$target_ip" -j DROP
+                                    fi
+                                    sudo skill -9 "$target_pts"
+                                    echo -e "${green}✅ 关门打狗！IP [$target_ip] 已被永久拉黑，且已被踢出！${plain}"
+                                    ;;
+                                3)
+                                    echo -e "\n${purple}😈 正在向对方屏幕发送“死神警告”，准备欣赏对方的恐惧...${plain}"
+                                    # 强行向对方的显示器输出红色恐吓文字
+                                    sudo bash -c "echo -e '\n\n\033[1;31m[FATAL WARNING] UNAUTHORIZED ACCESS DETECTED.\033[0m' > /dev/$target_pts"
+                                    sudo bash -c "echo -e '\033[1;31m[SYSTEM] YOUR REAL IP [$target_ip] HAS BEEN LOGGED AND REPORTED TO FBI CYBER DIVISION.\033[0m' > /dev/$target_pts"
+                                    sudo bash -c "echo -e '\033[1;31m[SYSTEM] INITIATING COUNTER-HACK SEQUENCE IN 3...\033[0m' > /dev/$target_pts"
+                                    sleep 1
+                                    sudo bash -c "echo -e '\033[1;31m2...\033[0m' > /dev/$target_pts"
+                                    sleep 1
+                                    sudo bash -c "echo -e '\033[1;31m1...\033[0m' > /dev/$target_pts"
+                                    sleep 1
+                                    sudo bash -c "echo -e '\033[1;31mGOODBYE.\033[0m\n\n' > /dev/$target_pts"
+                                    sudo skill -9 "$target_pts"
+                                    echo -e "${green}✅ 恶搞完毕！对方看着满屏飘红的警告被强制断开，估计正在连夜扛着主机跑路！${plain}"
+                                    ;;
+                                *)
+                                    echo -e "${red}取消制裁。${plain}"
+                                    ;;
+                            esac
+                        else
+                            echo -e "${red}⚠️ 找不到指定的终端号 $target_pts，请重新核对！${plain}"
+                        fi
+                    fi
+                    ;;
+                2)
+                    echo -e "\n${blue}--- 💣 正在统计恶意尝试登录本机的黑客 IP (Top 10) ---${plain}"
+                    LOG_FILE="/var/log/auth.log"
+                    [ ! -f "$LOG_FILE" ] && LOG_FILE="/var/log/secure"
+                    
+                    if [ -f "$LOG_FILE" ]; then
+                        ATTACKS=$(grep "Failed password" "$LOG_FILE" | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
+                        if [ -z "$ATTACKS" ]; then
+                            echo -e "${green}🎉 太棒了！你的服务器隐藏得很好，暂无被爆破记录。${plain}"
+                        else
+                            echo -e "${yellow}次数    黑客 IP 地址${plain}"
+                            echo -e "${cyan}$ATTACKS${plain}"
+                            echo -e "\n💡 提示：如果上面密密麻麻全是攻击，强烈建议执行选项 3 和 4！"
+                        fi
+                    else
+                        echo -e "${yellow}未找到系统安全日志文件。${plain}"
+                    fi
+                    ;;
+                3)
+                    read -p "✍️ 请输入新的 SSH 端口号 (建议 10000-65535): " new_port
+                    if [[ "$new_port" =~ ^[0-9]+$ ]] && [ "$new_port" -ge 1000 ] && [ "$new_port" -le 65535 ]; then
+                        sed -i "s/^#\?Port .*/Port $new_port/g" /etc/ssh/sshd_config
+                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                        echo -e "\n${green}✅ SSH 端口已修改为: ${red}$new_port${plain}"
+                        echo -e "⚠️ ${yellow}重要：请立刻在云服务商防火墙面板放行此端口，否则下次将失联！${plain}"
+                    else
+                        echo -e "\n${red}❌ 端口格式不正确或不在安全范围内。${plain}"
+                    fi
+                    ;;
+                4)
+                    read -p "⚠️ 危险操作：关闭前请确认已成功配置密钥！确认关闭密码登录？(y/n): " confirm_key
+                    if [[ "$confirm_key" == "y" || "$confirm_key" == "Y" ]]; then
+                        sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/g' /etc/ssh/sshd_config
+                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                        echo -e "\n${green}✅ 密码登录已永久关闭！这台机器现在对暴力破解彻底免疫！${plain}"
+                    else
+                        echo -e "\n${yellow}已取消操作。${plain}"
+                    fi
+                    ;;
+                0) break ;;
+                *) echo -e "\n${red}❌ 无效输入。${plain}" ;;
+            esac
+            
+            if [[ "$ssh_choice" != "0" ]]; then
+                echo ""
+                read -p "👉 按【回车键】继续..."
             fi
-            ;;
-       21)
+        done
+        ;;
+       22)
             echo -e "\n${blue}======================================================${plain}"
             echo -e "${yellow}      🚀 欢迎进入专业代理部署与维稳中心 🚀${plain}"
             echo -e "${blue}======================================================${plain}"
@@ -641,7 +731,7 @@ EOF3
                     ;;
             esac
             ;;
-    22)
+    23)
         while true; do
             echo -e "\n${blue}=== ⏱️ VPS 高级定时任务管理 ===${plain}"
             echo -e "${yellow}说明：设置后 VPS 会在指定时间自动干活。若已设置，再次设置将自动覆盖旧任务。${plain}"
@@ -760,7 +850,7 @@ EOF3
         done
         ;;
         
-    23)
+    24)
         while true; do
             echo -e "\n${blue}=== ⚡ 代理节点服务无痛重启 ===${plain}"
             echo -e "${yellow}小白科普：当你发现节点连不上、断流时使用此功能。此操作【不会】重启整台 VPS，SSH 终端【不会】断开，瞬间完成。${plain}\n"
@@ -821,7 +911,7 @@ EOF3
         done
         ;;
         
-    24)
+    25)
         echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (聚合编码版) ===${plain}"
         
         # 0. 自动安装终端二维码画图组件
@@ -882,8 +972,7 @@ EOF3
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-        
-   25)
+     26)
         echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 ===${plain}"
         
         # 智能侦测 Acme.sh 真实路径
@@ -931,6 +1020,106 @@ EOF3
             else
                 echo -e "${yellow}已取消强制续签。${plain}"
             fi
+        fi
+
+        echo -e "\n${yellow}------------------------------------------${plain}"
+        read -p "👉 按【回车键】返回主菜单..."
+        ;;
+     27)
+        echo -e "\n${blue}=== 🧳 全域资产一键打包与跨机搬家 (数据克隆终极版) ===${plain}"
+        echo -e "${yellow}正在启动全频段雷达，扫描系统内的节点配置、面板数据、证书和定时任务...${plain}\n"
+
+        BACKUP_DIR="/root/velox_backup_$(date +%Y%m%d)"
+        mkdir -p "$BACKUP_DIR"
+        has_data=0
+
+        # --- 1. 代理脚本与面板全家桶扫描 ---
+        # 小钢炮 (AnyTLS)
+        if [ -d "/root/agsbx" ]; then
+            cp -r /root/agsbx "$BACKUP_DIR/"
+            echo -e "✅ 成功提取 [小钢炮/AnyTLS] 核心配置"
+            has_data=1
+        fi
+        # 甬哥 sb 脚本
+        if [ -d "/etc/s-box" ]; then
+            cp -r /etc/s-box "$BACKUP_DIR/"
+            echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"
+            has_data=1
+        elif [ -d "/etc/sing-box" ]; then
+            cp -r /etc/sing-box "$BACKUP_DIR/"
+            echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"
+            has_data=1
+        fi
+        # X-UI / 3X-UI 面板数据库 (包含所有节点和流量数据)
+        if [ -d "/etc/x-ui" ]; then
+            cp -r /etc/x-ui "$BACKUP_DIR/"
+            echo -e "✅ 成功提取 [X-UI / 3X-UI 面板] 数据库与配置"
+            has_data=1
+        fi
+
+        # --- 2. 核心护盾扫描 ---
+        # Acme 证书
+        if [ -d "/root/.acme.sh" ]; then
+            cp -r /root/.acme.sh "$BACKUP_DIR/"
+            echo -e "✅ 成功提取 [Acme 域名证书资产]"
+            has_data=1
+        elif [ -d "$HOME/.acme.sh" ]; then
+            cp -r "$HOME/.acme.sh" "$BACKUP_DIR/"
+            echo -e "✅ 成功提取 [Acme 域名证书资产]"
+            has_data=1
+        fi
+
+        # --- 3. 自动化任务扫描 ---
+        # Crontab 定时任务
+        if crontab -l > "$BACKUP_DIR/crontab_backup.txt" 2>/dev/null; then
+            if [ -s "$BACKUP_DIR/crontab_backup.txt" ]; then
+                echo -e "✅ 成功提取 [系统定时任务 (crontab)]"
+                has_data=1
+            else
+                rm -f "$BACKUP_DIR/crontab_backup.txt"
+            fi
+        fi
+
+        echo -e "${cyan}--------------------------------------------------------${plain}"
+        
+        # --- 4. 极客专属：自定义目录打包引擎 ---
+        echo -e "💡 ${green}除了以上标准资产，您是否还有其他应用需要一起打包搬家？${plain}"
+        echo -e "（例如：Docker 挂载目录 /opt/docker_data，或网盘配置 /opt/alist/data）"
+        read -p "👉 请输入完整路径 (多个路径用空格隔开，直接回车则跳过): " custom_paths
+
+        if [ -n "$custom_paths" ]; then
+            for path in $custom_paths; do
+                if [ -d "$path" ] || [ -f "$path" ]; then
+                    # 为了防止路径冲突，将自定义文件统一放进 custom_assets 目录
+                    mkdir -p "$BACKUP_DIR/custom_assets"
+                    cp -r "$path" "$BACKUP_DIR/custom_assets/"
+                    echo -e "📦 成功将自定义路径追加至包裹: ${yellow}$path${plain}"
+                    has_data=1
+                else
+                    echo -e "⚠️ ${red}找不到指定的文件或目录，已跳过: $path${plain}"
+                fi
+            done
+        fi
+
+        if [ "$has_data" -eq 1 ]; then
+            echo -e "\n${cyan}⏳ 正在对包裹进行高强度压缩加密，请耐心等待...${plain}"
+            
+            cd /root
+            tar -czf "Velox_Assets_Backup.tar.gz" "$(basename "$BACKUP_DIR")" >/dev/null 2>&1
+            rm -rf "$BACKUP_DIR"
+
+            echo -e "\n${green}🎉 资产克隆打包完毕！您的全域备份文件已生成：${plain}"
+            echo -e "${cyan}📂 文件绝对路径：/root/Velox_Assets_Backup.tar.gz${plain}"
+            
+            echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (极客必读)：${plain}"
+            echo -e "1. 将此压缩包下载后，传至 ${green}新机器${plain} 的 /root 目录下。"
+            echo -e "2. 在新机器解压：${cyan}tar -xzf Velox_Assets_Backup.tar.gz${plain}"
+            echo -e "3. 将解压出的配置文件夹（如 agsbx, .acme.sh, x-ui）分别覆盖回新系统根目录对应的位置。"
+            echo -e "4. 恢复定时任务：${cyan}crontab /root/velox_backup_*/crontab_backup.txt${plain}"
+            echo -e "5. ${red}注意：Docker 项目请在新机器重装 Docker 后，再将你打包的数据卷覆盖过去并重新执行 docker-compose up -d。${plain}"
+        else
+            echo -e "\n${red}❌ 扫描结束：未提取到任何资产，打包已取消。${plain}"
+            rm -rf "$BACKUP_DIR"
         fi
 
         echo -e "\n${yellow}------------------------------------------${plain}"
