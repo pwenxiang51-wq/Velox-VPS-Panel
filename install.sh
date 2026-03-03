@@ -48,30 +48,29 @@ while true; do
     echo -e "  ${yellow}3.${plain}  ⏱️  ${green}查看运行时间与负载${plain}"
     echo -e "  ${yellow}4.${plain}  📊 ${green}快速查看内存报告 (静态快照)${plain}"
     echo -e "  ${yellow}5.${plain}  📈 ${green}实时监控 CPU 与内存 (按 q 退出)${plain}"
-    echo -e "  ${yellow}6.${plain}  🌐 ${green}查看当前公网 IP${plain}"
-    echo -e "  ${yellow}7.${plain}  🔌 ${green}查看系统监听端口${plain}"
-    echo -e "  ${yellow}8.${plain}  📦 ${green}查看代理服务运行状态 (多核心智能检测) ${sb_stat}${plain}"
-    echo -e "  ${yellow}9.${plain}  🌐  ${cyan}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
-    echo -e "  ${yellow}10.${plain} 🚀 ${cyan}深度验证与管理 BBR 加速 ${bbr_stat}${plain}"
-    echo -e "  ${yellow}11.${plain} 🧹 ${yellow}一键清理系统垃圾与防盗门 ${f2b_stat}${plain}"
-    echo -e "  ${yellow}12.${plain} 🔄  ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
+    echo -e "  ${yellow}6.${plain}  🔌 ${green}查看系统监听端口${plain}"
+    echo -e "  ${yellow}7.${plain}  📦 ${green}查看代理服务运行状态 (深度体检与 IP 查询) ${sb_stat}${plain}"
+    echo -e "  ${yellow}8.${plain}  🌐  ${cyan}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
+    echo -e "  ${yellow}9.${plain} 🚀 ${cyan}深度验证与管理 BBR 加速 ${bbr_stat}${plain}"
+    echo -e "  ${yellow}10.${plain} 🧹 ${yellow}一键清理系统垃圾与防盗门 ${f2b_stat}${plain}"
+    echo -e "  ${yellow}11.${plain} 🔄  ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
-    echo -e "  ${yellow}13.${plain} 🎬 ${blue}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
-    echo -e "  ${yellow}14.${plain} ⚡ ${blue}TCP 网络底层高阶调优 (极限压榨带宽)${plain}"
-    echo -e "  ${yellow}15.${plain} 🛰️ ${blue}全球主流节点 Ping 延迟测速${plain}"
-    echo -e "  ${yellow}16.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 (含开机秒报 & 环境深度兼容) ${tg_stat}${plain}"
+    echo -e "  ${yellow}12.${plain} 🎬 ${blue}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
+    echo -e "  ${yellow}13.${plain} ⚡ ${blue}TCP 网络底层高阶调优 (极限压榨带宽)${plain}"
+    echo -e "  ${yellow}14.${plain} 🛰️ ${blue}全球主流节点 Ping 延迟测速${plain}"
+    echo -e "  ${yellow}15.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 (含开机秒报 & 环境深度兼容) ${tg_stat}${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
-    echo -e "  ${yellow}17.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
-    echo -e "  ${yellow}18.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
-    echo -e "  ${yellow}19.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
-    echo -e "  ${yellow}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
-    echo -e "  ${yellow}21.${plain} 🕵️ ${purple}查看当前在线 SSH 用户 (抓内鬼排查)${plain}"
-    echo -e "  ${yellow}22.${plain} 🚀 ${purple}召唤甬哥全家桶 (Sing-box 终端版 / X-UI 网页版)${plain}"
+    echo -e "  ${yellow}16.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
+    echo -e "  ${yellow}17${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
+    echo -e "  ${yellow}18.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
+    echo -e "  ${yellow}19.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
+    echo -e "  ${yellow}20.${plain} 🕵️ ${purple}查看当前在线 SSH 用户 (抓内鬼排查)${plain}"
+    echo -e "  ${yellow}21.${plain} 🚀 ${purple}召唤甬哥全家桶 (Sing-box 终端版 / X-UI 网页版)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
-    echo -e "  ${yellow}23.${plain} ⏱️  ${cyan}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
-    echo -e "  ${yellow}24.${plain} 🔄  ${green}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
-    echo -e "  ${yellow}25.${plain} 🔗  ${purple}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
-    echo -e "  ${yellow}26.${plain} 🔐  ${blue}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
+    echo -e "  ${yellow}22.${plain} ⏱️  ${cyan}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
+    echo -e "  ${yellow}23.${plain} 🔄  ${green}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
+    echo -e "  ${yellow}24.${plain} 🔗  ${purple}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
+    echo -e "  ${yellow}25.${plain} 🔐  ${blue}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
@@ -86,9 +85,8 @@ while true; do
         3) echo -e "\n${blue}--- 运行状态 ---${plain}"; uptime ;;
         4) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
         5) echo -e "\n${cyan}--- 正在启动任务管理器 ---${plain}"; sleep 1; top ;;
-        6) echo -e "\n${blue}--- 公网 IP ---${plain}"; curl -s ifconfig.me; echo "" ;;
-        7) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
-     8)
+        6) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
+     7)
         echo -e "\n${blue}=== 📦 代理核心深度体检 (系统底层) ===${plain}"
         echo -e "${yellow}当前北京时间：${green}$(date +"%Y-%m-%d %H:%M:%S")${plain}\n"
 
@@ -125,7 +123,7 @@ while true; do
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-     9)
+     8)
         echo -e "\n${blue}=== 🌐 WARP 与 Argo 隧道出站详情 ===${plain}"
         echo -e "${yellow}正在侦测网络出站链路，请稍候...${plain}\n"
         
@@ -165,7 +163,7 @@ while true; do
         echo -e "${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】继续..."
         ;;
-     10) 
+     9) 
             echo -e "\n${blue}--- 🚀 BBR 状态诊断与管理 ---${plain}"
             current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
             echo -e "当前系统正在使用的算法: ${yellow}${current_cc}${plain}"
@@ -201,7 +199,7 @@ while true; do
                 fi
             fi
             ;;
-        11) 
+        10) 
             echo -e "\n${blue}--- 🧹 正在执行系统安全清理 ---${plain}"
             apt_before=$(du -sh /var/cache/apt/archives 2>/dev/null | cut -f1)
             echo -n "正在清理软件安装包缓存... "
@@ -240,14 +238,14 @@ while true; do
                 fi
             fi
             ;;
-        12) 
+        11) 
         echo -e "\n${red}⚠️ 警告：此操作将物理重启整台 VPS 服务器！${plain}"
         echo -e "${yellow}执行后，当前的 SSH 连接将会立即断开，请等待 1-2 分钟后再重新连接。${plain}"
         read -p "确定要整机重启吗？(y/n): " c
         [[ "$c" == "y" || "$c" == "Y" ]] && sudo reboot 
         ;;
-        13) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
-        14) 
+        12) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
+        13) 
             echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ---${plain}"
             sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
             sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
@@ -260,15 +258,15 @@ while true; do
             sysctl -p > /dev/null 2>&1
             echo -e "${green}✅ TCP 读写窗口缓冲区已强行扩展！大文件下载起步将变得更加残暴！${plain}"
             ;;
-        15)
+        14)
             echo -e "\n${blue}--- 🛰️ 正在测试全球主流节点延迟 ---${plain}"
             echo -ne "🇺🇸 Cloudflare: " && ping -c 3 1.1.1.1 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -ne "🇺🇸 Google: " && ping -c 3 8.8.8.8 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -ne "🇨🇳 百度 (中国大陆): " && ping -c 3 220.181.38.251 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -e "\n${green}✅ 测速完成！${plain}"
             ;;
-        16)
-            echo -e "\n${blue}--- 🚨 设置/管理 Telegram 智能报警监控 (全能通用版) ---${plain}"
+        15)
+            echo -e "\n${blue}--- 🚨 设置/管理 Telegram 智能报警监控 (全能体检版) ---${plain}"
             
             # 兼容性环境检查
             if ! command -v curl &> /dev/null; then
@@ -298,7 +296,7 @@ while true; do
                         crontab -l 2>/dev/null | grep -v "api.telegram.org"
                         echo -e "${cyan}---------------------------------------------------${plain}"
                         read -p "是否确认执行清理？(y/n): " confirm_clean
-                        if [[ "$confirm_clean" == "y" ]]; then
+                        if [[ "$confirm_clean" == "y" || "$confirm_clean" == "Y" ]]; then
                             crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -
                             echo -e "${green}✅ 旧版定时报警指令已彻底清理干净！${plain}"
                         else
@@ -310,7 +308,7 @@ while true; do
                     # -------------------------
                     
                     echo -e "${green}✅ TG 报警防线已彻底无痕卸载！您可以回到主菜单查看状态。${plain}"
-                elif [[ "$tg_choice" == "r" ]]; then
+                elif [[ "$tg_choice" == "r" || "$tg_choice" == "R" ]]; then
                     tg_setup_flag=1
                 else
                     echo -e "${cyan}操作已取消。${plain}"
@@ -327,22 +325,28 @@ while true; do
                 read -p "请输入你的 TG Chat ID: " tg_chatid
                 if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
                     
+                    # ==========================================
                     # 1. 编写 SSH 登录发信脚本 (集成物理网卡绕过 WARP)
+                    # ==========================================
                     cat << EOF2 > /usr/local/bin/ssh_tg_alert.sh
 #!/bin/bash
 if [ -z "\$TG_ALERT_TRIGGERED" ]; then
     export TG_ALERT_TRIGGERED=1
+    export TZ="Asia/Shanghai"
     USER_IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
     if [ -n "\$USER_IP" ]; then
-        MSG="🚨 [神盾局警告] 大佬，你的服务器 \$(hostname) 刚刚被登录了！%0A👉 来源 IP: \$USER_IP%0A⏰ 时间: \$(date +'%Y-%m-%d %H:%M:%S')"
+        MSG="🚨 [神盾局警告]
+大佬，您的服务器 \$(hostname) 刚刚被登录了！
+👉 来源 IP: \$USER_IP
+⏰ 北京时间: \$(date +'%Y-%m-%d %H:%M:%S')"
         
         # --- 核心绝杀：强制绕过 WARP，抓取物理主网卡 ---
         MAIN_IF=\$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print \$5}' | head -n 1)
         
         if [ -n "\$MAIN_IF" ]; then
-            curl --interface "\$MAIN_IF" -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1 &
+            curl --interface "\$MAIN_IF" -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1 &
         else
-            curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1 &
+            curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1 &
         fi
     fi
 fi
@@ -355,24 +359,71 @@ EOF2
                     echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/profile
                     echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/bash.bashrc
                     
-                    # 3. 编写开机复苏发信脚本 (集成物理网卡绕过 WARP)
+                    # ==========================================
+                    # 3. 编写开机复苏发信脚本 (整合多核智能侦测体检)
+                    # ==========================================
                     cat << EOF2 > /usr/local/bin/tg_boot_alert.sh
 #!/bin/bash
 sleep 15
-MSG="✅ [系统复苏通知] 大佬，你的服务器 \$(hostname) 已完成重启并成功连网！%0A⏰ 时间: \$(date +'%Y-%m-%d %H:%M:%S')"
+export TZ="Asia/Shanghai"
+
+# --- 智能多核心状态检查 ---
+# Sing-box
+if systemctl list-unit-files | grep -qw sing-box.service; then
+    systemctl is-active --quiet sing-box && SB_STAT="运行中 ✅" || SB_STAT="异常 ❌"
+else
+    SB_STAT="未安装 ⚠️"
+fi
+
+# Xray
+if systemctl list-unit-files | grep -qw xray.service; then
+    systemctl is-active --quiet xray && XR_STAT="运行中 ✅" || XR_STAT="异常 ❌"
+else
+    XR_STAT="未安装 ⚠️"
+fi
+
+# Argo
+if command -v cloudflared >/dev/null 2>&1 || systemctl list-unit-files | grep -qw cloudflared.service; then
+    if pgrep -x "cloudflared" >/dev/null || systemctl is-active --quiet cloudflared 2>/dev/null; then
+        ARGO_STAT="运行中 ✅"
+    else
+        ARGO_STAT="异常 ❌"
+    fi
+else
+    ARGO_STAT="未安装 ⚠️"
+fi
+
+# WARP
+if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null; then
+    WARP_STAT="已接管 ✅"
+else
+    WARP_STAT="未开启/未安装 ⚠️"
+fi
+
+# 构建带有多行排版的精美报告
+MSG="🟢 [Velox 系统复苏通知]
+大佬，您的服务器 \$(hostname) 已完成重启并成功连网！
+
+📊 【核心体检报告】
+🚀 Sing-box : \$SB_STAT
+🛸 Xray 核心: \$XR_STAT
+🚇 Argo 隧道: \$ARGO_STAT
+🛡️ WARP 出站: \$WARP_STAT
+
+⏰ 北京时间: \$(date +'%Y-%m-%d %H:%M:%S')"
 
 # --- 核心绝杀：强制绕过 WARP，抓取物理主网卡 ---
 MAIN_IF=\$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print \$5}' | head -n 1)
 
 if [ -n "\$MAIN_IF" ]; then
-    curl --interface "\$MAIN_IF" -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1
+    curl --interface "\$MAIN_IF" -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1
 else
-    curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" -d chat_id="${tg_chatid}" -d text="\$MSG" > /dev/null 2>&1
+    curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1
 fi
 EOF2
                     chmod +x /usr/local/bin/tg_boot_alert.sh
                     
-                    # 4. 部署工业级 Systemd 守护进程 (简化参数传递，更稳健)
+                    # 4. 部署工业级 Systemd 守护进程
                     cat << EOF3 > /etc/systemd/system/tg_boot_alert.service
 [Unit]
 Description=Telegram Boot Alert
@@ -389,17 +440,20 @@ EOF3
                     systemctl daemon-reload
                     systemctl enable tg_boot_alert.service > /dev/null 2>&1
                     
-                    echo -e "\n${green}✅ TG 工业级报警防线部署成功！主菜单已点亮 [已部署] 徽章！${plain}"
+                    echo -e "\n${green}✅ TG 全能体检报警防线部署成功！主菜单已点亮 [已部署] 徽章！${plain}"
                 else
                     echo -e "\n${red}❌ 输入不完整，已取消设置。${plain}"
                 fi
             fi
+            
+            echo ""
+            read -p "👉 按【回车键】返回主菜单..."
             ;;
-        17)
+        16)
             echo -e "\n${blue}--- 📈 网卡流量统计 (开机至今) ---${plain}"
             ip -s link | awk '/^[0-9]+:/ { iface=$2 } /RX:/ { getline; rx=$1 } /TX:/ { getline; tx=$1; printf "网卡 %s\n  ⬇️ 下载: %.2f MB\n  ⬆️ 上传: %.2f MB\n", iface, rx/1048576, tx/1048576 }'
             ;;
-        18)
+        17)
             echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
             current_swap=$(free -m | grep Swap | awk '{print $2}')
             if [ "$current_swap" -gt "0" ]; then
@@ -430,7 +484,7 @@ EOF3
                 fi
             fi
             ;;
-        19)
+        18)
             echo -e "\n${blue}--- 📝 修改服务器主机名 (VPS 改名) ---${plain}"
             echo -e "当前主机名: ${yellow}$(hostname)${plain}"
             read -p "请输入新的主机名 (建议英文或数字，如 GCP-VeloX): " new_hostname
@@ -442,7 +496,7 @@ EOF3
                 echo -e "${red}❌ 输入为空，已取消修改。${plain}"
             fi
             ;;
-        20)
+        19)
             echo -e "\n${blue}--- 🔄 一键更新系统软件库 ---${plain}"
             echo "正在智能识别系统环境，并拉取最新安全补丁，请耐心等待..."
             if command -v apt-get &> /dev/null; then
@@ -460,7 +514,7 @@ EOF3
             fi
             echo -e "\n${green}✅ 系统底层库及组件已全部更新至最新状态！机器状态满血！${plain}"
             ;;
-       21)
+       20)
             echo -e "\n${blue}--- 🕵️ 查看当前在线 SSH 用户 ---${plain}"
             echo "以下是目前正连接在您这台服务器上的所有终端会话: "
             echo -e "${cyan}---------------------------------------------------${plain}"
@@ -520,7 +574,7 @@ EOF3
                 fi
             fi
             ;;
-       22)
+       21)
             echo -e "\n${blue}======================================================${plain}"
             echo -e "${yellow}      🚀 欢迎进入专业代理部署与维稳中心 🚀${plain}"
             echo -e "${blue}======================================================${plain}"
@@ -577,7 +631,7 @@ EOF3
                     ;;
             esac
             ;;
-    23)
+    22)
         while true; do
             echo -e "\n${blue}=== ⏱️ VPS 高级定时任务管理 ===${plain}"
             echo -e "${yellow}说明：设置后 VPS 会在指定时间自动干活。若已设置，再次设置将自动覆盖旧任务。${plain}"
@@ -696,7 +750,7 @@ EOF3
         done
         ;;
         
-    24)
+    23)
         while true; do
             echo -e "\n${blue}=== ⚡ 代理节点服务无痛重启 ===${plain}"
             echo -e "${yellow}小白科普：当你发现节点连不上、断流时使用此功能。此操作【不会】重启整台 VPS，SSH 终端【不会】断开，瞬间完成。${plain}\n"
@@ -757,7 +811,7 @@ EOF3
         done
         ;;
         
-    25)
+    24)
         echo -e "\n${blue}=== 🔗 节点链接与配置速查 ===${plain}"
         if [ -f "/root/agsbx/jh.txt" ]; then
             echo -e "${green}✅ 成功提取到小钢炮节点配置：${plain}\n"
@@ -772,7 +826,7 @@ EOF3
         fi
         ;;
         
-    26)
+    25)
         echo -e "\n${blue}=== 🔐 Acme 证书查询与续签 ===${plain}"
         if [ -f "/root/.acme.sh/acme.sh" ]; then
             echo -e "${yellow}当前域名证书列表及到期时间如下：${plain}"
