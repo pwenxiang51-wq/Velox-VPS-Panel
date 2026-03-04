@@ -1256,9 +1256,9 @@ EOF3
         while true; do
             echo -e "\n${blue}=== 🛰️ 星际舰队与跨机容灾中心 ===${plain}"
             echo -e "  ${green}1.${plain} 📦 全域资产一键打包与跨机搬家 (原版数据克隆终极版)"
-            echo -e "  ${cyan}2.${plain} 🤝 组建舰队: 配置多机免密互信 (打通 SSH 桥梁)"
+            echo -e "  ${cyan}2.${plain} 🤝 组建舰队: 配置多机免密互信 (打通专属 SSH 桥梁)"
             echo -e "  ${purple}3.${plain} 🚀 舰队出击: 向所有僚机群发执行指令 (万机齐发)"
-            echo -e "  ${red}4.${plain} 🗑️ 解散舰队: 清除本机群发记录与 SSH 密钥 (无痕销毁)"
+            echo -e "  ${red}4.${plain} 🗑️ 解散舰队: 清除本机群发记录与专属密钥 (安全无痕)"
             echo -e "  ${yellow}0.${plain} 返回主菜单"
             echo -e "--------------------------------------------------------"
             read -p "👉 请选择操作 [0-4]: " fleet_choice
@@ -1334,10 +1334,12 @@ EOF3
                     ;;
                 2)
                     echo -e "\n${blue}--- 🤝 组建星际舰队：打通免密互信 ---${plain}"
-                    echo -e "💡 原理：本机将生成专属密钥，并强行塞入目标机器，以后本机即可直接控制目标机器！"
-                    if [ ! -f ~/.ssh/id_rsa ]; then
-                        echo -e "${yellow}正在为母舰生成专属指挥官密钥...${plain}"
-                        ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa >/dev/null 2>&1
+                    echo -e "💡 原理：本机将生成 Velox 专属独立密钥，并塞入目标机器。不影响您原有的任何 SSH 配置！"
+                    
+                    # 史诗级修正：使用独立命名的密钥文件，绝不误伤默认的 id_rsa
+                    if [ ! -f ~/.ssh/velox_fleet_rsa ]; then
+                        echo -e "${yellow}正在为母舰生成专属指挥官兵符 (velox_fleet_rsa)...${plain}"
+                        ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/velox_fleet_rsa >/dev/null 2>&1
                     fi
                     
                     read -p "👉 请输入目标僚机 IP 地址: " target_ip
@@ -1346,7 +1348,8 @@ EOF3
                         [ -z "$target_port" ] && target_port=22
                         
                         echo -e "\n${cyan}即将连接目标机器，如果提示 (yes/no) 请手动输入 yes 并回车，随后输入目标机器的 root 密码！${plain}"
-                        ssh-copy-id -i ~/.ssh/id_rsa.pub -p "$target_port" "root@$target_ip"
+                        # 指定使用我们刚生成的专属公钥进行投递
+                        ssh-copy-id -i ~/.ssh/velox_fleet_rsa.pub -p "$target_port" "root@$target_ip"
                         
                         if [ $? -eq 0 ]; then
                             echo "$target_ip:$target_port" >> /root/.velox_fleet_nodes.txt
@@ -1365,7 +1368,7 @@ EOF3
                         echo -e "当前已编入舰队的僚机列表："
                         cat /root/.velox_fleet_nodes.txt | awk -F: '{print " - 🟢 IP: "$1" (端口: "$2")"}'
                         echo -e "${cyan}--------------------------------------------------------${plain}"
-                        echo -e "💡 你可以输入类似 ${yellow}apt update -y${plain} 或者 ${yellow}reboot${plain} 甚至 ${yellow}rm -rf /tmp/*${plain}"
+                        echo -e "💡 你可以输入类似 ${yellow}apt update -y${plain} 或者 ${yellow}reboot${plain}"
                         read -p "👉 请输入要对所有僚机下达的 Linux 指令: " fleet_cmd
                         
                         if [ -n "$fleet_cmd" ]; then
@@ -1374,8 +1377,8 @@ EOF3
                                 ip=$(echo "$node" | cut -d: -f1)
                                 port=$(echo "$node" | cut -d: -f2)
                                 echo -e "\n${yellow}[执行节点 -> $ip] 的回传报告：${plain}"
-                                # 设置超时 10 秒防卡死
-                                ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -p "$port" "root@$ip" "$fleet_cmd"
+                                # 强制使用我们的专属私钥进行连接，无视密码校验
+                                ssh -i ~/.ssh/velox_fleet_rsa -o ConnectTimeout=10 -o StrictHostKeyChecking=no -p "$port" "root@$ip" "$fleet_cmd"
                             done
                             echo -e "\n${green}🎉 舰队指令群发完毕！${plain}"
                         fi
@@ -1383,11 +1386,12 @@ EOF3
                     ;;
                 4)
                     echo -e "\n${blue}--- 🗑️ 解散舰队与痕迹清理 ---${plain}"
-                    read -p "⚠️ 此操作将删除本机的群发名单及指挥官密钥，确认解散？(y/n): " confirm_disband
+                    read -p "⚠️ 此操作将删除本机的群发名单及 Velox 专属兵符，确认解散？(y/n): " confirm_disband
                     if [[ "$confirm_disband" == "y" || "$confirm_disband" == "Y" ]]; then
                         rm -f /root/.velox_fleet_nodes.txt
-                        rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
-                        echo -e "${green}✅ 舰队名单与密钥已彻底粉碎，本机已恢复平民身份！${plain}"
+                        # 只删咱们自己生成的兵符，绝对不动用户的 id_rsa
+                        rm -f ~/.ssh/velox_fleet_rsa ~/.ssh/velox_fleet_rsa.pub
+                        echo -e "${green}✅ 舰队名单与专属密钥已彻底粉碎，本机已恢复平民身份！${plain}"
                     else
                         echo -e "${yellow}操作已取消。${plain}"
                     fi
