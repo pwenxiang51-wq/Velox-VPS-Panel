@@ -1442,53 +1442,121 @@ EOF3
             fi
         done
         ;;
-     U|u) 
-            echo -e "\n${red}--- ⚠️  卸载操作 ---${plain}"
-             read -p "确定卸载本面板吗？(y/n): " c
-             if [[ "$c" == "y" ]]; then 
-                 # 1. 删除面板本体及独立组件
-                 rm -f /usr/local/bin/velox
-                 rm -f /usr/local/bin/ssh_tg_alert.sh
-                 rm -f /usr/local/bin/tg_boot_alert.sh
-                 sed -i '/ssh_tg_alert.sh/d' /etc/profile
-                 sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
-                 
-                 # 2. 停止并删除 Systemd 守护服务
-                 systemctl disable --now tg_boot_alert.service 2>/dev/null
-                 rm -f /etc/systemd/system/tg_boot_alert.service
-                 systemctl daemon-reload
-                 
-                 echo -e "${green}✅ 面板本体及报警组件已卸载！${plain}"
-                 
-                 # 3. 智能排雷与预览逻辑
-                 if crontab -l 2>/dev/null | grep -q "api.telegram.org"; then
-                     echo -e "\n${yellow}正在扫描定时任务，发现旧版报警残留！${plain}"
-                     echo -e "${cyan}---------------------------------------------------${plain}"
-                     echo -e "${yellow}清理后您的定时任务将保留如下内容（请确认）：${plain}"
-                     crontab -l 2>/dev/null | grep -v "api.telegram.org"
-                     echo -e "${cyan}---------------------------------------------------${plain}"
-                     read -p "是否顺手清理掉这些残留报警指令？(y/n): " clean_cron
-                     if [[ "$clean_cron" == "y" ]]; then
-                         crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -
-                         echo -e "${green}✅ 定时任务残留已清空！${plain}"
-                     fi
-                 fi
-                 
-                 if command -v fail2ban-client &> /dev/null; then
-                     read -p "是否一并【彻底强拆】防盗门(Fail2ban)？(y/n): " remove_f2b
-                     if [[ "$remove_f2b" == "y" ]]; then
-                         if command -v apt-get &> /dev/null; then
-                             sudo apt-get remove --purge fail2ban -y > /dev/null 2>&1
-                             sudo apt-get autoremove -y > /dev/null 2>&1
-                         elif command -v yum &> /dev/null; then
-                             sudo yum remove fail2ban -y > /dev/null 2>&1
-                         fi
-                         echo -e "${green}✅ 防盗门已彻底拆除！${plain}"
-                     fi
-                 fi
-                 echo -e "\n江湖再见！"; exit
-             fi 
-             ;;
+     U|u)
+        echo -e "\n${red}=======================================================${plain}"
+        echo -e "${red}                ⚠️ 终极卸载与物理粉碎程序                ${plain}"
+        echo -e "${red}=======================================================${plain}"
+        echo -e "${yellow}💡 提示：此操作将彻底拔除 Velox 面板及其在系统底层留下的所有痕迹。${plain}"
+        echo -e "${green}🛡️  放心：您的代理节点 (X-UI/Sing-box) 和 Acme 域名证书将原封不动保留！${plain}\n"
+        
+        read -p "👉 确定要彻底卸载本面板并【焦土化抹除】所有底层修改吗？(y/n): " confirm_uninstall
+        if [[ "$confirm_uninstall" == "y" || "$confirm_uninstall" == "Y" ]]; then
+            echo -e "\n${cyan}🚀 正在启动全功率焦土卸载引擎...${plain}"
+
+            # 1. 拆除核心面板与旧版报警组件
+            echo -n "1. 正在清理面板本体与关联报警脚本... "
+            rm -f /usr/local/bin/velox
+            rm -f /usr/local/bin/ssh_tg_alert.sh
+            rm -f /usr/local/bin/tg_boot_alert.sh
+            sed -i '/ssh_tg_alert.sh/d' /etc/profile
+            sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
+            systemctl disable --now tg_boot_alert.service >/dev/null 2>&1
+            rm -f /etc/systemd/system/tg_boot_alert.service
+            systemctl daemon-reload
+            echo -e "[${green}已彻底抹除${plain}]"
+
+            # 2. 拆除 Bash 机枪塔
+            echo -n "2. 正在物理粉碎 Bash 防爆破机枪塔与击毙日志... "
+            systemctl stop velox-defender >/dev/null 2>&1
+            systemctl disable velox-defender >/dev/null 2>&1
+            rm -f /usr/local/bin/velox-defender.sh
+            rm -f /etc/systemd/system/velox-defender.service
+            rm -f /tmp/velox_ip_counts.txt
+            rm -f /var/log/velox-defender.log
+            systemctl daemon-reload
+            echo -e "[${green}已彻底抹除${plain}]"
+
+            # 3. 销毁星际舰队兵符
+            echo -n "3. 正在销毁星际舰队跨机互信兵符与点名册... "
+            rm -f /root/.velox_fleet_nodes.txt
+            rm -f ~/.ssh/velox_fleet_rsa ~/.ssh/velox_fleet_rsa.pub
+            echo -e "[${green}已彻底抹除${plain}]"
+
+            # 4. 恢复网络底层默认参数 (包含 TCP/UDP 与 9号 BBR)
+            echo -n "4. 正在抹除底层网络调优 (TCP/UDP/BBR) 并恢复出厂状态... "
+            sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
+            sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
+            
+            # 👇 这两行是专门给 9号 BBR 准备的物理粉碎 👇
+            sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+            
+            # 强行切回出厂默认的 cubic 拥塞控制算法
+            sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
+            sysctl -p > /dev/null 2>&1
+            
+            DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
+            [ -n "$DEFAULT_IF" ] && tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
+            echo -e "[${green}已彻底抹除${plain}]"
+
+            # 5. 清除虚拟内存 (Swap) 释放硬盘
+            echo -n "5. 正在检查并清除自定义 Swap 虚拟内存... "
+            if grep -q "swapfile" /etc/fstab; then
+                swapoff /swapfile >/dev/null 2>&1
+                rm -f /swapfile
+                sed -i '/swapfile/d' /etc/fstab
+                echo -e "[${green}已抹除并释放硬盘空间${plain}]"
+            else
+                echo -e "[${cyan}未发现 Swap，已跳过${plain}]"
+            fi
+
+            # 6. 洗白主机名
+            echo -n "6. 正在将 VPS 主机名强行洗白恢复出厂... "
+            hostnamectl set-hostname "localhost" >/dev/null 2>&1
+            echo -e "[${green}已恢复为 localhost${plain}]"
+
+            # 7. 清理可疑的定时任务残留
+            if crontab -l 2>/dev/null | grep -q "api.telegram.org"; then
+                echo -n "7. 正在清理旧版 Telegram 报警定时任务... "
+                crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -
+                echo -e "[${green}已彻底抹除${plain}]"
+            fi
+
+            # 8. Fail2Ban 强拆询问
+            if command -v fail2ban-client >/dev/null 2>&1; then
+                echo -e "\n${yellow}⚠️ 检测到系统中安装了 Fail2Ban 工业级防御装甲。${plain}"
+                read -p "👉 是否一并【彻底强拆】Fail2Ban？(y/n): " remove_f2b
+                if [[ "$remove_f2b" == "y" || "$remove_f2b" == "Y" ]]; then
+                    echo -n "正在全网追剿 Fail2Ban 及其依赖残留... "
+                    systemctl stop fail2ban >/dev/null 2>&1
+                    systemctl disable fail2ban >/dev/null 2>&1
+                    if command -v apt-get >/dev/null 2>&1; then
+                        apt-get remove --purge fail2ban -y >/dev/null 2>&1
+                        apt-get autoremove -y >/dev/null 2>&1
+                    elif command -v yum >/dev/null 2>&1; then
+                        yum remove fail2ban -y >/dev/null 2>&1
+                    elif command -v dnf >/dev/null 2>&1; then
+                        dnf remove fail2ban -y >/dev/null 2>&1
+                    fi
+                    rm -rf /etc/fail2ban
+                    echo -e "[${green}已彻底抹除${plain}]"
+                else
+                    echo -e "${cyan}已跳过 Fail2Ban 卸载，系统防盗门继续服役。${plain}"
+                fi
+            fi
+
+            echo -e "\n${green}🎉 卸载完毕！Velox 面板已事了拂衣去，您的系统已恢复至极其纯净的【出厂状态】！${plain}"
+            echo -e "${purple}江湖再见，祝您折腾愉快！🚀${plain}\n"
+            exit
+        else
+            echo -e "\n${yellow}已取消卸载，即将返回主菜单...${plain}"
+            sleep 1
+        fi
+        ;;
         0) echo -e "\n${green}祝Velox折腾愉快！${plain}\n"; exit ;;
         *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
