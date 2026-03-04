@@ -539,7 +539,8 @@ EOF3
         echo -e "\n${cyan}请选择网卡流量监控模式：${plain}"
         echo -e "  ${green}1.${plain} 📊 静态累计流量报表 (查看自上次开机后的总消耗)"
         echo -e "  ${green}2.${plain} 📈 极客动态流量视窗 (黑客级 TUI 实时网速监控仪表盘)"
-        read -p "👉 请输入选择 [1-2]: " traffic_choice
+        echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
+        read -p "👉 请输入选择 [0-2]: " traffic_choice
 
         if [ "$traffic_choice" == "1" ]; then
             echo -e "\n${blue}=== 📊 本机网卡累计流量报表 ===${plain}"
@@ -659,6 +660,7 @@ EOF3
         19)
             echo -e "\n${blue}--- 📝 修改服务器主机名 (VPS 改名) ---${plain}"
             echo -e "当前主机名: ${yellow}$(hostname)${plain}"
+            echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
             read -p "请输入新的主机名 (建议英文或数字，如 GCP-VeloX): " new_hostname
             if [[ -n "$new_hostname" ]]; then
                 sudo hostnamectl set-hostname "$new_hostname"
