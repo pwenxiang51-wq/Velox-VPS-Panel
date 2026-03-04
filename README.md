@@ -91,9 +91,9 @@
 
 请在你的 VPS 终端（推荐使用 root 用户）执行以下命令：  
 
-```bash
+
 bash <(curl -sL [https://sink.222382.xyz/nzc4v9](https://sink.222382.xyz/nzc4v9))
-```
+
 
 💡 使用说明：
 
