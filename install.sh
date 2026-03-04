@@ -285,60 +285,63 @@ while true; do
         echo -e "  ${green}2.${plain} 🌪️ UDP 极限压榨 (Hysteria2 / TUIC 专属抗丢包)"
         echo -e "  ${green}3.${plain} 🔥 双管齐下 (同时执行 TCP 与 UDP 调优，小孩子才做选择！)"
         echo -e "  ${red}4.${plain} 🗑️ 恢复系统默认 (清除所有自定义扩容参数，一键后悔)"
-        read -p "👉 请输入选择 [1-4]: " tune_choice
+        echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
+        read -p "👉 请输入选择 [0-4]: " tune_choice
         
-        if [ "$tune_choice" == "1" ] || [ "$tune_choice" == "3" ]; then
-            echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ---${plain}"
-            sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
-            sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
-            echo "net.core.rmem_max=16777216" >> /etc/sysctl.conf
-            echo "net.core.wmem_max=16777216" >> /etc/sysctl.conf
-            echo "net.ipv4.tcp_rmem=4096 87380 16777216" >> /etc/sysctl.conf
-            echo "net.ipv4.tcp_wmem=4096 65536 16777216" >> /etc/sysctl.conf
-            sysctl -p > /dev/null 2>&1
-            echo -e "${green}✅ TCP 读写窗口缓冲区已强行扩展！${plain}"
-        fi
+        if [ "$tune_choice" == "0" ]; then
+            echo -e "\n${yellow}已取消操作，返回主菜单。${plain}"
+        else
+            if [ "$tune_choice" == "1" ] || [ "$tune_choice" == "3" ]; then
+                echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ---${plain}"
+                sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
+                sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
+                echo "net.core.rmem_max=16777216" >> /etc/sysctl.conf
+                echo "net.core.wmem_max=16777216" >> /etc/sysctl.conf
+                echo "net.ipv4.tcp_rmem=4096 87380 16777216" >> /etc/sysctl.conf
+                echo "net.ipv4.tcp_wmem=4096 65536 16777216" >> /etc/sysctl.conf
+                sysctl -p > /dev/null 2>&1
+                echo -e "${green}✅ TCP 读写窗口缓冲区已强行扩展！${plain}"
+            fi
 
-        if [ "$tune_choice" == "2" ] || [ "$tune_choice" == "3" ]; then
-            echo -e "\n${blue}--- 🌪️ 正在进行 UDP 网络底层高阶调优 ---${plain}"
-            sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
-            sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
-            # 如果是双开模式，UDP的 25MB 会自动覆盖 TCP的 16MB，完美兼容最高上限
-            echo "net.core.rmem_max=26214400" >> /etc/sysctl.conf
-            echo "net.core.wmem_max=26214400" >> /etc/sysctl.conf
-            echo "net.ipv4.udp_rmem_min=8192" >> /etc/sysctl.conf
-            echo "net.ipv4.udp_wmem_min=8192" >> /etc/sysctl.conf
-            sysctl -p > /dev/null 2>&1
-            echo -e "${green}✅ UDP 读写缓冲区已暴力扩容至 25MB！${plain}"
-            
-            echo -e "\n${yellow}👉 正在嗅探主网卡并配置 CAKE/FQ 队列调度算法...${plain}"
-            DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
-            # 尝试注入抗丢包极强的 cake 算法，失败则回退到 fq
-            tc qdisc add dev $DEFAULT_IF root cake >/dev/null 2>&1 || tc qdisc add dev $DEFAULT_IF root fq >/dev/null 2>&1
-            echo -e "${green}✅ 网卡 [$DEFAULT_IF] 队列调度已接管优化！(Hy2 速度将大幅提升)${plain}"
-        fi
+            if [ "$tune_choice" == "2" ] || [ "$tune_choice" == "3" ]; then
+                echo -e "\n${blue}--- 🌪️ 正在进行 UDP 网络底层高阶调优 ---${plain}"
+                sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
+                sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
+                echo "net.core.rmem_max=26214400" >> /etc/sysctl.conf
+                echo "net.core.wmem_max=26214400" >> /etc/sysctl.conf
+                echo "net.ipv4.udp_rmem_min=8192" >> /etc/sysctl.conf
+                echo "net.ipv4.udp_wmem_min=8192" >> /etc/sysctl.conf
+                sysctl -p > /dev/null 2>&1
+                echo -e "${green}✅ UDP 读写缓冲区已暴力扩容至 25MB！${plain}"
+                
+                echo -e "\n${yellow}👉 正在嗅探主网卡并配置 CAKE/FQ 队列调度算法...${plain}"
+                DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
+                tc qdisc add dev $DEFAULT_IF root cake >/dev/null 2>&1 || tc qdisc add dev $DEFAULT_IF root fq >/dev/null 2>&1
+                echo -e "${green}✅ 网卡 [$DEFAULT_IF] 队列调度已接管优化！(Hy2 速度将大幅提升)${plain}"
+            fi
 
-        if [ "$tune_choice" == "4" ]; then
-            echo -e "\n${blue}--- 🗑️ 正在清除所有网络自定义调优参数 ---${plain}"
-            sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
-            sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
-            sysctl -p > /dev/null 2>&1
-            
-            DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
-            tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
-            echo -e "${green}✅ 所有强行注入的扩容参数已抹除，系统网络恢复默认状态！${plain}"
-        fi
+            if [ "$tune_choice" == "4" ]; then
+                echo -e "\n${blue}--- 🗑️ 正在清除所有网络自定义调优参数 ---${plain}"
+                sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
+                sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
+                sysctl -p > /dev/null 2>&1
+                
+                DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
+                tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
+                echo -e "${green}✅ 所有强行注入的扩容参数已抹除，系统网络恢复默认状态！${plain}"
+            fi
 
-        if [[ ! "$tune_choice" =~ ^[1-4]$ ]]; then
-            echo -e "${red}❌ 无效输入，已取消操作。${plain}"
+            if [[ ! "$tune_choice" =~ ^[0-4]$ ]]; then
+                echo -e "${red}❌ 无效输入，已取消操作。${plain}"
+            fi
         fi
         ;;
       15)
