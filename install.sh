@@ -275,6 +275,9 @@ while true; do
             echo -e "🟢 ${green}原生 IP (ISP)${plain}: 极品！流媒体全解锁，免谷歌验证码。"
             echo -e "🟡 ${yellow}机房 IP (Hosting)${plain}: 普通 VPS 都是这种，偶发验证码。"
             echo -e "🔴 ${red}风险 IP (Risk/Fraud)${plain}: 欺诈值若飘红，说明 IP 已被玩烂，建议套 WARP！"
+            echo -e ""
+            echo -e "🔗 ${cyan}想要查看 42% 这种精准欺诈分数，以及是否为广播 IP？${plain}"
+            echo -e "👉 ${green}请按住 Ctrl 点击打开深度体检报告: ${plain}\033[4;34mhttps://ping0.cc/ip/$VPS_IP\033[0m"
         else
             echo -e "${red}❌ 无法获取本机 IP，请检查网络连接。${plain}"
         fi
