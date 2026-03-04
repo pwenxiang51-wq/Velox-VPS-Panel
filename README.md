@@ -10,7 +10,7 @@
 **专为 VPS 极客玩家打造的「全域管理与容灾备份」航母级一键脚本。**<br>
 告别繁琐的命令行，一键接管系统调优、节点维稳、安全防盗与跨机搬家。
 
-[作者博客](https://222382.xyz) • [报告 Bug](https://github.com/pwenxiang51-wq/Velox/issues)
+[作者博客](https://222382.xyz) • [报告 Bug](https://github.com/pwenxiang51-wq/Velox-VPS-Panel/issues)
 
 </div>
 
