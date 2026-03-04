@@ -153,16 +153,23 @@ while true; do
             echo -e " 🛡️  WARP 状态 : ${red}未开启或未安装 ❌${plain}"
         fi
 
-        # 2. 侦测 Argo 隧道域名
+        # 2. 侦测 Argo 隧道状态 (全环境自适应版)
         echo -e "\n${cyan}[ Argo 隧道状态 ]${plain}"
         if pgrep -x "cloudflared" >/dev/null; then
             echo -e " 🚇 Argo 进程 : ${green}运行中 ✅${plain}"
-            # 这里的正则专门抓取你朋友那种 AnyTLS 或是甬哥脚本产生的临时 trycloudflare 域名
+            
+            # 尝试抓取临时隧道域名 (针对测试/小白用户)
             local argo_url=$(ps -ef | grep cloudflared | grep -oE "[a-zA-Z0-9.-]+\.trycloudflare\.com" | head -n 1)
+            
             if [ -n "$argo_url" ]; then
-                echo -e " 🚇 临时域名 : ${cyan}https://${argo_url}${plain}"
+                echo -e " 🔗 链路模式 : ${cyan}https://${argo_url}${plain} ${yellow}(临时隧道)${plain}"
             else
-                echo -e " 🚇 临时域名 : ${yellow}未能提取到临时域名 (可能使用固定域名或正在启动)${plain}"
+                # 这里就是区分极客与新手的关键逻辑
+                # 如果进程在跑但没抓到 trycloudflare，通常只有两种可能：
+                # 1. 正在使用 Token/YAML 配置的固定域名 (Named Tunnel)
+                # 2. 进程刚启动，临时域名还没分配下来
+                echo -e " 🔗 链路模式 : ${purple}固定域名或 Token 模式 ${plain}${yellow}(未侦测到临时 URL)${plain}"
+                echo -e " 💡 ${yellow}提示：若您使用固定隧道，请在 Cloudflare 后台查看解析状态。${plain}"
             fi
         else
             echo -e " 🚇 Argo 进程 : ${red}未运行 ❌${plain}"
