@@ -683,7 +683,7 @@ EOF3
             fi
             echo -e "\n${green}✅ 系统底层库及组件已全部更新至最新状态！机器状态满血！${plain}"
             ;;
-    21)
+   21)
         while true; do
             # 动态侦测当前 SSH 端口
             current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
@@ -706,7 +706,7 @@ EOF3
                 defender_status="${purple}已激活 (Fail2Ban 工业级装甲)${plain}"
             fi
 
-            echo -e "\n${blue}=== 🚨 SSH 隐身防盗门与安全审计中心 ===${plain}"
+            echo -e "\n${blue}=== 🚨 SSH 隐身防盗门与双核防御中心 ===${plain}"
             echo -e "${yellow}⚠️ 当前状态 -> 端口: [$current_port] | 密码: [$pw_status] | 防御: [$defender_status]${plain}\n"
             
             echo -e "  ${yellow}1.${plain} 🕵️  查看当前在线 SSH 用户并实施制裁"
@@ -813,32 +813,33 @@ EOF3
                     
                     if [ "$def_choice" == "1" ]; then
                         echo -e "\n${yellow}正在手搓 Bash 底层守护进程并注入 Systemd...${plain}"
-                        cat << 'EOF' > /usr/local/bin/velox-defender.sh
-#!/bin/bash
-LOG_FILE="/var/log/auth.log"
-[ -f /var/log/secure ] && LOG_FILE="/var/log/secure"
-tail -Fn0 "$LOG_FILE" | awk '/Failed password/ {print $(NF-3)}' | while read IP; do
-    if [ -n "$IP" ]; then
-        COUNT=$(grep -c "^$IP$" /tmp/velox_ip_counts.txt 2>/dev/null || echo 0)
-        if [ "$COUNT" -ge 4 ]; then
-            if ! iptables -C INPUT -s "$IP" -j DROP &>/dev/null; then iptables -I INPUT -s "$IP" -j DROP; echo "$(date '+%Y-%m-%d %H:%M:%S') - 💥 击毙爆破 IP: $IP" >> /var/log/velox-defender.log; fi
-            sed -i "/^$IP$/d" /tmp/velox_ip_counts.txt 2>/dev/null
-        else echo "$IP" >> /tmp/velox_ip_counts.txt; fi
-    fi
-done
-EOF
+                        
+                        # 采用极其硬核的纯 echo 写入法，彻底粉碎任何编辑器的 EOF 缩进天坑！
+                        echo '#!/bin/bash' > /usr/local/bin/velox-defender.sh
+                        echo 'LOG_FILE="/var/log/auth.log"' >> /usr/local/bin/velox-defender.sh
+                        echo '[ -f /var/log/secure ] && LOG_FILE="/var/log/secure"' >> /usr/local/bin/velox-defender.sh
+                        echo 'tail -Fn0 "$LOG_FILE" | awk '\''/Failed password/ {print $(NF-3)}'\'' | while read IP; do' >> /usr/local/bin/velox-defender.sh
+                        echo '    if [ -n "$IP" ]; then' >> /usr/local/bin/velox-defender.sh
+                        echo '        COUNT=$(grep -c "^$IP$" /tmp/velox_ip_counts.txt 2>/dev/null || echo 0)' >> /usr/local/bin/velox-defender.sh
+                        echo '        if [ "$COUNT" -ge 4 ]; then' >> /usr/local/bin/velox-defender.sh
+                        echo '            if ! iptables -C INPUT -s "$IP" -j DROP &>/dev/null; then iptables -I INPUT -s "$IP" -j DROP; echo "$(date +'\''%Y-%m-%d %H:%M:%S'\'') - 💥 击毙爆破 IP: $IP" >> /var/log/velox-defender.log; fi' >> /usr/local/bin/velox-defender.sh
+                        echo '            sed -i "/^$IP$/d" /tmp/velox_ip_counts.txt 2>/dev/null' >> /usr/local/bin/velox-defender.sh
+                        echo '        else echo "$IP" >> /tmp/velox_ip_counts.txt; fi' >> /usr/local/bin/velox-defender.sh
+                        echo '    fi' >> /usr/local/bin/velox-defender.sh
+                        echo 'done' >> /usr/local/bin/velox-defender.sh
+                        
                         chmod +x /usr/local/bin/velox-defender.sh
-                        cat << 'EOF' > /etc/systemd/system/velox-defender.service
-[Unit]
-Description=Velox SSH Defender Auto-Ban Daemon
-After=network.target
-[Service]
-ExecStart=/usr/local/bin/velox-defender.sh
-Restart=always
-RestartSec=3
-[Install]
-WantedBy=multi-user.target
-EOF
+                        
+                        echo '[Unit]' > /etc/systemd/system/velox-defender.service
+                        echo 'Description=Velox SSH Defender Auto-Ban Daemon' >> /etc/systemd/system/velox-defender.service
+                        echo 'After=network.target' >> /etc/systemd/system/velox-defender.service
+                        echo '[Service]' >> /etc/systemd/system/velox-defender.service
+                        echo 'ExecStart=/usr/local/bin/velox-defender.sh' >> /etc/systemd/system/velox-defender.service
+                        echo 'Restart=always' >> /etc/systemd/system/velox-defender.service
+                        echo 'RestartSec=3' >> /etc/systemd/system/velox-defender.service
+                        echo '[Install]' >> /etc/systemd/system/velox-defender.service
+                        echo 'WantedBy=multi-user.target' >> /etc/systemd/system/velox-defender.service
+                        
                         systemctl daemon-reload; systemctl enable velox-defender >/dev/null 2>&1; systemctl restart velox-defender
                         echo -e "${green}✅ Bash 机枪塔已部署！连续输错 5 次密码的 IP 将被物理超度！${plain}"
                         
@@ -855,15 +856,14 @@ EOF
                         if command -v dnf >/dev/null; then dnf install epel-release -y >/dev/null 2>&1; dnf install fail2ban -y >/dev/null 2>&1; fi
                         
                         LOGPATH="/var/log/auth.log"; [ -f /var/log/secure ] && LOGPATH="/var/log/secure"
-                        cat << EOF > /etc/fail2ban/jail.local
-[sshd]
-enabled = true
-port = ssh
-filter = sshd
-logpath = $LOGPATH
-maxretry = 5
-bantime = 86400
-EOF
+                        echo '[sshd]' > /etc/fail2ban/jail.local
+                        echo 'enabled = true' >> /etc/fail2ban/jail.local
+                        echo 'port = ssh' >> /etc/fail2ban/jail.local
+                        echo 'filter = sshd' >> /etc/fail2ban/jail.local
+                        echo "logpath = $LOGPATH" >> /etc/fail2ban/jail.local
+                        echo 'maxretry = 5' >> /etc/fail2ban/jail.local
+                        echo 'bantime = 86400' >> /etc/fail2ban/jail.local
+                        
                         systemctl enable fail2ban >/dev/null 2>&1; systemctl restart fail2ban >/dev/null 2>&1
                         echo -e "${green}✅ Fail2Ban 顶级装甲已部署完毕！(拉黑时间默认 24 小时)${plain}"
                         
