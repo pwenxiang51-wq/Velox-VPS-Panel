@@ -56,22 +56,22 @@ while true; do
     echo -e "  ${yellow}7.${plain}  📦 ${green}查看代理服务运行状态 (深度体检与 IP 查询) ${sb_stat}${plain}"
     echo -e "  ${yellow}8.${plain}  🌐  ${cyan}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
     echo -e "  ${yellow}9.${plain} 🚀 ${cyan}深度验证与管理 BBR 加速 ${bbr_stat}${plain}"
-    echo -e "  ${yellow}10.${plain} 🧹 ${yellow}一键清理系统垃圾与防盗门 ${f2b_stat}${plain}"
+    echo -e "  ${yellow}10.${plain} 🧹 ${yellow}一键清理系统垃圾与强制释放内存 ${f2b_stat}${plain}"
     echo -e "  ${yellow}11.${plain} 🔄  ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
     # --- 第三板块：代理核心管理 ---
     echo -e "\n${blue}[ 板块三：🔌 代理核心管理 ]${plain}"
     echo -e "  ${yellow}12.${plain} 🎬 ${blue}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
     echo -e "  ${yellow}13.${plain} 🛡️ ${green}IP 纯净度与欺诈风险体检 (精准排雷)${plain}"
-    echo -e "  ${yellow}14.${plain} ⚡ ${blue}TCP 网络底层高阶调优 (极限压榨带宽)${plain}"
+    echo -e "  ${yellow}14.${plain} ⚡ ${blue}TCP/UDP 网络底层高阶调优 (极限压榨带宽)${plain}"
     echo -e "  ${yellow}15.${plain} 🛰️ ${blue}全球主流节点 Ping 延迟测速${plain}"
     echo -e "  ${yellow}16.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 (含开机秒报 & 环境深度兼容) ${tg_stat}${plain}"
     # --- 第四板块：自动化与工具 ---
     echo -e "\n${blue}[ 板块四：🛠️ 自动化与高阶工具 ]${plain}"
-    echo -e "  ${yellow}17.${plain} 📈 ${purple}查看本机网卡流量统计 (防流量超标)${plain}"
+    echo -e "  ${yellow}17.${plain} 📈 ${purple}网卡流量统计与极客动态视窗 (防超标 / 实时看网速)${plain}"
     echo -e "  ${yellow}18.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
     echo -e "  ${yellow}19.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
     echo -e "  ${yellow}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
-    echo -e "  ${yellow}21.${plain} 🚨 ${red}SSH 隐身防盗门与安全审计中心 (抓内鬼/改端口/锁密码)${plain}"
+    echo -e "  ${yellow}21.${plain} 🚨 ${red}SSH 隐身防盗门与双核防御中心 (抓外鬼/锁密码/防爆破机枪塔)${plain}"
     echo -e "  ${yellow}22.${plain} 🚀 ${purple}召唤甬哥全家桶 (Sing-box 终端版 / X-UI 网页版)${plain}"
     # --- 第五板块：核心修复与导出 ---
     echo -e "\n${blue}[ 板块五：⚡ 核心修复与配置提取 ]${plain}"
@@ -79,7 +79,7 @@ while true; do
     echo -e "  ${yellow}24.${plain} 🔄  ${green}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
     echo -e "  ${yellow}25.${plain} 🔗  ${purple}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
     echo -e "  ${yellow}26.${plain} 🔐  ${blue}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
-    echo -e "  ${yellow}27.${plain} 🧳 ${green}全域资产一键打包与跨机搬家 (数据克隆)${plain}"
+    echo -e "  ${cyan}27.${plain} 🧳 ${purple}全域资产跨机搬家与星际舰队中心 (多机容灾/指令群发)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
@@ -208,45 +208,39 @@ while true; do
                 fi
             fi
             ;;
-        10) 
-            echo -e "\n${blue}--- 🧹 正在执行系统安全清理 ---${plain}"
+        10)
+        echo -e "\n${blue}--- 🧹 正在执行系统深度垃圾清理 ---${plain}"
+        
+        echo -e "${yellow}1. 正在清理软件安装包残留缓存...${plain}"
+        if command -v apt-get >/dev/null 2>&1; then
             apt_before=$(du -sh /var/cache/apt/archives 2>/dev/null | cut -f1)
-            echo -n "正在清理软件安装包缓存... "
-            sudo apt-get clean -y
-            sudo apt-get autoremove -y > /dev/null 2>&1
-            echo -e "[${green}已完成${plain}] (释放空间: ${yellow}${apt_before:-0B}${plain})"
-            echo "正在清理 3 天前的系统过期日志："
-            sudo journalctl --vacuum-time=3d
-            echo -e "\n✅ ${green}系统垃圾清理与汇报完毕！${plain}"
+            apt-get autoremove -y >/dev/null 2>&1
+            apt-get clean -y >/dev/null 2>&1
+            echo -e "[${green}已完成${plain}] (Debian/Ubuntu 缓存已清理，约释放: ${yellow}${apt_before:-0B}${plain})"
+        elif command -v dnf >/dev/null 2>&1; then
+            dnf clean all >/dev/null 2>&1
+            echo -e "[${green}已完成${plain}] (Rocky/Alma 缓存已清理)"
+        elif command -v yum >/dev/null 2>&1; then
+            yum clean all >/dev/null 2>&1
+            echo -e "[${green}已完成${plain}] (CentOS 缓存已清理)"
+        fi
 
-            echo -e "\n${blue}--- 🛡️ SSH 安全防护状态 (Fail2ban) ---${plain}"
-            if command -v fail2ban-client &> /dev/null; then
-                echo -e "${green}✅ 防护已开启！${plain} 当前防护详情："
-                fail2ban-client status sshd | grep -E --color=always "Currently|Total|([0-9]+)"
-            else
-                echo -e "${red}⚠️  检测到本机未安装 Fail2ban 防护${plain}"
-                read -p "是否立即一键安装并开启 SSH 防破译保护？(y/n): " install_f2b
-                if [[ "$install_f2b" == "y" ]]; then
-                    echo "正在刷新系统软件源并安装防护插件，请稍候..."
-                    # 兼容不同系统安装 Fail2ban
-                    if command -v apt-get &> /dev/null; then
-                        sudo apt-get update --fix-missing -y > /dev/null 2>&1
-                        sudo apt-get install fail2ban -y
-                    elif command -v dnf &> /dev/null; then
-                        sudo dnf install epel-release -y && sudo dnf install fail2ban -y
-                    elif command -v yum &> /dev/null; then
-                        sudo yum install epel-release -y && sudo yum install fail2ban -y
-                    fi
-                    
-                    if command -v fail2ban-client &> /dev/null; then
-                        sudo systemctl enable fail2ban && sudo systemctl start fail2ban
-                        echo -e "✅ ${green}安装成功！你的 VPS 现在自带防盗门了。${plain}"
-                    else
-                        echo -e "❌ ${red}安装失败！可能是网络抽风或系统不支持。${plain}"
-                    fi
-                fi
-            fi
-            ;;
+        echo -e "\n${yellow}2. 正在清理 3 天前的系统过期日志...${plain}"
+        if command -v journalctl >/dev/null 2>&1; then
+            journalctl --vacuum-time=3d
+        else
+            echo -e "${red}未检测到 journalctl 工具，跳过日志清理。${plain}"
+        fi
+
+        echo -e "\n${yellow}3. 正在强制释放系统物理内存缓存 (Drop Caches)...${plain}"
+        # 强制把系统内存里的 pagecache、dentries 和 inodes 缓存清空，拯救内存只有 512M 的小鸡
+        sync; echo 3 > /proc/sys/vm/drop_caches
+        echo -e "[${green}已完成${plain}] 内存缓存已释放，小鸡呼吸更加顺畅！"
+
+        echo -e "\n🎉 ${green}系统深度垃圾清理与内存释放完毕！${plain}"
+        echo -e "${cyan}-------------------------------------------------------------${plain}"
+        read -p "👉 按【回车键】返回主菜单..."
+        ;;
      11) 
         echo -e "\n${red}⚠️ 警告：此操作将物理重启整台 VPS 服务器！${plain}"
         echo -e "${yellow}执行后，当前的 SSH 连接将会立即断开，请等待 1-2 分钟后再重新连接。${plain}"
@@ -285,7 +279,15 @@ while true; do
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-     14) 
+     14)
+        echo -e "\n${cyan}请选择网络底层调优方向：${plain}"
+        echo -e "  ${green}1.${plain} ⚡ TCP 暴力扩容 (传统大文件下载提速)"
+        echo -e "  ${green}2.${plain} 🌪️ UDP 极限压榨 (Hysteria2 / TUIC 专属抗丢包)"
+        echo -e "  ${green}3.${plain} 🔥 双管齐下 (同时执行 TCP 与 UDP 调优，小孩子才做选择！)"
+        echo -e "  ${red}4.${plain} 🗑️ 恢复系统默认 (清除所有自定义扩容参数，一键后悔)"
+        read -p "👉 请输入选择 [1-4]: " tune_choice
+        
+        if [ "$tune_choice" == "1" ] || [ "$tune_choice" == "3" ]; then
             echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ---${plain}"
             sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
             sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
@@ -296,9 +298,50 @@ while true; do
             echo "net.ipv4.tcp_rmem=4096 87380 16777216" >> /etc/sysctl.conf
             echo "net.ipv4.tcp_wmem=4096 65536 16777216" >> /etc/sysctl.conf
             sysctl -p > /dev/null 2>&1
-            echo -e "${green}✅ TCP 读写窗口缓冲区已强行扩展！大文件下载起步将变得更加残暴！${plain}"
-            ;;
-        15)
+            echo -e "${green}✅ TCP 读写窗口缓冲区已强行扩展！${plain}"
+        fi
+
+        if [ "$tune_choice" == "2" ] || [ "$tune_choice" == "3" ]; then
+            echo -e "\n${blue}--- 🌪️ 正在进行 UDP 网络底层高阶调优 ---${plain}"
+            sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
+            sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
+            # 如果是双开模式，UDP的 25MB 会自动覆盖 TCP的 16MB，完美兼容最高上限
+            echo "net.core.rmem_max=26214400" >> /etc/sysctl.conf
+            echo "net.core.wmem_max=26214400" >> /etc/sysctl.conf
+            echo "net.ipv4.udp_rmem_min=8192" >> /etc/sysctl.conf
+            echo "net.ipv4.udp_wmem_min=8192" >> /etc/sysctl.conf
+            sysctl -p > /dev/null 2>&1
+            echo -e "${green}✅ UDP 读写缓冲区已暴力扩容至 25MB！${plain}"
+            
+            echo -e "\n${yellow}👉 正在嗅探主网卡并配置 CAKE/FQ 队列调度算法...${plain}"
+            DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
+            # 尝试注入抗丢包极强的 cake 算法，失败则回退到 fq
+            tc qdisc add dev $DEFAULT_IF root cake >/dev/null 2>&1 || tc qdisc add dev $DEFAULT_IF root fq >/dev/null 2>&1
+            echo -e "${green}✅ 网卡 [$DEFAULT_IF] 队列调度已接管优化！(Hy2 速度将大幅提升)${plain}"
+        fi
+
+        if [ "$tune_choice" == "4" ]; then
+            echo -e "\n${blue}--- 🗑️ 正在清除所有网络自定义调优参数 ---${plain}"
+            sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
+            sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
+            sysctl -p > /dev/null 2>&1
+            
+            DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
+            tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
+            echo -e "${green}✅ 所有强行注入的扩容参数已抹除，系统网络恢复默认状态！${plain}"
+        fi
+
+        if [[ ! "$tune_choice" =~ ^[1-4]$ ]]; then
+            echo -e "${red}❌ 无效输入，已取消操作。${plain}"
+        fi
+        ;;
+      15)
             echo -e "\n${blue}--- 🛰️ 正在测试全球主流节点延迟 ---${plain}"
             echo -ne "🇺🇸 Cloudflare: " && ping -c 3 1.1.1.1 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -ne "🇺🇸 Google: " && ping -c 3 8.8.8.8 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
@@ -489,44 +532,95 @@ EOF3
             echo ""
             read -p "👉 按【回车键】返回主菜单..."
             ;;
-       17)
-        echo -e "\n${blue}=== 📈 本机网卡流量统计 (实时计算版) ===${plain}"
-        echo -e "统计自上次开机以来的总流量 (重启系统后会清零)："
-        echo -e "${cyan}-------------------------------------------------------------${plain}"
-        
-        # 使用 awk 自动换算单位并画出对齐的表格
-        awk '
-        BEGIN {
-            printf "%-12s | %-12s | %-12s | %-12s\n", "🌐 网卡接口", "⬇️ 下载量", "⬆️ 上传量", "🔄 流量总计"
-            printf "-------------------------------------------------------------\n"
-        }
-        NR > 2 {
-            rx = $2; tx = $10; total = rx + tx;
-            
-            # 智能转换单位
-            if (rx > 1073741824) {rx_str = sprintf("%.2f GB", rx/1073741824)}
-            else if (rx > 1048576) {rx_str = sprintf("%.2f MB", rx/1048576)}
-            else {rx_str = sprintf("%.2f KB", rx/1024)}
-            
-            if (tx > 1073741824) {tx_str = sprintf("%.2f GB", tx/1073741824)}
-            else if (tx > 1048576) {tx_str = sprintf("%.2f MB", tx/1048576)}
-            else {tx_str = sprintf("%.2f KB", tx/1024)}
-            
-            if (total > 1073741824) {total_str = sprintf("%.2f GB", total/1073741824)}
-            else if (total > 1048576) {total_str = sprintf("%.2f MB", total/1048576)}
-            else {total_str = sprintf("%.2f KB", total/1024)}
-            
-            # 过滤掉本地回环，只显示真实网卡
-            if ($1 != "lo:") {
-                printf "%-14s | %-14s | %-14s | %-14s\n", $1, rx_str, tx_str, total_str
+      17)
+        echo -e "\n${cyan}请选择网卡流量监控模式：${plain}"
+        echo -e "  ${green}1.${plain} 📊 静态累计流量报表 (查看自上次开机后的总消耗)"
+        echo -e "  ${green}2.${plain} 📈 极客动态流量视窗 (黑客级 TUI 实时网速监控仪表盘)"
+        read -p "👉 请输入选择 [1-2]: " traffic_choice
+
+        if [ "$traffic_choice" == "1" ]; then
+            echo -e "\n${blue}=== 📊 本机网卡累计流量报表 ===${plain}"
+            echo -e "统计自上次开机以来的总流量 (重启系统后会清零)："
+            echo -e "${cyan}-------------------------------------------------------------${plain}"
+            awk '
+            BEGIN {
+                printf "%-12s | %-12s | %-12s | %-12s\n", "🌐 网卡接口", "⬇️ 下载量", "⬆️ 上传量", "🔄 流量总计"
+                printf "-------------------------------------------------------------\n"
             }
-        }
-        ' /proc/net/dev
-        
-        echo -e "${cyan}-------------------------------------------------------------${plain}"
-        echo -e "💡 ${yellow}提示：${plain} 此数据为系统底层实时统计。如果需要按月统计的持久化账单，建议以后考虑安装 vnstat。"
-        echo -e ""
-        read -p "👉 按【回车键】返回主菜单..."
+            NR > 2 {
+                rx = $2; tx = $10; total = rx + tx;
+                if (rx > 1073741824) {rx_str = sprintf("%.2f GB", rx/1073741824)}
+                else if (rx > 1048576) {rx_str = sprintf("%.2f MB", rx/1048576)}
+                else {rx_str = sprintf("%.2f KB", rx/1024)}
+                
+                if (tx > 1073741824) {tx_str = sprintf("%.2f GB", tx/1073741824)}
+                else if (tx > 1048576) {tx_str = sprintf("%.2f MB", tx/1048576)}
+                else {tx_str = sprintf("%.2f KB", tx/1024)}
+                
+                if (total > 1073741824) {total_str = sprintf("%.2f GB", total/1073741824)}
+                else if (total > 1048576) {total_str = sprintf("%.2f MB", total/1048576)}
+                else {total_str = sprintf("%.2f KB", total/1024)}
+                
+                if ($1 != "lo:") {
+                    printf "%-14s | %-14s | %-14s | %-14s\n", $1, rx_str, tx_str, total_str
+                }
+            }
+            ' /proc/net/dev
+            echo -e "${cyan}-------------------------------------------------------------${plain}"
+            echo -e "💡 ${yellow}提示：${plain} 此数据为系统底层实时统计。如果需要按月统计的持久化账单，建议以后考虑安装 vnstat。"
+            echo -e ""
+            read -p "👉 按【回车键】返回主菜单..."
+
+        elif [ "$traffic_choice" == "2" ]; then
+            # 自动嗅探出公网主网卡，排除 docker 和 lo 网卡
+            DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
+            clear
+            echo -e "${cyan}=======================================================${plain}"
+            echo -e "      📈 Velox 极客视窗 - 实时网络监控仪 (网卡: $DEFAULT_IF)"
+            echo -e "      💡 ${yellow}直接在键盘按【任意键】即可无缝退出监控模式${plain}"
+            echo -e "${cyan}=======================================================${plain}\n\n\n\n"
+            
+            while true; do
+                RX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes)
+                TX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes)
+                
+                # 等待 1 秒，并同时监听键盘输入，如果有任意输入则立刻跳出循环
+                read -t 1 -n 1 -s key
+                if [[ $? -eq 0 ]]; then
+                    break
+                fi
+                
+                RX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes)
+                TX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes)
+                
+                RX_KB=$(( (RX2 - RX1) / 1024 ))
+                TX_KB=$(( (TX2 - TX1) / 1024 ))
+                
+                # 动态计算进度条长度 (每 50KB/s 增加一格方块 █，封顶 35 格防爆屏)
+                RX_BAR_LEN=$((RX_KB / 50))
+                [[ $RX_BAR_LEN -gt 35 ]] && RX_BAR_LEN=35
+                TX_BAR_LEN=$((TX_KB / 50))
+                [[ $TX_BAR_LEN -gt 35 ]] && TX_BAR_LEN=35
+                
+                RX_BAR=$(printf '%*s' $RX_BAR_LEN '' | tr ' ' '█')
+                TX_BAR=$(printf '%*s' $TX_BAR_LEN '' | tr ' ' '█')
+                
+                # 终端光标魔术：向上移动 4 行并清除内容 (防闪烁疯狂刷新)
+                echo -en "\033[4A\033[J"
+                
+                echo -e "⬇️  下载: ${green}$(printf "%7s" $RX_KB) KB/s${plain} | ${cyan}$RX_BAR${plain}"
+                echo -e "⬆️  上传: ${red}$(printf "%7s" $TX_KB) KB/s${plain} | ${yellow}$TX_BAR${plain}"
+                echo -e "\n👉 ${yellow}正在实时监控中... (按任意键返回主菜单)${plain}"
+            done
+            
+            # 退出后的视觉过渡
+            echo -e "\n${green}✅ 已退出动态监控模式。${plain}"
+            sleep 0.5
+            
+        else
+            echo -e "${red}❌ 无效输入，已取消操作。${plain}"
+            read -p "👉 按【回车键】返回主菜单..."
+        fi
         ;;
       18)
             echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
@@ -589,7 +683,7 @@ EOF3
             fi
             echo -e "\n${green}✅ 系统底层库及组件已全部更新至最新状态！机器状态满血！${plain}"
             ;;
-     21)
+    21)
         while true; do
             # 动态侦测当前 SSH 端口
             current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
@@ -604,17 +698,26 @@ EOF3
                 pw_toggle="强制关闭"
             fi
 
+            # 💡 史诗级双核动态侦测：看看到底装了哪个防盗门
+            defender_status="${red}裸奔中 (未部署防爆破)${plain}"
+            if systemctl is-active --quiet velox-defender 2>/dev/null; then
+                defender_status="${cyan}已激活 (纯 Bash 轻量机枪塔)${plain}"
+            elif systemctl is-active --quiet fail2ban 2>/dev/null; then
+                defender_status="${purple}已激活 (Fail2Ban 工业级装甲)${plain}"
+            fi
+
             echo -e "\n${blue}=== 🚨 SSH 隐身防盗门与安全审计中心 ===${plain}"
-            echo -e "${yellow}⚠️ 当前状态 -> 端口: [ $current_port ] | 密码登录: [ $pw_status ]${plain}\n"
+            echo -e "${yellow}⚠️ 当前状态 -> 端口: [$current_port] | 密码: [$pw_status] | 防御: [$defender_status]${plain}\n"
             
             echo -e "  ${yellow}1.${plain} 🕵️  查看当前在线 SSH 用户并实施制裁"
             echo -e "  ${yellow}2.${plain} 💣  审计被拦截的黑客爆破日志 (查外鬼)"
             echo -e "  ${yellow}3.${plain} 🚪  修改 SSH 端口 (输入 22 即可恢复默认)"
             echo -e "  ${yellow}4.${plain} 🔑  一键切换密码登录开关 (执行: $pw_toggle)"
             echo -e "  ${yellow}5.${plain} 🛡️  ${green}一键添加 SSH 公钥 (配置免密登录必备)${plain}"
-            echo -e "  ${red}0.${plain}  返回主菜单"
+            echo -e "  ${red}6. 🚀 部署/卸载安全防御武器库 (机枪塔 / Fail2Ban 双核任选)${plain}"
+            echo -e "  ${cyan}0.${plain}  返回主菜单"
             echo -e "--------------------------------------------------------"
-            read -p "👉 请选择安全操作 [0-5]: " ssh_choice
+            read -p "👉 请选择安全操作 [0-6]: " ssh_choice
             
             case $ssh_choice in
                 1)
@@ -623,10 +726,8 @@ EOF3
                     echo -e "${cyan}---------------------------------------------------${plain}"
                     read -p "请输入要制裁的终端号 (例如 pts/1，必须完整输入): " target_pts
                     if [[ -n "$target_pts" ]]; then
-                        # 采用正则强校验，必须是 pts/数字 的格式，防止小白乱填
                         if [[ "$target_pts" =~ ^pts/[0-9]+$ ]]; then
                             if w | grep -q "$target_pts"; then
-                                # 智能提取 IP：无视系统排版错位，利用正则精准抓取 IPv4
                                 target_ip=$(w | grep "$target_pts" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
                                 [ -z "$target_ip" ] && target_ip="未知IP或隐藏来源"
                                 
@@ -637,7 +738,7 @@ EOF3
                                     1) sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 已踢出！${plain}" ;;
                                     2)
                                         if [ "$target_ip" != "未知IP或隐藏来源" ]; then
-                                            if command -v fail2ban-client &> /dev/null; then sudo fail2ban-client set sshd banip "$target_ip" >/dev/null 2>&1; else sudo iptables -A INPUT -s "$target_ip" -j DROP; fi
+                                            sudo iptables -A INPUT -s "$target_ip" -j DROP
                                         fi
                                         sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 已永久拉黑！${plain}" ;;
                                     3)
@@ -648,17 +749,16 @@ EOF3
                                     *) echo -e "${red}取消操作。${plain}" ;;
                                 esac
                             else
-                                echo -e "${red}⚠️ 当前在线记录中找不到终端 [$target_pts]！${plain}"
+                                echo -e "${red}⚠️ 找不到终端 [$target_pts]！${plain}"
                             fi
                         else
-                            echo -e "${red}⚠️ 格式错误！必须严格输入如 pts/1 这样的格式，不能只输入一部分。${plain}"
+                            echo -e "${red}⚠️ 格式错误！必须输入如 pts/1 格式。${plain}"
                         fi
                     fi
                     ;;
                 2)
                     echo -e "\n${blue}--- 💣 正在统计恶意爆破日志 (Top 10) ---${plain}"
                     ATTACKS=""
-                    # 智能适配 Debian 12 / Ubuntu 22+ 的新型系统日志
                     if [ -f "/var/log/auth.log" ]; then
                         ATTACKS=$(grep "Failed password" /var/log/auth.log | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
                     elif [ -f "/var/log/secure" ]; then
@@ -666,64 +766,127 @@ EOF3
                     elif command -v journalctl &> /dev/null; then
                         ATTACKS=$(journalctl -u ssh -u sshd --no-pager 2>/dev/null | grep "Failed password" | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
                     fi
-                    
-                    if [ -z "$ATTACKS" ]; then
-                        echo -e "${green}🎉 太棒了，当前系统底层未查到任何被爆破的记录！${plain}"
-                    else
-                        echo -e "${yellow}次数   |   攻击者 IP${plain}"
-                        echo -e "${cyan}$ATTACKS${plain}"
-                    fi
+                    if [ -z "$ATTACKS" ]; then echo -e "${green}🎉 系统底层未查到任何被爆破的记录！${plain}"; else echo -e "${yellow}次数   |   攻击者 IP${plain}\n${cyan}$ATTACKS${plain}"; fi
                     ;;
                 3)
                     read -p "✍️ 请输入新的 SSH 端口号 (1000-65535, 输入 22 恢复默认): " new_port
                     if [[ "$new_port" =~ ^[0-9]+$ ]] && ([ "$new_port" -eq 22 ] || ([ "$new_port" -ge 1000 ] && [ "$new_port" -le 65535 ])); then
                         sed -i "s/^#\?Port .*/Port $new_port/g" /etc/ssh/sshd_config
                         grep -q "^Port " /etc/ssh/sshd_config || echo "Port $new_port" >> /etc/ssh/sshd_config
-                        
                         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                        if [ "$new_port" -eq 22 ]; then
-                            echo -e "\n${green}✅ SSH 端口已成功恢复为默认的 ${red}22${plain} 端口！(之前的自定义端口已被抹除)${plain}"
-                        else
-                            echo -e "\n${green}✅ SSH 端口已成功修改为: ${red}$new_port${plain}"
-                            echo -e "⚠️ ${yellow}切记去云面板 (如 阿里云/腾讯云/GCP) 的防火墙放行此端口！${plain}"
-                        fi
+                        if [ "$new_port" -eq 22 ]; then echo -e "\n${green}✅ SSH 端口已恢复为默认 ${red}22${plain} 端口！${plain}"; else echo -e "\n${green}✅ SSH 端口已修改为: ${red}$new_port${plain}\n⚠️ ${yellow}切记去云面板放行此端口！${plain}"; fi
                     else
-                        echo -e "\n${red}❌ 端口不合法，操作已取消。${plain}"
+                        echo -e "\n${red}❌ 端口不合法。${plain}"
                     fi
                     ;;
                 4)
                     if grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config; then
                         sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
                         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                        echo -e "\n${yellow}🔓 密码登录已【重新开启】！(系统安全性下降，请注意防范)${plain}"
+                        echo -e "\n${yellow}🔓 密码登录已【重新开启】！${plain}"
                     else
-                        read -p "⚠️ 危险：请确认你已配置好密钥！确认关闭密码登录？(y/n): " confirm_key
+                        read -p "⚠️ 确认关闭密码登录？(y/n): " confirm_key
                         if [[ "$confirm_key" == "y" || "$confirm_key" == "Y" ]]; then
                             sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
                             grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
                             systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                            echo -e "\n${green}✅ 密码登录已【永久关闭】！(仅限密钥访问)${plain}"
-                        else
-                            echo -e "\n${yellow}已取消。${plain}"
+                            echo -e "\n${green}✅ 密码登录已【永久关闭】！${plain}"
                         fi
                     fi
                     ;;
                 5)
                     echo -e "\n${blue}--- 🛡️ 一键添加 SSH 公钥 (配置免密登录) ---${plain}"
-                    echo -e "请用记事本打开您电脑上的 .pub 公钥文件，将里面的长串字符复制进来。"
-                    read -p "👉 请粘贴公钥 (通常以 ssh-rsa 或 ssh-ed25519 开头): " ssh_pub_key
-                    
+                    read -p "👉 请粘贴公钥: " ssh_pub_key
                     if [[ "$ssh_pub_key" == ssh-rsa* ]] || [[ "$ssh_pub_key" == ssh-ed25519* ]] || [[ "$ssh_pub_key" == ecdsa-sha2* ]]; then
-                        mkdir -p ~/.ssh
-                        chmod 700 ~/.ssh
-                        echo "$ssh_pub_key" >> ~/.ssh/authorized_keys
-                        chmod 600 ~/.ssh/authorized_keys
-                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                        echo -e "\n${green}✅ 公钥已成功注入系统底座！${plain}"
-                        echo -e "💡 ${yellow}极客建议：请立刻新开一个 SSH 窗口测试能否直接免密连上。确认成功后，再使用【选项 4】焊死密码登录！${plain}"
-                    else
-                        echo -e "\n${red}❌ 格式识别失败！您粘贴的不是标准的公钥格式。${plain}"
-                    fi
+                        mkdir -p ~/.ssh && chmod 700 ~/.ssh; echo "$ssh_pub_key" >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys
+                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null; echo -e "\n${green}✅ 公钥已成功注入系统底座！${plain}"
+                    else echo -e "\n${red}❌ 格式识别失败！${plain}"; fi
+                    ;;
+                6)
+                    echo -e "\n${blue}--- 🚀 Velox 双核安全防御武器库 ---${plain}"
+                    echo -e "  ${cyan}1.${plain} 🟢 [极简特种兵] 部署纯 Bash 底层机枪塔 (0 内存消耗，专防 SSH)"
+                    echo -e "  ${cyan}2.${plain} 🗑️ ${red}[极简特种兵] 拆除并物理粉碎 Bash 机枪塔${plain}"
+                    echo -e "  ${purple}3.${plain} 🛡️ [工业正规军] 安装 Fail2Ban 顶级防御 (全面防护，占内存)"
+                    echo -e "  ${purple}4.${plain} 🗑️ ${red}[工业正规军] 完全卸载并清除 Fail2Ban 所有残留${plain}"
+                    echo -e "  ${yellow}5.${plain} 📜 查看当前武器库的防御战果与拦截名单"
+                    read -p "👉 请选择武器库操作 [1-5]: " def_choice
+                    
+                    if [ "$def_choice" == "1" ]; then
+                        echo -e "\n${yellow}正在手搓 Bash 底层守护进程并注入 Systemd...${plain}"
+                        cat << 'EOF' > /usr/local/bin/velox-defender.sh
+#!/bin/bash
+LOG_FILE="/var/log/auth.log"
+[ -f /var/log/secure ] && LOG_FILE="/var/log/secure"
+tail -Fn0 "$LOG_FILE" | awk '/Failed password/ {print $(NF-3)}' | while read IP; do
+    if [ -n "$IP" ]; then
+        COUNT=$(grep -c "^$IP$" /tmp/velox_ip_counts.txt 2>/dev/null || echo 0)
+        if [ "$COUNT" -ge 4 ]; then
+            if ! iptables -C INPUT -s "$IP" -j DROP &>/dev/null; then iptables -I INPUT -s "$IP" -j DROP; echo "$(date '+%Y-%m-%d %H:%M:%S') - 💥 击毙爆破 IP: $IP" >> /var/log/velox-defender.log; fi
+            sed -i "/^$IP$/d" /tmp/velox_ip_counts.txt 2>/dev/null
+        else echo "$IP" >> /tmp/velox_ip_counts.txt; fi
+    fi
+done
+EOF
+                        chmod +x /usr/local/bin/velox-defender.sh
+                        cat << 'EOF' > /etc/systemd/system/velox-defender.service
+[Unit]
+Description=Velox SSH Defender Auto-Ban Daemon
+After=network.target
+[Service]
+ExecStart=/usr/local/bin/velox-defender.sh
+Restart=always
+RestartSec=3
+[Install]
+WantedBy=multi-user.target
+EOF
+                        systemctl daemon-reload; systemctl enable velox-defender >/dev/null 2>&1; systemctl restart velox-defender
+                        echo -e "${green}✅ Bash 机枪塔已部署！连续输错 5 次密码的 IP 将被物理超度！${plain}"
+                        
+                    elif [ "$def_choice" == "2" ]; then
+                        systemctl stop velox-defender >/dev/null 2>&1; systemctl disable velox-defender >/dev/null 2>&1
+                        rm -f /usr/local/bin/velox-defender.sh; rm -f /etc/systemd/system/velox-defender.service; rm -f /tmp/velox_ip_counts.txt
+                        systemctl daemon-reload
+                        echo -e "${green}✅ Bash 机枪塔已彻底拆除并粉碎，不留一丝痕迹！${plain}"
+                        
+                    elif [ "$def_choice" == "3" ]; then
+                        echo -e "\n${yellow}正在全网拉取 Fail2Ban 工业装甲...${plain}"
+                        if command -v apt-get >/dev/null; then apt-get update >/dev/null 2>&1; apt-get install fail2ban -y >/dev/null 2>&1; fi
+                        if command -v yum >/dev/null; then yum install epel-release -y >/dev/null 2>&1; yum install fail2ban -y >/dev/null 2>&1; fi
+                        if command -v dnf >/dev/null; then dnf install epel-release -y >/dev/null 2>&1; dnf install fail2ban -y >/dev/null 2>&1; fi
+                        
+                        LOGPATH="/var/log/auth.log"; [ -f /var/log/secure ] && LOGPATH="/var/log/secure"
+                        cat << EOF > /etc/fail2ban/jail.local
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = $LOGPATH
+maxretry = 5
+bantime = 86400
+EOF
+                        systemctl enable fail2ban >/dev/null 2>&1; systemctl restart fail2ban >/dev/null 2>&1
+                        echo -e "${green}✅ Fail2Ban 顶级装甲已部署完毕！(拉黑时间默认 24 小时)${plain}"
+                        
+                    elif [ "$def_choice" == "4" ]; then
+                        echo -e "\n${yellow}正在暴力拆除 Fail2Ban...${plain}"
+                        systemctl stop fail2ban >/dev/null 2>&1; systemctl disable fail2ban >/dev/null 2>&1
+                        if command -v apt-get >/dev/null; then apt-get remove --purge fail2ban -y >/dev/null 2>&1; fi
+                        if command -v yum >/dev/null; then yum remove fail2ban -y >/dev/null 2>&1; fi
+                        if command -v dnf >/dev/null; then dnf remove fail2ban -y >/dev/null 2>&1; fi
+                        rm -rf /etc/fail2ban
+                        echo -e "${green}✅ Fail2Ban 及其所有依赖和配置残留已彻底抹除！${plain}"
+                        
+                    elif [ "$def_choice" == "5" ]; then
+                        if systemctl is-active --quiet velox-defender 2>/dev/null; then
+                            echo -e "\n${cyan}--- 🎖️ Bash 机枪塔战果统计 (最新 15 条) ---${plain}"
+                            [ -f "/var/log/velox-defender.log" ] && cat /var/log/velox-defender.log | tail -n 15 || echo "系统目前很安全，暂无击毙记录！"
+                        elif systemctl is-active --quiet fail2ban 2>/dev/null; then
+                            echo -e "\n${purple}--- 🎖️ Fail2Ban 拦截战果 ---${plain}"
+                            fail2ban-client status sshd
+                        else
+                            echo -e "\n${yellow}⚠️ 您目前处于裸奔状态，未开启任何防御系统！${plain}"
+                        fi
+                    else echo -e "${red}❌ 无效输入。${plain}"; fi
                     ;;
                 0) break ;;
                 *) echo -e "\n${red}❌ 无效输入。${plain}" ;;
@@ -1086,125 +1249,155 @@ EOF3
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-    27)
-        echo -e "\n${blue}=== 🧳 全域资产一键打包与跨机搬家 (数据克隆终极版) ===${plain}"
-        echo -e "${yellow}正在启动全频段雷达，扫描系统内的节点配置、面板数据、证书和定时任务...${plain}\n"
+   27)
+        while true; do
+            echo -e "\n${blue}=== 🛰️ 星际舰队与跨机容灾中心 ===${plain}"
+            echo -e "  ${green}1.${plain} 📦 全域资产一键打包与跨机搬家 (原版数据克隆终极版)"
+            echo -e "  ${cyan}2.${plain} 🤝 组建舰队: 配置多机免密互信 (打通 SSH 桥梁)"
+            echo -e "  ${purple}3.${plain} 🚀 舰队出击: 向所有僚机群发执行指令 (万机齐发)"
+            echo -e "  ${red}4.${plain} 🗑️ 解散舰队: 清除本机群发记录与 SSH 密钥 (无痕销毁)"
+            echo -e "  ${yellow}0.${plain} 返回主菜单"
+            echo -e "--------------------------------------------------------"
+            read -p "👉 请选择操作 [0-4]: " fleet_choice
+            
+            case $fleet_choice in
+                1)
+                    echo -e "\n${blue}--- 🧳 全域资产一键打包与跨机搬家 ---${plain}"
+                    echo -e "${yellow}正在启动全频段雷达，扫描系统内的节点配置、面板数据、证书和定时任务...${plain}\n"
 
-        BACKUP_DIR="/root/velox_backup_$(date +%Y%m%d)"
-        mkdir -p "$BACKUP_DIR"
-        has_data=0
+                    BACKUP_DIR="/root/velox_backup_$(date +%Y%m%d)"
+                    mkdir -p "$BACKUP_DIR"
+                    has_data=0
 
-        # --- 1. 代理脚本与面板全家桶扫描 ---
-        if [ -d "/root/agsbx" ]; then
-            cp -r /root/agsbx "$BACKUP_DIR/"
-            echo -e "✅ 成功提取 [小钢炮/AnyTLS] 核心配置"
-            has_data=1
-        fi
-        if [ -d "/etc/s-box" ]; then
-            cp -r /etc/s-box "$BACKUP_DIR/"
-            echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"
-            has_data=1
-        elif [ -d "/etc/sing-box" ]; then
-            cp -r /etc/sing-box "$BACKUP_DIR/"
-            echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"
-            has_data=1
-        fi
-        if [ -d "/etc/x-ui" ]; then
-            cp -r /etc/x-ui "$BACKUP_DIR/"
-            echo -e "✅ 成功提取 [X-UI / 3X-UI 面板] 数据库与配置"
-            has_data=1
-        fi
+                    # --- 1. 代理脚本与面板全家桶扫描 ---
+                    if [ -d "/root/agsbx" ]; then cp -r /root/agsbx "$BACKUP_DIR/"; echo -e "✅ 成功提取 [小钢炮/AnyTLS] 核心配置"; has_data=1; fi
+                    if [ -d "/etc/s-box" ]; then cp -r /etc/s-box "$BACKUP_DIR/"; echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"; has_data=1;
+                    elif [ -d "/etc/sing-box" ]; then cp -r /etc/sing-box "$BACKUP_DIR/"; echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"; has_data=1; fi
+                    if [ -d "/etc/x-ui" ]; then cp -r /etc/x-ui "$BACKUP_DIR/"; echo -e "✅ 成功提取 [X-UI / 3X-UI 面板] 数据库与配置"; has_data=1; fi
 
-        # --- 2. 核心护盾扫描 ---
-        if [ -d "/root/.acme.sh" ]; then
-            cp -r /root/.acme.sh "$BACKUP_DIR/"
-            echo -e "✅ 成功提取 [Acme 域名证书资产]"
-            has_data=1
-        elif [ -d "$HOME/.acme.sh" ]; then
-            cp -r "$HOME/.acme.sh" "$BACKUP_DIR/"
-            echo -e "✅ 成功提取 [Acme 域名证书资产]"
-            has_data=1
-        fi
+                    # --- 2. 核心护盾扫描 ---
+                    if [ -d "/root/.acme.sh" ]; then cp -r /root/.acme.sh "$BACKUP_DIR/"; echo -e "✅ 成功提取 [Acme 域名证书资产]"; has_data=1;
+                    elif [ -d "$HOME/.acme.sh" ]; then cp -r "$HOME/.acme.sh" "$BACKUP_DIR/"; echo -e "✅ 成功提取 [Acme 域名证书资产]"; has_data=1; fi
 
-        # --- 3. 自动化任务扫描 ---
-        if crontab -l > "$BACKUP_DIR/crontab_backup.txt" 2>/dev/null; then
-            if [ -s "$BACKUP_DIR/crontab_backup.txt" ]; then
-                echo -e "✅ 成功提取 [系统定时任务 (crontab)]"
-                has_data=1
-            else
-                rm -f "$BACKUP_DIR/crontab_backup.txt"
+                    # --- 3. 自动化任务扫描 ---
+                    if crontab -l > "$BACKUP_DIR/crontab_backup.txt" 2>/dev/null; then
+                        if [ -s "$BACKUP_DIR/crontab_backup.txt" ]; then echo -e "✅ 成功提取 [系统定时任务 (crontab)]"; has_data=1;
+                        else rm -f "$BACKUP_DIR/crontab_backup.txt"; fi
+                    fi
+
+                    echo -e "${cyan}--------------------------------------------------------${plain}"
+                    
+                    # --- 4. 极客专属：自定义目录打包引擎 ---
+                    echo -e "💡 ${green}除了以上标准资产，您是否还有其他应用需要一起打包搬家？${plain}"
+                    echo -e "${purple}📚 【常见应用路径小抄】 (如需打包，请直接复制下方路径)：${plain}"
+                    echo -e "   - ☁️ Alist 网盘数据:  ${yellow}/opt/alist/data${plain}"
+                    echo -e "   - 🤖 哪吒探针面板:  ${yellow}/opt/nezha${plain}"
+                    echo -e "   - 🐳 Docker 数据卷:  ${yellow}/var/lib/docker/volumes${plain}"
+                    echo -e "   - 🌐 Nginx 网站目录:  ${yellow}/var/www/html${plain}"
+                    read -p "👉 请输入完整路径 (多个用空格隔开，回车跳过): " custom_paths
+
+                    if [ -n "$custom_paths" ]; then
+                        mkdir -p "$BACKUP_DIR/custom_assets"
+                        for path in $custom_paths; do
+                            if [ -d "$path" ] || [ -f "$path" ]; then
+                                cd /
+                                rel_path="${path#/}"
+                                cp --parents -r "$rel_path" "$BACKUP_DIR/custom_assets/" 2>/dev/null
+                                echo -e "📦 成功将自定义路径追加至包裹: ${yellow}$path${plain}"
+                                has_data=1
+                            else
+                                echo -e "⚠️ ${red}找不到指定的文件或目录，已跳过: $path${plain}"
+                            fi
+                        done
+                        cd /root
+                    fi
+
+                    if [ "$has_data" -eq 1 ]; then
+                        echo -e "\n${cyan}⏳ 正在对包裹进行高强度压缩加密，请耐心等待...${plain}"
+                        cd /root
+                        tar -czf "Velox_Assets_Backup.tar.gz" "$(basename "$BACKUP_DIR")" >/dev/null 2>&1
+                        rm -rf "$BACKUP_DIR"
+                        SSH_PORT=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
+                        [ -z "$SSH_PORT" ] && SSH_PORT="22"
+
+                        echo -e "\n${green}🎉 资产克隆打包完毕！您的全域备份文件已生成：${plain}"
+                        echo -e "${cyan}📂 文件绝对路径：/root/Velox_Assets_Backup.tar.gz${plain}"
+                        echo -e "\n${purple}🔥 【新机器终极恢复长指令】 (在新 VPS 终端执行)：${plain}"
+                        echo -e "  ${cyan}cd /root && tar -xzf Velox_Assets_Backup.tar.gz && BACKUP_NAME=\$(ls -d velox_backup_*) && cp -rf \$BACKUP_NAME/agsbx /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/s-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/sing-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/x-ui /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/.acme.sh /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/custom_assets/* / 2>/dev/null; crontab \$BACKUP_NAME/crontab_backup.txt 2>/dev/null; rm -rf Velox_Assets_Backup.tar.gz \$BACKUP_NAME; echo -e \"\\n✅ 资产覆盖恢复成功！节点与证书已满血复活！\"${plain}"
+                    else
+                        echo -e "\n${red}❌ 未提取到任何资产，打包已取消。${plain}"
+                        rm -rf "$BACKUP_DIR"
+                    fi
+                    ;;
+                2)
+                    echo -e "\n${blue}--- 🤝 组建星际舰队：打通免密互信 ---${plain}"
+                    echo -e "💡 原理：本机将生成专属密钥，并强行塞入目标机器，以后本机即可直接控制目标机器！"
+                    if [ ! -f ~/.ssh/id_rsa ]; then
+                        echo -e "${yellow}正在为母舰生成专属指挥官密钥...${plain}"
+                        ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa >/dev/null 2>&1
+                    fi
+                    
+                    read -p "👉 请输入目标僚机 IP 地址: " target_ip
+                    if [ -n "$target_ip" ]; then
+                        read -p "👉 请输入目标机器 SSH 端口 (默认 22): " target_port
+                        [ -z "$target_port" ] && target_port=22
+                        
+                        echo -e "\n${cyan}即将连接目标机器，如果提示 (yes/no) 请手动输入 yes 并回车，随后输入目标机器的 root 密码！${plain}"
+                        ssh-copy-id -i ~/.ssh/id_rsa.pub -p "$target_port" "root@$target_ip"
+                        
+                        if [ $? -eq 0 ]; then
+                            echo "$target_ip:$target_port" >> /root/.velox_fleet_nodes.txt
+                            sort -u /root/.velox_fleet_nodes.txt -o /root/.velox_fleet_nodes.txt
+                            echo -e "${green}✅ 互信打通成功！节点 [$target_ip] 已编入舰队序列！${plain}"
+                        else
+                            echo -e "${red}❌ 互信失败，请检查 IP、端口或密码是否正确。${plain}"
+                        fi
+                    fi
+                    ;;
+                3)
+                    if [ ! -s /root/.velox_fleet_nodes.txt ]; then
+                        echo -e "\n${red}⚠️ 舰队空空如也！请先使用 [选项 2] 添加僚机！${plain}"
+                    else
+                        echo -e "\n${blue}--- 🚀 舰队出击：万机齐发 ---${plain}"
+                        echo -e "当前已编入舰队的僚机列表："
+                        cat /root/.velox_fleet_nodes.txt | awk -F: '{print " - 🟢 IP: "$1" (端口: "$2")"}'
+                        echo -e "${cyan}--------------------------------------------------------${plain}"
+                        echo -e "💡 你可以输入类似 ${yellow}apt update -y${plain} 或者 ${yellow}reboot${plain} 甚至 ${yellow}rm -rf /tmp/*${plain}"
+                        read -p "👉 请输入要对所有僚机下达的 Linux 指令: " fleet_cmd
+                        
+                        if [ -n "$fleet_cmd" ]; then
+                            echo -e "\n${purple}📡 正在向全频段广播指令...${plain}"
+                            for node in $(cat /root/.velox_fleet_nodes.txt); do
+                                ip=$(echo "$node" | cut -d: -f1)
+                                port=$(echo "$node" | cut -d: -f2)
+                                echo -e "\n${yellow}[执行节点 -> $ip] 的回传报告：${plain}"
+                                # 设置超时 10 秒防卡死
+                                ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -p "$port" "root@$ip" "$fleet_cmd"
+                            done
+                            echo -e "\n${green}🎉 舰队指令群发完毕！${plain}"
+                        fi
+                    fi
+                    ;;
+                4)
+                    echo -e "\n${blue}--- 🗑️ 解散舰队与痕迹清理 ---${plain}"
+                    read -p "⚠️ 此操作将删除本机的群发名单及指挥官密钥，确认解散？(y/n): " confirm_disband
+                    if [[ "$confirm_disband" == "y" || "$confirm_disband" == "Y" ]]; then
+                        rm -f /root/.velox_fleet_nodes.txt
+                        rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
+                        echo -e "${green}✅ 舰队名单与密钥已彻底粉碎，本机已恢复平民身份！${plain}"
+                    else
+                        echo -e "${yellow}操作已取消。${plain}"
+                    fi
+                    ;;
+                0) break ;;
+                *) echo -e "\n${red}❌ 无效输入。${plain}" ;;
+            esac
+            
+            if [[ "$fleet_choice" != "0" ]]; then
+                echo ""
+                read -p "👉 按【回车键】继续..."
             fi
-        fi
-
-        echo -e "${cyan}--------------------------------------------------------${plain}"
-        
-        # --- 4. 极客专属：自定义目录打包引擎 (带保姆级小抄) ---
-        echo -e "💡 ${green}除了以上标准资产，您是否还有其他应用需要一起打包搬家？${plain}"
-        echo -e "${purple}📚 【常见应用路径小抄】 (如需打包，请直接复制下方路径)：${plain}"
-        echo -e "   - ☁️ Alist 网盘数据:  ${yellow}/opt/alist/data${plain}"
-        echo -e "   - 🤖 哪吒探针面板:  ${yellow}/opt/nezha${plain}"
-        echo -e "   - 🐳 Docker 数据卷:  ${yellow}/var/lib/docker/volumes${plain}"
-        echo -e "   - 🌐 Nginx 网站目录:  ${yellow}/var/www/html${plain}"
-        echo -e "   - 博客/私有文件等:  ${yellow}您自己创建的其他绝对路径${plain}"
-        read -p "👉 请输入完整路径 (多个路径用空格隔开，直接回车则跳过): " custom_paths
-
-        if [ -n "$custom_paths" ]; then
-            mkdir -p "$BACKUP_DIR/custom_assets"
-            for path in $custom_paths; do
-                if [ -d "$path" ] || [ -f "$path" ]; then
-                    # 切换到根目录执行，利用 --parents 完美保留绝对路径层级 (例如 opt/alist/data)
-                    cd /
-                    rel_path="${path#/}"
-                    cp --parents -r "$rel_path" "$BACKUP_DIR/custom_assets/" 2>/dev/null
-                    echo -e "📦 成功将自定义路径追加至包裹 (已锁定目录结构): ${yellow}$path${plain}"
-                    has_data=1
-                else
-                    echo -e "⚠️ ${red}找不到指定的文件或目录，已跳过: $path${plain}"
-                fi
-            done
-            cd /root
-        fi
-
-        if [ "$has_data" -eq 1 ]; then
-            echo -e "\n${cyan}⏳ 正在对包裹进行高强度压缩加密，请耐心等待...${plain}"
-            
-            cd /root
-            tar -czf "Velox_Assets_Backup.tar.gz" "$(basename "$BACKUP_DIR")" >/dev/null 2>&1
-            rm -rf "$BACKUP_DIR"
-            
-            # 动态获取当前 SSH 端口
-            SSH_PORT=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
-            [ -z "$SSH_PORT" ] && SSH_PORT="22"
-
-            echo -e "\n${green}🎉 资产克隆打包完毕！您的全域备份文件已生成：${plain}"
-            echo -e "${cyan}📂 文件绝对路径：/root/Velox_Assets_Backup.tar.gz${plain}"
-            
-            echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (全系统平台智能适配版)：${plain}"
-            echo -e "--------------------------------------------------------"
-            echo -e "${cyan}👉 方案 A：使用图形化 SSH 软件 (如 FinalShell / Xshell / Termius)${plain}"
-            echo -e "  1. 在软件的文件管理界面，进入 /root 目录，右键下载备份包到电脑桌面。"
-            echo -e "  2. 登录【新机器】，直接将该包拖拽上传到新机器的 /root 目录下。\n"
-            
-            echo -e "${cyan}👉 方案 B：使用纯命令行工具 (CMD / PowerShell / Mac 终端)${plain}"
-            echo -e "  📥 【第一步：下载到本地电脑】打开电脑本地新终端，复制执行 (请修改旧IP)："
-            echo "   - [Windows 用户] (存至 D 盘): scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz D:/"
-            echo "   - [Mac/Linux 用户] (存至桌面): scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz ~/Desktop/"
-            echo ""
-            echo -e "  📤 【第二步：上传至新机器】(请修改新IP及端口)："
-            echo "   - [Windows 用户]: scp -P 22 D:/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
-            echo "   - [Mac/Linux 用户]: scp -P 22 ~/Desktop/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
-            echo ""
-            echo -e "${purple}🔥 【第三步：终极恢复指令】 (全平台通用，在新 VPS 的 SSH 窗口执行)：${plain}"
-            echo -e "当备份包成功传到【新机器】后，直接复制运行以下长命令实现一键满血复活："
-            echo -e "  ${cyan}cd /root && tar -xzf Velox_Assets_Backup.tar.gz && BACKUP_NAME=\$(ls -d velox_backup_*) && cp -rf \$BACKUP_NAME/agsbx /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/s-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/sing-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/x-ui /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/.acme.sh /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/custom_assets/* / 2>/dev/null; crontab \$BACKUP_NAME/crontab_backup.txt 2>/dev/null; rm -rf Velox_Assets_Backup.tar.gz \$BACKUP_NAME; echo -e \"\\n✅ 资产覆盖恢复成功！节点与证书已满血复活！\"${plain}"
-            echo -e "--------------------------------------------------------"
-        else
-            echo -e "\n${red}❌ 扫描结束：未提取到任何资产，打包已取消。${plain}"
-            rm -rf "$BACKUP_DIR"
-        fi
-
-        echo -e "\n${yellow}------------------------------------------${plain}"
-        read -p "👉 按【回车键】返回主菜单..."
+        done
         ;;
      U|u) 
             echo -e "\n${red}--- ⚠️  卸载操作 ---${plain}"
