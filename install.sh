@@ -56,7 +56,7 @@ while true; do
     echo -e "  ${yellow}7.${plain}  📦 ${green}查看代理服务运行状态 (深度体检与 IP 查询) ${sb_stat}${plain}"
     echo -e "  ${yellow}8.${plain}  🌐  ${cyan}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
     echo -e "  ${yellow}9.${plain} 🚀 ${cyan}深度验证与管理 BBR 加速 ${bbr_stat}${plain}"
-    echo -e "  ${yellow}10.${plain} 🧹 ${yellow}一键清理系统垃圾与强制释放内存 ${f2b_stat}${plain}"
+    echo -e "  ${yellow}10.${plain} 🧹 ${yellow}一键清理系统垃圾与强制释放内存${plain}"
     echo -e "  ${yellow}11.${plain} 🔄  ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
     # --- 第三板块：代理核心管理 ---
     echo -e "\n${blue}[ 板块三：🔌 代理核心管理 ]${plain}"
