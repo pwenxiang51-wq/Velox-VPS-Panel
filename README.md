@@ -92,8 +92,8 @@
 请在你的 VPS 终端（推荐使用 root 用户）执行以下命令：  
 
 ```bash
-bash <(curl -sL [https://sink.222382.xyz/rgkqsm](https://sink.222382.xyz/rgkqsm))
-```
+bash <(curl -sL [https://sink.222382.xyz/nzc4v9](https://sink.222382.xyz/nzc4v9))
+```bash
 💡 使用说明：
 
 首次安装：复制上方代码块在 VPS 终端运行，系统会自动安装所需组件并弹出 UI 面板。
