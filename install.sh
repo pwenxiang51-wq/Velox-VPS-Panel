@@ -308,7 +308,7 @@ while true; do
             # 兼容性环境检查
             if ! command -v curl &> /dev/null; then
                 echo -e "${yellow}正在安装必须的网络组件 curl...${plain}"
-                apt-get update -y && apt-get install curl -y >/dev/null 2>&1 || yum install curl -y >/dev/null 2>&1
+                apt-get update -y && apt-get install curl -y >/dev/null 2>&1 || yum install curl -y >/dev/null 2>&1 || dnf install curl -y >/dev/null 2>&1
             fi
 
             if [ -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
@@ -975,7 +975,7 @@ EOF3
         # 0. 自动安装终端二维码画图组件
         if ! command -v qrencode >/dev/null 2>&1; then
             echo -e "${yellow}正在给系统安装二维码生成模块 (qrencode)...${plain}"
-            apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1 || yum install qrencode -y >/dev/null 2>&1
+            apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1 || yum install qrencode -y >/dev/null 2>&1 || dnf install qrencode -y >/dev/null 2>&1
         fi
 
         echo -e "${cyan}📡 正在启动全局底层正则扫描，为您搜罗所有隐藏节点...${plain}"
