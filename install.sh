@@ -535,14 +535,17 @@ EOF3
             echo ""
             read -p "👉 按【回车键】返回主菜单..."
             ;;
-      17)
+     17)
         echo -e "\n${cyan}请选择网卡流量监控模式：${plain}"
         echo -e "  ${green}1.${plain} 📊 静态累计流量报表 (查看自上次开机后的总消耗)"
         echo -e "  ${green}2.${plain} 📈 极客动态流量视窗 (黑客级 TUI 实时网速监控仪表盘)"
         echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
         read -p "👉 请输入选择 [0-2]: " traffic_choice
 
-        if [ "$traffic_choice" == "1" ]; then
+        if [ "$traffic_choice" == "0" ]; then
+            echo -e "\n${yellow}已取消操作，返回主菜单。${plain}"
+            
+        elif [ "$traffic_choice" == "1" ]; then
             echo -e "\n${blue}=== 📊 本机网卡累计流量报表 ===${plain}"
             echo -e "统计自上次开机以来的总流量 (重启系统后会清零)："
             echo -e "${cyan}-------------------------------------------------------------${plain}"
@@ -572,11 +575,8 @@ EOF3
             ' /proc/net/dev
             echo -e "${cyan}-------------------------------------------------------------${plain}"
             echo -e "💡 ${yellow}提示：${plain} 此数据为系统底层实时统计。如果需要按月统计的持久化账单，建议以后考虑安装 vnstat。"
-            echo -e ""
-            read -p "👉 按【回车键】返回主菜单..."
-
+            
         elif [ "$traffic_choice" == "2" ]; then
-            # 自动嗅探出公网主网卡，排除 docker 和 lo 网卡
             DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
             clear
             echo -e "${cyan}=======================================================${plain}"
@@ -587,42 +587,31 @@ EOF3
             while true; do
                 RX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes)
                 TX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes)
-                
-                # 等待 1 秒，并同时监听键盘输入，如果有任意输入则立刻跳出循环
                 read -t 1 -n 1 -s key
-                if [[ $? -eq 0 ]]; then
-                    break
-                fi
-                
+                if [[ $? -eq 0 ]]; then break; fi
                 RX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes)
                 TX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes)
-                
                 RX_KB=$(( (RX2 - RX1) / 1024 ))
                 TX_KB=$(( (TX2 - TX1) / 1024 ))
-                
-                # 动态计算进度条长度 (每 50KB/s 增加一格方块 █，封顶 35 格防爆屏)
-                RX_BAR_LEN=$((RX_KB / 50))
-                [[ $RX_BAR_LEN -gt 35 ]] && RX_BAR_LEN=35
-                TX_BAR_LEN=$((TX_KB / 50))
-                [[ $TX_BAR_LEN -gt 35 ]] && TX_BAR_LEN=35
-                
+                RX_BAR_LEN=$((RX_KB / 50)); [[ $RX_BAR_LEN -gt 35 ]] && RX_BAR_LEN=35
+                TX_BAR_LEN=$((TX_KB / 50)); [[ $TX_BAR_LEN -gt 35 ]] && TX_BAR_LEN=35
                 RX_BAR=$(printf '%*s' $RX_BAR_LEN '' | tr ' ' '█')
                 TX_BAR=$(printf '%*s' $TX_BAR_LEN '' | tr ' ' '█')
-                
-                # 终端光标魔术：向上移动 4 行并清除内容 (防闪烁疯狂刷新)
                 echo -en "\033[4A\033[J"
-                
                 echo -e "⬇️  下载: ${green}$(printf "%7s" $RX_KB) KB/s${plain} | ${cyan}$RX_BAR${plain}"
                 echo -e "⬆️  上传: ${red}$(printf "%7s" $TX_KB) KB/s${plain} | ${yellow}$TX_BAR${plain}"
                 echo -e "\n👉 ${yellow}正在实时监控中... (按任意键返回主菜单)${plain}"
             done
-            
-            # 退出后的视觉过渡
             echo -e "\n${green}✅ 已退出动态监控模式。${plain}"
             sleep 0.5
             
         else
             echo -e "${red}❌ 无效输入，已取消操作。${plain}"
+        fi
+        
+        # 统一的返回拦截点，避免选 0 还要再按一次回车
+        if [[ "$traffic_choice" != "0" && "$traffic_choice" != "2" ]]; then
+            echo ""
             read -p "👉 按【回车键】返回主菜单..."
         fi
         ;;
@@ -658,18 +647,44 @@ EOF3
             fi
             ;;
         19)
-            echo -e "\n${blue}--- 📝 修改服务器主机名 (VPS 改名) ---${plain}"
-            echo -e "当前主机名: ${yellow}$(hostname)${plain}"
-            echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
-            read -p "请输入新的主机名 (建议英文或数字，如 GCP-VeloX): " new_hostname
-            if [[ -n "$new_hostname" ]]; then
+        echo -e "\n${blue}--- 📝 修改服务器主机名 (VPS 改名/洗白) ---${plain}"
+        echo -e "当前主机名: ${yellow}$(hostname)${plain}"
+        echo -e "  ${green}1.${plain} 🔄 恢复系统默认主机名 (洗白为: localhost)"
+        echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
+        read -p "👉 请输入新主机名(纯英文/数字)，或输入 [0-1] 执行选项: " new_hostname
+        
+        # 第一道防线：安全退出
+        if [ "$new_hostname" == "0" ]; then
+            echo -e "\n${yellow}已取消操作，返回主菜单。${plain}"
+            
+        # 第二道防线：一键洗白恢复默认
+        elif [ "$new_hostname" == "1" ]; then
+            sudo hostnamectl set-hostname "localhost"
+            echo -e "\n${green}✅ 主机名已成功洗白，恢复为系统默认: localhost ${plain}"
+            echo -e "💡 提示: 重启服务器，或重新连接 SSH 终端后即可看到全新名称！"
+            
+        # 第三道防线：自定义改名（带硬核安全校验）
+        elif [[ -n "$new_hostname" ]]; then
+            # 极客正则校验：主机名只允许字母、数字、连字符，防止特殊符号把系统搞死
+            if [[ "$new_hostname" =~ ^[a-zA-Z0-9-]+$ ]]; then
                 sudo hostnamectl set-hostname "$new_hostname"
-                echo -e "${green}✅ 主机名已成功修改为: $new_hostname ${plain}"
-                echo -e "💡 提示：按 12 重启服务器，或重新连接 SSH 终端后即可看到全新名称！"
+                echo -e "\n${green}✅ 主机名已成功修改为: $new_hostname ${plain}"
+                echo -e "💡 提示: 重启服务器，或重新连接 SSH 终端后即可看到全新名称！"
             else
-                echo -e "${red}❌ 输入为空，已取消修改。${plain}"
+                echo -e "\n${red}❌ 格式严重错误！为了系统安全，主机名只能包含字母、数字和连字符(-)。${plain}"
             fi
-            ;;
+            
+        # 第四道防线：防瞎敲回车
+        else
+            echo -e "\n${red}❌ 输入为空，已取消修改。${plain}"
+        fi
+        
+        # 统一的暂停点
+        if [ "$new_hostname" != "0" ]; then
+            echo ""
+            read -p "👉 按【回车键】继续..."
+        fi
+        ;;
         20)
             echo -e "\n${blue}--- 🔄 一键更新系统软件库 ---${plain}"
             echo "正在智能识别系统环境，并拉取最新安全补丁，请耐心等待..."
