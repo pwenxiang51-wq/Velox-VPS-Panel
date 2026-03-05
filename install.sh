@@ -1657,11 +1657,14 @@ EOF3
             hostnamectl set-hostname "localhost" >/dev/null 2>&1
             echo -e "[${green}已恢复为 localhost${plain}]"
 
-            # 7. 清理可疑的定时任务残留
-            if crontab -l 2>/dev/null | grep -q "api.telegram.org"; then
-                echo -n "7. 正在清理旧版 Telegram 报警定时任务... "
-                crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -
-                echo -e "[${green}已彻底抹除${plain}]"
+            # 7. 💡 极致精准清理：仅干掉面板下发的 WARP 相关定时任务 (保留重启/Acme/节点守护)
+            echo -n "7. 正在清理面板关联的 WARP 维护任务... "
+            if crontab -l 2>/dev/null | grep -qE "warp-go|wg-quick|warp-svc|WARP-UP.sh|warpip"; then
+                # 🚀 过滤逻辑：只删除包含这些 WARP 关键字的行，从而完美保留您的定时重启、Acme续签和Sing-box守护
+                crontab -l 2>/dev/null | grep -vE "warp-go|wg-quick|warp-svc|WARP-UP.sh|warpip" | crontab -
+                echo -e "[${green}已精准清理，您的定时重启与节点任务已保留${plain}]"
+            else
+                echo -e "[${cyan}未发现相关 WARP 任务，已跳过${plain}]"
             fi
 
             # 8. 💡 核心修正：真正的智能探测与保护 Argo
