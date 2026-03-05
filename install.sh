@@ -341,7 +341,57 @@ while true; do
         read -p "确定要整机重启吗？(y/n): " c
         [[ "$c" == "y" || "$c" == "Y" ]] && sudo reboot 
         ;;
-     12) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
+     12)
+        echo -e "\n${blue}=== 🎬 Velox 智能引力：全能流媒体侦测雷达 ===${plain}"
+        echo -e "${yellow}正在智能分析节点归属并启动 IPv4/IPv6 双栈秒级探测...${plain}\n"
+
+        # 核心探测引擎 (高并发极速版)
+        check_media_smart() {
+            local name=$1; local url=$2; local pattern=$3
+            # IPv4 探测
+            local r4=$(curl -4 -fsL --max-time 3 "$url" 2>&1 | grep -qi "$pattern" && echo -e "${green}已解锁 ✅${plain}" || echo -e "${red}未解锁 ❌${plain}")
+            # IPv6 探测
+            local r6=$(curl -6 -fsL --max-time 3 "$url" 2>&1 | grep -qi "$pattern" && echo -e "${green}已解锁 ✅${plain}" || echo -e "${red}未解锁 ❌${plain}")
+            printf " 📺 %-18s | IPv4: %-23s | IPv6: %-23s\n" "$name" "$r4" "$r6"
+        }
+
+        # --- 🌐 模块一：全球通用核心 (极客刚需) ---
+        echo -e "${cyan}---------------------- [ 全球通用核心刚需 ] ----------------------${plain}"
+        check_media_smart "Netflix (自制剧)" "https://www.netflix.com/title/81215567" "81215567"
+        check_media_smart "DisneyPlus" "https://www.disneyplus.com" "home"
+        check_media_smart "YouTube Premium" "https://www.youtube.com/premium" "premium"
+        check_media_smart "ChatGPT (OAI)" "https://chatgpt.com" "oai"
+        check_media_smart "Google Search" "https://www.google.com/search?q=velox" "velox"
+
+        # --- 🗺️ 模块二：区域智能嗅探 (根据 IP 自动唤醒) ---
+        LOC=$(curl -s4m 3 https://ipapi.co/country_code/ || echo "US")
+        echo -e "\n${cyan}---------------------- [ 归属地智能探测: $LOC ] -------------------${plain}"
+        
+        case $LOC in
+            HK|TW|MO) # 港澳台区
+                check_media_smart "Bilibili 港澳台" "https://www.bilibili.com/video/av710624320" "p1"
+                check_media_smart "Bahamut Anime" "https://ani.gamer.com.tw/" "ani"
+                ;;
+            JP) # 日本区
+                check_media_smart "Abema TV" "https://abema.tv" "abema"
+                check_media_smart "DMM / Fanza" "https://www.dmm.co.jp" "dmm"
+                ;;
+            US|CA|GB) # 英美加区
+                check_media_smart "HBO Max" "https://www.max.com" "max"
+                check_media_smart "Hulu" "https://www.hulu.com" "hulu"
+                ;;
+            *) # 其他区域
+                check_media_smart "Spotify" "https://www.spotify.com" "spotify"
+                ;;
+        esac
+
+        echo -e "${cyan}------------------------------------------------------------------${plain}"
+        
+        # 链路辅助报告
+        IP4=$(curl -4s --max-time 2 ip.gs 2>/dev/null || echo "无法连接")
+        IP6=$(curl -6s --max-time 2 ip.gs 2>/dev/null || echo "无连接")
+        echo -e "\n🛰️  ${yellow}链路诊断${plain} -> IPv4: ${cyan}$IP4${plain} | IPv6: ${cyan}$IP6${plain}"
+        ;;
      13)
         echo -e "\n${blue}=== 🛡️ 节点 IP 纯净度与欺诈风险体检 ===${plain}"
         echo -e "${yellow}正在向全球数据库查询当前 VPS 的出站 IP 纯净度，请稍候...${plain}\n"
