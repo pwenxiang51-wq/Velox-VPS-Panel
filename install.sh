@@ -138,12 +138,9 @@ while true; do
         
         # 1. 侦测 WARP 状态与虚拟 IP
         echo -e "${cyan}[ WARP 解锁状态 ]${plain}"
-        # 检查是否有 warp 服务在运行
         if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null; then
-            # 获取 Cloudflare trace 信息 (已移除 local)
             trace=$(curl -s4m 3 https://www.cloudflare.com/cdn-cgi/trace)
             if echo "$trace" | grep -q "warp=on"; then
-                # 已移除 local
                 warp_ip=$(echo "$trace" | grep ip= | cut -d= -f2)
                 echo -e " 🛡️  WARP 状态 : ${green}已开启并接管流量 ✅${plain}"
                 echo -e " 🛡️  出口 IP   : ${cyan}${warp_ip}${plain} (Cloudflare 节点)"
@@ -154,27 +151,63 @@ while true; do
             echo -e " 🛡️  WARP 状态 : ${red}未开启或未安装 ❌${plain}"
         fi
 
-        # 2. 侦测 Argo 隧道状态 (全环境自适应版)
+        # 2. 侦测 Argo 隧道状态
         echo -e "\n${cyan}[ Argo 隧道状态 ]${plain}"
         if pgrep -x "cloudflared" >/dev/null; then
             echo -e " 🚇 Argo 进程 : ${green}运行中 ✅${plain}"
-            
-            # 尝试抓取临时隧道域名 (针对测试/小白用户) (已移除 local)
             argo_url=$(ps -ef | grep cloudflared | grep -oE "[a-zA-Z0-9.-]+\.trycloudflare\.com" | head -n 1)
             
             if [ -n "$argo_url" ]; then
                 echo -e " 🔗 链路模式 : ${cyan}https://${argo_url}${plain} ${yellow}(临时隧道)${plain}"
             else
-                # 这里就是区分极客与新手的关键逻辑
-                # 如果进程在跑但没抓到 trycloudflare，通常只有两种可能：
-                # 1. 正在使用 Token/YAML 配置的固定域名 (Named Tunnel)
-                # 2. 进程刚启动，临时域名还没分配下来
                 echo -e " 🔗 链路模式 : ${purple}固定域名或 Token 模式 ${plain}${yellow}(未侦测到临时 URL)${plain}"
                 echo -e " 💡 ${yellow}提示：若您使用固定隧道，请在 Cloudflare 后台查看解析状态。${plain}"
             fi
         else
             echo -e " 🚇 Argo 进程 : ${red}未运行 ❌${plain}"
         fi
+
+        # --- 开源进阶功能：一键部署、更换或卸载 Argo 固定隧道 ---
+        echo -e "\n${cyan}💡 进阶管理：您可以全自动部署、更换或彻底卸载 Argo 固定隧道${plain}"
+        echo -e "  ${green}1.${plain} 🚀 部署或更换 Token (并设为开机绝对自启)"
+        echo -e "  ${red}2.${plain} 🗑️ 彻底卸载并清除 Argo 守护进程"
+        read -p "👉 请选择操作 (1/2) [直接回车跳过]: " argo_action
+        
+        if [[ "$argo_action" == "1" ]]; then
+            echo -e "\n${blue}=== 🚇 部署/更换 Cloudflare Argo 固定隧道 ===${plain}"
+            read -p "🔑 请右键粘贴您的 Cloudflare Token (ey...开头): " argo_token
+            
+            if [ -n "$argo_token" ]; then
+                echo -n "正在为您全自动部署并写入系统底层守护进程... "
+                if ! command -v cloudflared >/dev/null 2>&1; then
+                    curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/bin/cloudflared
+                    chmod +x /usr/bin/cloudflared
+                fi
+                # 清理旧服务，完美实现“无缝更换”
+                systemctl stop cloudflared >/dev/null 2>&1
+                cloudflared service uninstall >/dev/null 2>&1
+                # 写入新 Token
+                cloudflared service install "$argo_token" >/dev/null 2>&1
+                systemctl enable --now cloudflared >/dev/null 2>&1
+                echo -e "[${green}部署成功！已设为开机绝对自启 ✅${plain}]"
+            else
+                echo -e "${red}❌ Token 不能为空，已取消操作。${plain}"
+            fi
+
+        elif [[ "$argo_action" == "2" ]]; then
+            echo -e "\n${blue}=== 🗑️ 彻底卸载 Argo 固定隧道 ===${plain}"
+            echo -n "正在停止并焦土化清理系统底层的 Argo 守护进程... "
+            if command -v cloudflared >/dev/null 2>&1; then
+                systemctl stop cloudflared >/dev/null 2>&1
+                systemctl disable cloudflared >/dev/null 2>&1
+                cloudflared service uninstall >/dev/null 2>&1
+                rm -rf /etc/cloudflared
+                echo -e "[${green}清理完毕，Argo 已彻底物理粉碎 ✅${plain}]"
+            else
+                echo -e "[${yellow}未检测到安装，无需清理 ⚠️${plain}]"
+            fi
+        fi
+        # ------------------------------------------------
 
         echo -e "\n${yellow}提示：如需修复以上出站异常，请返回主菜单使用第 24 项。${plain}"
         echo -e "${yellow}------------------------------------------${plain}"
