@@ -1357,7 +1357,7 @@ EOF3
         read -p "👉 按【回车键】返回主菜单..."
         ;;
     26)
-        echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (智能避让版) ===${plain}"
+        echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (开源全自动版) ===${plain}"
         
         # 智能侦测 Acme.sh 真实路径
         ACME_BIN=""
@@ -1380,48 +1380,63 @@ EOF3
             echo -e "虽然域名托管在 Cloudflare，但这层证书是签发并保存在 ${red}VPS 本地硬盘${plain} 上的（用于节点底层加密）。"
             echo -e "正常的 Acme 脚本会自动在后台续签。但若发现节点突然断流，且距离到期不足 10 天，请手动强制续签！"
             
-            echo ""
-            read -p "👉 是否需要强制执行续签，并自动重启所有代理服务？(y/n): " force_renew
-            if [[ "$force_renew" == "y" || "$force_renew" == "Y" ]]; then
-                read -p "✍️ 请输入上方列表中你需要续签的【主域名 Main_Domain】 (例如 bwg.123.xyz): " renew_domain
-                if [ -n "$renew_domain" ]; then
-                    
-                    echo -e "\n${yellow}⏳ 正在侦测并智能清理 80 端口占用情况...${plain}"
-                    # 🚀 核心升级：智能避让机制。先把可能占用 80 端口的 Web 容器停掉
-                    systemctl stop nginx >/dev/null 2>&1
-                    systemctl stop apache2 >/dev/null 2>&1
-                    systemctl stop httpd >/dev/null 2>&1
-                    fuser -k 80/tcp >/dev/null 2>&1
-                    
-                    echo -e "${cyan}⏳ 正在向签发机构强制请求续签域名 [ ${renew_domain} ]，请耐心等待...${plain}"
-                    
-                    # 采用 Acme 官方标准续签语法，并兼容 ECC 证书
-                    "$ACME_BIN" --renew -d "$renew_domain" --force --ecc
-                    if [ $? -ne 0 ]; then
-                        echo -e "\n${yellow}⚠️ ECC 模式续签失败，正在尝试切换为 RSA 模式重试...${plain}"
-                        "$ACME_BIN" --renew -d "$renew_domain" --force
+            # 🚀 进阶子菜单：续签与卸载彻底分离
+            echo -e "\n  ${green}1.${plain} 🚀 强制续签证书 (注入 Nginx 避让与全自动守护)"
+            echo -e "  ${red}2.${plain} 🗑️ 彻底删除证书 (清理不再使用的旧域名残留)"
+            echo -e "  ${yellow}0.${plain} 🔙 取消并返回主菜单"
+            echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
+            read -p "👉 请选择进阶管理操作 [0-2]: " acme_choice
+            
+            case $acme_choice in
+                1)
+                    read -p "✍️ 请输入上方列表中你需要续签的【主域名 Main_Domain】 (例如 bwg.123.xyz): " renew_domain
+                    if [ -n "$renew_domain" ]; then
+                        echo -e "\n${yellow}⏳ 正在向 Acme 底层注入 Nginx 智能避让与节点重启逻辑...${plain}"
+                        
+                        # 把停端口和启服务的命令，打包塞进 Acme 的钩子(Hook)里
+                        PRE_HOOK="systemctl stop nginx >/dev/null 2>&1; systemctl stop apache2 >/dev/null 2>&1; fuser -k 80/tcp >/dev/null 2>&1"
+                        POST_HOOK="systemctl start nginx >/dev/null 2>&1; systemctl restart sing-box >/dev/null 2>&1; systemctl restart xray >/dev/null 2>&1; systemctl restart x-ui >/dev/null 2>&1"
+                        
+                        echo -e "${cyan}⏳ 正在向签发机构请求续签，并保存记忆 [ ${renew_domain} ]，请耐心等待...${plain}"
+                        
+                        "$ACME_BIN" --renew -d "$renew_domain" --force --ecc --pre-hook "$PRE_HOOK" --post-hook "$POST_HOOK"
+                        if [ $? -ne 0 ]; then
+                            echo -e "\n${yellow}⚠️ ECC 模式续签失败，正在尝试切换为 RSA 模式重试...${plain}"
+                            "$ACME_BIN" --renew -d "$renew_domain" --force --pre-hook "$PRE_HOOK" --post-hook "$POST_HOOK"
+                        fi
+                        
+                        echo -e "\n${green}✅ 操作完毕！Web 容器与代理服务已满血复活！${plain}"
+                        echo -e "💡 ${cyan}极客提示：避让逻辑已刻入证书配置。以后的后台自动续签将【100%全自动】完成，您无需再手动干预！${plain}"
+                    else
+                        echo -e "${red}❌ 域名输入为空，已取消续签操作。${plain}"
                     fi
-                    
-                    echo -e "\n${cyan}⚡ 续签流程结束！正在联动重启底层代理核心与 Web 容器，让新证书瞬间生效...${plain}"
-                    
-                    # 恢复 Web 容器
-                    systemctl start nginx >/dev/null 2>&1
-                    systemctl start apache2 >/dev/null 2>&1
-                    systemctl start httpd >/dev/null 2>&1
-                    
-                    # 联动重启主流代理核心
-                    systemctl restart sing-box >/dev/null 2>&1
-                    systemctl restart xray >/dev/null 2>&1
-                    systemctl restart x-ui >/dev/null 2>&1
-                    rc-service sing-box restart >/dev/null 2>&1
-                    
-                    echo -e "${green}✅ 操作完毕！Web 容器与代理服务已满血复活！${plain}"
-                else
-                    echo -e "${red}❌ 域名输入为空，已取消续签操作。${plain}"
-                fi
-            else
-                echo -e "${yellow}已取消强制续签。${plain}"
-            fi
+                    ;;
+                2)
+                    read -p "✍️ 请输入你需要彻底删除的【旧域名 Main_Domain】 (例如 old.123.xyz): " del_domain
+                    if [ -n "$del_domain" ]; then
+                        echo -e "\n${yellow}⏳ 正在从 Acme 数据库中注销该域名的续签任务...${plain}"
+                        
+                        # 官方标准注销命令 (兼顾 ECC 和 RSA)
+                        "$ACME_BIN" --remove -d "$del_domain" --ecc 2>/dev/null
+                        "$ACME_BIN" --remove -d "$del_domain" 2>/dev/null
+                        
+                        echo -n "正在物理粉碎本地残留的证书文件夹... "
+                        rm -rf ~/.acme.sh/"$del_domain"
+                        rm -rf ~/.acme.sh/"${del_domain}_ecc"
+                        echo -e "[${green}已彻底抹除${plain}]"
+                        
+                        echo -e "\n✅ ${green}操作完毕！该域名证书已被完全销毁，系统后台不会再触发任何续签报错！${plain}"
+                    else
+                        echo -e "${red}❌ 域名输入为空，已取消删除操作。${plain}"
+                    fi
+                    ;;
+                0)
+                    echo -e "${yellow}已取消操作。${plain}"
+                    ;;
+                *)
+                    echo -e "${red}❌ 无效选择，请输入 0、1 或 2。${plain}"
+                    ;;
+            esac
         fi
 
         echo -e "\n${yellow}------------------------------------------${plain}"
