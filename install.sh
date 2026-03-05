@@ -447,9 +447,6 @@ while true; do
         else
             echo -e "${red}❌ 无效输入，已取消操作。${plain}"
         fi
-        
-        # 统一返回暂停
-        read -p "👉 按【回车键】返回主菜单..."
         ;;
       15)
             echo -e "\n${blue}--- 🛰️ 正在测试全球主流节点延迟 ---${plain}"
@@ -715,12 +712,6 @@ EOF3
             
         else
             echo -e "${red}❌ 无效输入，已取消操作。${plain}"
-        fi
-        
-        # 统一的返回拦截点，避免选 0 还要再按一次回车
-        if [[ "$traffic_choice" != "0" && "$traffic_choice" != "2" ]]; then
-            echo ""
-            read -p "👉 按【回车键】返回主菜单..."
         fi
         ;;
       18)
@@ -1703,7 +1694,10 @@ EOF3
         0) echo -e "\n${green}祝Velox折腾愉快！${plain}\n"; exit ;;
         *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
-    echo -e "\n${cyan}按回车键继续...${plain}"; read
+    
+    if [[ "$choice" != "14" && "$choice" != "17" && "$choice" != "19" && "$choice" != "21" && "$choice" != "22" && "$choice" != "23" && "$choice" != "24" && "$choice" != "27" ]]; then
+        echo -e "\n${cyan}按回车键继续...${plain}"; read
+    fi
 done
 EOF
 chmod +x /usr/local/bin/velox
