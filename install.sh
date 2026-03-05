@@ -342,54 +342,74 @@ while true; do
         [[ "$c" == "y" || "$c" == "Y" ]] && sudo reboot 
         ;;
      12)
-        echo -e "\n${blue}=== 🎬 Velox 智能引力：全能流媒体侦测雷达 ===${plain}"
-        echo -e "${yellow}正在智能分析节点归属并启动 IPv4/IPv6 双栈秒级探测...${plain}\n"
+        echo -e "\n${blue}=== 🎬 Velox 智能引力：全能流媒体侦测雷达 (V4.5) ===${plain}"
+        echo -e "${yellow}正在侦测 IPv4/IPv6 双栈网络质量，开启区域智能化扫描...${plain}\n"
 
-        # 核心探测引擎 (高并发极速版)
-        check_media_smart() {
+        # 核心探测引擎 (增加对齐占位逻辑)
+        check_media_pro() {
             local name=$1; local url=$2; local pattern=$3
-            # IPv4 探测
-            local r4=$(curl -4 -fsL --max-time 3 "$url" 2>&1 | grep -qi "$pattern" && echo -e "${green}已解锁 ✅${plain}" || echo -e "${red}未解锁 ❌${plain}")
+            # IPv4 探测 (增加 4 秒超时容错)
+            local r4=$(curl -4 -fsL --max-time 4 "$url" 2>&1 | grep -qi "$pattern" && echo -e "${green}已解锁 ✅${plain}" || echo -e "${red}未解锁 ❌${plain}")
             # IPv6 探测
-            local r6=$(curl -6 -fsL --max-time 3 "$url" 2>&1 | grep -qi "$pattern" && echo -e "${green}已解锁 ✅${plain}" || echo -e "${red}未解锁 ❌${plain}")
-            printf " 📺 %-18s | IPv4: %-23s | IPv6: %-23s\n" "$name" "$r4" "$r6"
+            local r6=$(curl -6 -fsL --max-time 4 "$url" 2>&1 | grep -qi "$pattern" && echo -e "${green}已解锁 ✅${plain}" || echo -e "${red}未解锁 ❌${plain}")
+            printf " 📺 %-20s | IPv4: %-23s | IPv6: %-23s\n" "$name" "$r4" "$r6"
         }
 
-        # --- 🌐 模块一：全球通用核心 (极客刚需) ---
-        echo -e "${cyan}---------------------- [ 全球通用核心刚需 ] ----------------------${plain}"
-        check_media_smart "Netflix (自制剧)" "https://www.netflix.com/title/81215567" "81215567"
-        check_media_smart "DisneyPlus" "https://www.disneyplus.com" "home"
-        check_media_smart "YouTube Premium" "https://www.youtube.com/premium" "premium"
-        check_media_smart "ChatGPT (OAI)" "https://chatgpt.com" "oai"
-        check_media_smart "Google Search" "https://www.google.com/search?q=velox" "velox"
+        # --- 🌐 模块一：全球顶级 AI & 核心刚需 ---
+        echo -e "${cyan}---------------------- [ 全球顶级 AI 与核心刚需 ] ----------------${plain}"
+        check_media_pro "ChatGPT (OpenAI)" "https://chatgpt.com" "oai"
+        check_media_pro "Google Gemini" "https://gemini.google.com" "gemini"
+        check_media_pro "Netflix (自制剧)" "https://www.netflix.com/title/81215567" "81215567"
+        check_media_pro "DisneyPlus" "https://www.disneyplus.com" "home"
+        check_media_pro "YouTube Premium" "https://www.youtube.com/premium" "premium"
+        check_media_pro "Spotify (Region)" "https://www.spotify.com" "spotify"
 
-        # --- 🗺️ 模块二：区域智能嗅探 (根据 IP 自动唤醒) ---
-        LOC=$(curl -s4m 3 https://ipapi.co/country_code/ || echo "US")
-        echo -e "\n${cyan}---------------------- [ 归属地智能探测: $LOC ] -------------------${plain}"
+        # --- 🗺️ 模块二：区域智能嗅探 ---
+        # 增加备用接口，防止 RateLimited
+        LOC=$(curl -s4m 3 https://api.config.io/country_code 2>/dev/null || curl -s4m 3 https://ipapi.co/country_code/ || echo "US")
+        echo -e "\n${cyan}---------------------- [ 归属地动态智能探测: $LOC ] ----------------${plain}"
         
         case $LOC in
-            HK|TW|MO) # 港澳台区
-                check_media_smart "Bilibili 港澳台" "https://www.bilibili.com/video/av710624320" "p1"
-                check_media_smart "Bahamut Anime" "https://ani.gamer.com.tw/" "ani"
+            HK|MO) # 港澳区
+                check_media_pro "Bilibili 港澳台" "https://www.bilibili.com/video/av710624320" "p1"
+                check_media_pro "Now E (HK)" "https://www.nowe.com" "nowe"
+                check_media_pro "Viu.com" "https://www.viu.com" "viu"
+                ;;
+            TW) # 台湾区
+                check_media_pro "Bilibili 港澳台" "https://www.bilibili.com/video/av710624320" "p1"
+                check_media_pro "Bahamut Anime" "https://ani.gamer.com.tw/" "ani"
+                check_media_pro "KKTV (TW)" "https://www.kktv.me" "kktv"
+                ;;
+            SG) # 新加坡区 (大佬特别要求增加)
+                check_media_pro "StarHub TV+" "https://www.starhub.com" "starhub"
+                check_media_pro "Viu (SG)" "https://www.viu.com/ott/sg" "sg"
+                check_media_pro "Bilibili (SEA)" "https://www.bilibili.tv" "sea"
                 ;;
             JP) # 日本区
-                check_media_smart "Abema TV" "https://abema.tv" "abema"
-                check_media_smart "DMM / Fanza" "https://www.dmm.co.jp" "dmm"
+                check_media_pro "Abema TV" "https://abema.tv" "abema"
+                check_media_pro "DMM / Fanza" "https://www.dmm.co.jp" "dmm"
+                check_media_pro "Niconico" "https://www.nicovideo.jp" "nicovideo"
+                ;;
+            KR) # 韩国区
+                check_media_pro "Coupang Play" "https://www.coupangplay.com" "coupang"
+                check_media_pro "Naver TV" "https://tv.naver.com" "naver"
                 ;;
             US|CA|GB) # 英美加区
-                check_media_smart "HBO Max" "https://www.max.com" "max"
-                check_media_smart "Hulu" "https://www.hulu.com" "hulu"
+                check_media_pro "HBO Max" "https://www.max.com" "max"
+                check_media_pro "Hulu" "https://www.hulu.com" "hulu"
+                check_media_pro "Paramount+" "https://www.paramountplus.com" "paramount"
                 ;;
-            *) # 其他区域
-                check_media_smart "Spotify" "https://www.spotify.com" "spotify"
+            *) # 其他区域通扫
+                check_media_pro "TikTok" "https://www.tiktok.com" "tiktok"
+                check_media_pro "Google Search" "https://www.google.com/search?q=velox" "velox"
                 ;;
         esac
 
         echo -e "${cyan}------------------------------------------------------------------${plain}"
         
-        # 链路辅助报告
-        IP4=$(curl -4s --max-time 2 ip.gs 2>/dev/null || echo "无法连接")
-        IP6=$(curl -6s --max-time 2 ip.gs 2>/dev/null || echo "无连接")
+        # 链路辅助报告 (带美化对齐)
+        IP4=$(curl -4s --max-time 2 ip.gs 2>/dev/null || echo -e "${red}无 IPv4 连接${plain}")
+        IP6=$(curl -6s --max-time 2 ip.gs 2>/dev/null || echo -e "${red}无 IPv6 连接${plain}")
         echo -e "\n🛰️  ${yellow}链路诊断${plain} -> IPv4: ${cyan}$IP4${plain} | IPv6: ${cyan}$IP6${plain}"
         ;;
      13)
