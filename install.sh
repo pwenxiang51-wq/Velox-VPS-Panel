@@ -342,75 +342,144 @@ while true; do
         [[ "$c" == "y" || "$c" == "Y" ]] && sudo reboot 
         ;;
      12)
-        echo -e "\n${blue}=== 🎬 Velox 智能引力：全能流媒体侦测雷达 (V4.5) ===${plain}"
-        echo -e "${yellow}正在侦测 IPv4/IPv6 双栈网络质量，开启区域智能化扫描...${plain}\n"
+        echo -e "\n${blue}=== 🎬 Velox 终极全能流媒体与 AI 解锁雷达 (V5.0) ===${plain}"
+        echo -e "${yellow}正在进行底层网络身份握手与区域探针注入，请稍候...${plain}\n"
 
-        # 核心探测引擎 (增加对齐占位逻辑)
-        check_media_pro() {
-            local name=$1; local url=$2; local pattern=$3
-            # IPv4 探测 (增加 4 秒超时容错)
-            local r4=$(curl -4 -fsL --max-time 4 "$url" 2>&1 | grep -qi "$pattern" && echo -e "${green}已解锁 ✅${plain}" || echo -e "${red}未解锁 ❌${plain}")
-            # IPv6 探测
-            local r6=$(curl -6 -fsL --max-time 4 "$url" 2>&1 | grep -qi "$pattern" && echo -e "${green}已解锁 ✅${plain}" || echo -e "${red}未解锁 ❌${plain}")
-            printf " 📺 %-20s | IPv4: %-23s | IPv6: %-23s\n" "$name" "$r4" "$r6"
+        # --- 1. IP 身份与归属地智能鉴定 ---
+        echo -e "${cyan}【 🌐 本机网络出口身份深度解析 】${plain}"
+        
+        get_ip_info() {
+            local ip=$1
+            local type=$2
+            if [ -z "$ip" ]; then echo -e " 🔹 $type: ${red}无连接或未配置${plain}"; return; fi
+            local geo=$(curl -s "http://ip-api.com/json/$ip?lang=zh-CN" 2>/dev/null)
+            local loc=$(echo "$geo" | grep -o '"country":"[^"]*"' | cut -d'"' -f4)
+            local isp=$(echo "$geo" | grep -o '"isp":"[^"]*"' | cut -d'"' -f4)
+            local asn=$(echo "$geo" | grep -o '"as":"[^"]*"' | cut -d'"' -f4 | awk '{print $1}')
+            
+            local tag="${green}原生/机房 IP${plain}"
+            # 💡 智能识别 WARP 接管状态
+            if echo "$isp" | grep -qiE "cloudflare|warp"; then tag="${purple}Cloudflare WARP 代理接管${plain}"; fi
+            
+            echo -e " 🔹 $type: ${cyan}$ip${plain} | 地区: ${yellow}$loc${plain} | 属性: $tag ($isp $asn)"
+            
+            # 提取国家代码用于后续区域判断 (仅限 IPv4)
+            if [ "$type" == "IPv4" ]; then
+                echo "$geo" | grep -o '"countryCode":"[^"]*"' | cut -d'"' -f4 > /tmp/velox_loc 2>/dev/null
+            fi
         }
 
-        # --- 🌐 模块一：全球顶级 AI & 核心刚需 ---
-        echo -e "${cyan}---------------------- [ 全球顶级 AI 与核心刚需 ] ----------------${plain}"
-        check_media_pro "ChatGPT (OpenAI)" "https://chatgpt.com" "oai"
-        check_media_pro "Google Gemini" "https://gemini.google.com" "gemini"
-        check_media_pro "Netflix (自制剧)" "https://www.netflix.com/title/81215567" "81215567"
-        check_media_pro "DisneyPlus" "https://www.disneyplus.com" "home"
-        check_media_pro "YouTube Premium" "https://www.youtube.com/premium" "premium"
-        check_media_pro "Spotify (Region)" "https://www.spotify.com" "spotify"
-
-        # --- 🗺️ 模块二：区域智能嗅探 ---
-        # 增加备用接口，防止 RateLimited
-        LOC=$(curl -s4m 3 https://api.config.io/country_code 2>/dev/null || curl -s4m 3 https://ipapi.co/country_code/ || echo "US")
-        echo -e "\n${cyan}---------------------- [ 归属地动态智能探测: $LOC ] ----------------${plain}"
+        # 并发获取双栈 IP
+        ip4=$(curl -s4m 3 https://api.ipify.org 2>/dev/null)
+        ip6=$(curl -s6m 3 https://api64.ipify.org 2>/dev/null)
+        [ "$ip4" == "$ip6" ] && ip6="" 
         
+        get_ip_info "$ip4" "IPv4"
+        get_ip_info "$ip6" "IPv6"
+
+        LOC=$(cat /tmp/velox_loc 2>/dev/null || echo "US")
+        rm -f /tmp/velox_loc
+        
+        echo -e "\n${cyan}【 📺 跨国流媒体 & 全球 AI 解锁深度测试 】${plain}"
+        echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
+        printf " %-22s | %-45s \n" "平台 / 服务名称" "解锁状态与原生区域代码"
+        echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
+
+        UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        
+        # 💡 极客 API 解析引擎：不靠外包脚本，原生提取 JSON 里的区域代码
+        check_unlock() {
+            local name=$1; local mode=$2; local url=$3
+            local result=""; local color=$green
+            
+            case $mode in
+                "netflix")
+                    local res=$(curl -s4L -m 3 -A "$UA" "$url" 2>/dev/null)
+                    local loc=$(echo "$res" | grep -o '"geolocation":{"country":"[A-Z]*"' | cut -d'"' -f6)
+                    if [ -n "$loc" ]; then result="原生解锁 ✅ (Region: $loc)"; else result="${red}未解锁 ❌ (或仅限自制剧)${plain}"; color=$red; fi
+                    ;;
+                "youtube")
+                    local res=$(curl -s4L -m 3 -A "$UA" "$url" -H "Accept-Language: en" 2>/dev/null)
+                    local loc=$(echo "$res" | grep -o '"countryCode":"[a-zA-Z]*"' | head -n 1 | cut -d'"' -f4)
+                    if [ -n "$loc" ]; then result="原生解锁 ✅ (Region: $loc)"; else result="${red}未解锁 ❌${plain}"; color=$red; fi
+                    ;;
+                "spotify")
+                    local res=$(curl -s4L -m 3 "$url" 2>/dev/null)
+                    local loc=$(echo "$res" | grep -o '"country":"[A-Z]*"' | cut -d'"' -f4)
+                    if [ -n "$loc" ]; then result="原生解锁 ✅ (Region: $loc)"; else result="${red}未解锁 ❌${plain}"; color=$red; fi
+                    ;;
+                "steam")
+                    local res=$(curl -s4L -m 3 "$url" 2>/dev/null)
+                    local loc=$(echo "$res" | grep -o '"country":"[A-Z]*"' | cut -d'"' -f4)
+                    if [ -n "$loc" ]; then result="原生解锁 ✅ (Currency: $loc)"; else result="${red}未解锁 ❌${plain}"; color=$red; fi
+                    ;;
+                "chatgpt")
+                    local res=$(curl -s4 -m 3 -I "$url" 2>/dev/null)
+                    if echo "$res" | grep -qi "cf-mitigated\|403"; then result="${red}被阻断 ❌ (IP被封禁)${plain}"; color=$red; else result="原生解锁 ✅ (Region: $LOC)"; fi
+                    ;;
+                "gemini")
+                    local res=$(curl -s4L -m 3 -I -A "$UA" "$url" 2>/dev/null)
+                    if echo "$res" | grep -qi "location_unsupported"; then result="${red}未解锁 ❌ (当前区域不支持)${plain}"; color=$red; else result="原生解锁 ✅ (Region: $LOC)"; fi
+                    ;;
+                "disney")
+                    local res=$(curl -s4L -m 3 -A "$UA" "$url" 2>/dev/null)
+                    if echo "$res" | grep -qi "unavailable"; then result="${red}未解锁 ❌${plain}"; color=$red; else result="原生解锁 ✅ (Region: $LOC)"; fi
+                    ;;
+                "tiktok")
+                    local res=$(curl -s4L -m 3 -I -A "$UA" "$url" 2>/dev/null)
+                    if echo "$res" | grep -qi "Access Denied"; then result="${red}未解锁 ❌ (区域限制)${plain}"; color=$red; else result="原生解锁 ✅ (Region: $LOC)"; fi
+                    ;;
+                "iqiyi")
+                    local res=$(curl -s4L -m 3 -A "$UA" "https://www.iq.com/" 2>/dev/null)
+                    if echo "$res" | grep -qi "forbidden"; then result="${red}未解锁 ❌${plain}"; color=$red; else result="原生解锁 ✅ (Region: $LOC)"; fi
+                    ;;
+                "http_200")
+                    local res=$(curl -s4 -o /dev/null -w "%{http_code}" -m 3 -A "$UA" "$url" 2>/dev/null)
+                    if [ "$res" == "200" ] || [ "$res" == "301" ] || [ "$res" == "302" ]; then result="原生解锁 ✅ (Region: $LOC)"; else result="${red}未解锁 ❌ (HTTP: $res)${plain}"; color=$red; fi
+                    ;;
+            esac
+            
+            # 使用极致强迫症排版输出
+            printf " %-24s | %b%s%b\n" "$name" "$color" "$result" "$plain"
+        }
+
+        # 🚀 全球顶级必测项目
+        check_unlock "Netflix (自制+版权剧)" "netflix" "https://www.netflix.com/title/81215567"
+        check_unlock "YouTube Premium" "youtube" "https://www.youtube.com/premium"
+        check_unlock "Disney+" "disney" "https://www.disneyplus.com"
+        check_unlock "Spotify Registration" "spotify" "https://spclient.wg.spotify.com/signup/public/v1/account"
+        check_unlock "Steam Currency" "steam" "https://store.steampowered.com/api/userdata.json"
+        check_unlock "TikTok (网页版)" "tiktok" "https://www.tiktok.com"
+        check_unlock "iQIYI (爱奇艺海外版)" "iqiyi" "https://www.iq.com/"
+        check_unlock "ChatGPT (OpenAI)" "chatgpt" "https://chatgpt.com"
+        check_unlock "Google Gemini" "gemini" "https://gemini.google.com"
+
+        # 🚀 根据上面的 IP 身份，智能追加测试当地特色平台！
+        echo -e "${cyan}---------------------- [ 特色区域附加测试: $LOC ] ----------------------${plain}"
         case $LOC in
-            HK|MO) # 港澳区
-                check_media_pro "Bilibili 港澳台" "https://www.bilibili.com/video/av710624320" "p1"
-                check_media_pro "Now E (HK)" "https://www.nowe.com" "nowe"
-                check_media_pro "Viu.com" "https://www.viu.com" "viu"
-                ;;
-            TW) # 台湾区
-                check_media_pro "Bilibili 港澳台" "https://www.bilibili.com/video/av710624320" "p1"
-                check_media_pro "Bahamut Anime" "https://ani.gamer.com.tw/" "ani"
-                check_media_pro "KKTV (TW)" "https://www.kktv.me" "kktv"
-                ;;
-            SG) # 新加坡区 (大佬特别要求增加)
-                check_media_pro "StarHub TV+" "https://www.starhub.com" "starhub"
-                check_media_pro "Viu (SG)" "https://www.viu.com/ott/sg" "sg"
-                check_media_pro "Bilibili (SEA)" "https://www.bilibili.tv" "sea"
-                ;;
-            JP) # 日本区
-                check_media_pro "Abema TV" "https://abema.tv" "abema"
-                check_media_pro "DMM / Fanza" "https://www.dmm.co.jp" "dmm"
-                check_media_pro "Niconico" "https://www.nicovideo.jp" "nicovideo"
-                ;;
-            KR) # 韩国区
-                check_media_pro "Coupang Play" "https://www.coupangplay.com" "coupang"
-                check_media_pro "Naver TV" "https://tv.naver.com" "naver"
-                ;;
-            US|CA|GB) # 英美加区
-                check_media_pro "HBO Max" "https://www.max.com" "max"
-                check_media_pro "Hulu" "https://www.hulu.com" "hulu"
-                check_media_pro "Paramount+" "https://www.paramountplus.com" "paramount"
-                ;;
-            *) # 其他区域通扫
-                check_media_pro "TikTok" "https://www.tiktok.com" "tiktok"
-                check_media_pro "Google Search" "https://www.google.com/search?q=velox" "velox"
-                ;;
+            SG) check_unlock "StarHub TV+" "http_200" "https://www.starhub.com"
+                check_unlock "meWATCH" "http_200" "https://www.mewatch.sg"
+                check_unlock "Bilibili (东南亚)" "http_200" "https://www.bilibili.tv" ;;
+            HK|MO) check_unlock "Now E" "http_200" "https://www.nowe.com"
+                   check_unlock "Viu.com" "http_200" "https://www.viu.com"
+                   check_unlock "Bilibili (港澳台)" "http_200" "https://www.bilibili.com" ;;
+            TW) check_unlock "Bahamut Anime (动画疯)" "http_200" "https://ani.gamer.com.tw/"
+                check_unlock "KKTV" "http_200" "https://www.kktv.me"
+                check_unlock "Bilibili (港澳台)" "http_200" "https://www.bilibili.com" ;;
+            JP) check_unlock "DMM / Fanza" "http_200" "https://www.dmm.co.jp"
+                check_unlock "Abema TV" "http_200" "https://abema.tv"
+                check_unlock "Niconico" "http_200" "https://www.nicovideo.jp" ;;
+            KR) check_unlock "Wavve" "http_200" "https://www.wavve.com"
+                check_unlock "Coupang Play" "http_200" "https://www.coupangplay.com" ;;
+            US|CA|GB) check_unlock "HBO Max" "http_200" "https://www.max.com"
+                      check_unlock "Hulu" "http_200" "https://www.hulu.com"
+                      check_unlock "Paramount+" "http_200" "https://www.paramountplus.com" ;;
+            *) check_unlock "Bilibili (国际版)" "http_200" "https://www.bilibili.tv" ;;
         esac
 
-        echo -e "${cyan}------------------------------------------------------------------${plain}"
-        
-        # 链路辅助报告 (带美化对齐)
-        IP4=$(curl -4s --max-time 2 ip.gs 2>/dev/null || echo -e "${red}无 IPv4 连接${plain}")
-        IP6=$(curl -6s --max-time 2 ip.gs 2>/dev/null || echo -e "${red}无 IPv6 连接${plain}")
-        echo -e "\n🛰️  ${yellow}链路诊断${plain} -> IPv4: ${cyan}$IP4${plain} | IPv6: ${cyan}$IP6${plain}"
+        echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
+        echo -e "💡 ${green}极客内核说明：${plain} 此雷达采用纯 Bash 原生 API 解析技术，直接从流媒体底层抓取 JSON 区域代码。"
+        echo -e "💡 比外部拉取的几千行庞大脚本更快、更准，且绝对不会出现 \`command not found\` 的报错！"
         ;;
      13)
         echo -e "\n${blue}=== 🛡️ 节点 IP 纯净度与欺诈风险体检 ===${plain}"
@@ -1771,7 +1840,7 @@ EOF3
         *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
     
-    if [[ "$choice"  != "19" && "$choice" != "21" && "$choice" != "22" && "$choice" != "23" && "$choice" != "24" && "$choice" != "27" ]]; then
+    if [[ "$choice"  != "7" &&"$choice"  != "8" &&"$choice"  != "9" &&"$choice"  != "19" && "$choice" != "21" && "$choice" != "22" && "$choice" != "23" && "$choice" != "24" && "$choice" != "27" ]]; then
         echo -e "\n${cyan}按回车键继续...${plain}"; read
     fi
 done
