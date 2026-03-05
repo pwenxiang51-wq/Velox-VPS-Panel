@@ -1666,7 +1666,19 @@ EOF3
                 echo -e "[${green}已彻底抹除${plain}]"
             fi
 
-            # 8. Fail2Ban 强拆询问
+            # 💡 核心新增：第 8 步，物理强拆 Argo 隧道守护进程
+            echo -n "8. 正在排查并拆除 Argo 隧道 (cloudflared) 进程与 Token... "
+            if command -v cloudflared >/dev/null 2>&1 || systemctl list-unit-files | grep -qw cloudflared.service; then
+                systemctl stop cloudflared >/dev/null 2>&1
+                systemctl disable cloudflared >/dev/null 2>&1
+                cloudflared service uninstall >/dev/null 2>&1
+                rm -rf /etc/cloudflared
+                echo -e "[${green}已彻底粉碎并释放系统资源${plain}]"
+            else
+                echo -e "[${cyan}未发现 Argo 进程，已跳过${plain}]"
+            fi
+
+            # 9. Fail2Ban 强拆询问
             if command -v fail2ban-client >/dev/null 2>&1; then
                 echo -e "\n${yellow}⚠️ 检测到系统中安装了 Fail2Ban 工业级防御装甲。${plain}"
                 read -p "👉 是否一并【彻底强拆】Fail2Ban？(y/n): " remove_f2b
