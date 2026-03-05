@@ -462,6 +462,7 @@ sleep 15
 export TZ="Asia/Shanghai"
 
 # --- 智能多核心状态检查 ---
+sleep 30  # 💡 新增的 30 秒黄金缓冲期，等待网络和所有代理进程满血复活
 # Sing-box
 if systemctl list-unit-files | grep -qw sing-box.service; then
     systemctl is-active --quiet sing-box && SB_STAT="运行中 ✅" || SB_STAT="异常 ❌"
@@ -477,15 +478,15 @@ else
 fi
 
 # Argo
-if command -v cloudflared >/dev/null 2>&1 || systemctl list-unit-files | grep -qw cloudflared.service; then
-    if pgrep -x "cloudflared" >/dev/null || systemctl is-active --quiet cloudflared 2>/dev/null; then
-        ARGO_STAT="运行中 ✅"
-    else
-        ARGO_STAT="异常 ❌"
-    fi
-else
-    ARGO_STAT="未安装 ⚠️"
-fi
+        if command -v cloudflared >/dev/null 2>&1 || systemctl list-unit-files | grep -qw cloudflared.service || pgrep -x "cloudflared" >/dev/null; then
+            if pgrep -x "cloudflared" >/dev/null || systemctl is-active --quiet cloudflared 2>/dev/null; then
+                ARGO_STAT="运行中 ✅"
+            else
+                ARGO_STAT="未运行/无自启 ⚠️"
+            fi
+        else
+            ARGO_STAT="未运行/无自启 ⚠️"
+        fi
 
 # WARP
 if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null; then
