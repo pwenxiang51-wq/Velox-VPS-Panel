@@ -132,7 +132,7 @@ while true; do
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-     8)
+    8)
         echo -e "\n${blue}=== 🌐 WARP 与 Argo 隧道出站详情 ===${plain}"
         echo -e "${yellow}正在侦测网络出站链路，请稍候...${plain}\n"
         
@@ -140,10 +140,11 @@ while true; do
         echo -e "${cyan}[ WARP 解锁状态 ]${plain}"
         # 检查是否有 warp 服务在运行
         if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null; then
-            # 获取 Cloudflare trace 信息
-            local trace=$(curl -s4m 3 https://www.cloudflare.com/cdn-cgi/trace)
+            # 获取 Cloudflare trace 信息 (已移除 local)
+            trace=$(curl -s4m 3 https://www.cloudflare.com/cdn-cgi/trace)
             if echo "$trace" | grep -q "warp=on"; then
-                local warp_ip=$(echo "$trace" | grep ip= | cut -d= -f2)
+                # 已移除 local
+                warp_ip=$(echo "$trace" | grep ip= | cut -d= -f2)
                 echo -e " 🛡️  WARP 状态 : ${green}已开启并接管流量 ✅${plain}"
                 echo -e " 🛡️  出口 IP   : ${cyan}${warp_ip}${plain} (Cloudflare 节点)"
             else
@@ -158,8 +159,8 @@ while true; do
         if pgrep -x "cloudflared" >/dev/null; then
             echo -e " 🚇 Argo 进程 : ${green}运行中 ✅${plain}"
             
-            # 尝试抓取临时隧道域名 (针对测试/小白用户)
-            local argo_url=$(ps -ef | grep cloudflared | grep -oE "[a-zA-Z0-9.-]+\.trycloudflare\.com" | head -n 1)
+            # 尝试抓取临时隧道域名 (针对测试/小白用户) (已移除 local)
+            argo_url=$(ps -ef | grep cloudflared | grep -oE "[a-zA-Z0-9.-]+\.trycloudflare\.com" | head -n 1)
             
             if [ -n "$argo_url" ]; then
                 echo -e " 🔗 链路模式 : ${cyan}https://${argo_url}${plain} ${yellow}(临时隧道)${plain}"
