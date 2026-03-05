@@ -378,9 +378,6 @@ while true; do
         else
             echo -e "${red}❌ 无法获取本机 IP，请检查网络连接。${plain}"
         fi
-        
-        echo -e "\n${yellow}------------------------------------------${plain}"
-        read -p "👉 按【回车键】返回主菜单..."
         ;;
      14)
         echo -e "\n${cyan}请选择网络底层调优方向：${plain}"
