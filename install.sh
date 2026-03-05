@@ -1198,48 +1198,49 @@ EOF3
         ;;
         
    25)
-        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (开源语义版) ===${plain}"
+        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (开源防洪版) ===${plain}"
         
         # 0. 自动安装二维码组件
         if ! command -v qrencode >/dev/null 2>&1; then
             echo -e "${yellow}正在安装二维码生成模块...${plain}"
-            apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1 || yum install qrencode -y >/dev/null 2>&1
+            apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1
         fi
 
-        # 核心正则 (通杀所有主流协议)
+        # 终极正则 (通杀所有主流协议)
         REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
 
-        echo -e "${cyan}📡 正在启动全能雷达，跨目录进行语义化提取...${plain}"
+        echo -e "${cyan}📡 正在启动全能雷达，跨目录提取底层配置...${plain}"
 
-        # --- 💡 核心逻辑一：语义化嗅探高级聚合库 (彻底摒弃写死的数量限制) ---
+        # --- 💡 模块一：第三方聚合文件防洪提取 (开源数据清洗层) ---
         ARGO_DATA=""
-        # 兼容小钢炮等常见面板的导出文件路径
+        # 兼容各类面板的导出目录 (无论是 agsbx 还是别人写的 share.txt)
         for target_file in /root/agsbx/jh.txt /root/*share*.txt /root/*link*.txt; do
             if ls $target_file 1> /dev/null 2>&1; then
-                # 开源级核心过滤：只抓取带有说明文字（如 Argo, 💣, 节点, 端口）的行，以及紧随其后的 1 行链接！
-                # 完美过滤掉文件末尾那些密密麻麻、没有文字说明的“备胎垃圾库”
-                TEMP_LINKS=$(grep -A 1 -E "Argo|argo|💣|节点|协议|端口" $target_file 2>/dev/null | grep -oE "$REGEX_PATTERN")
+                # 【开源防洪机制】：很多脚本会追加几十个 CDN 备用 IP。
+                # 为了防止终端二维码刷屏崩溃，统一提取高优先级的前 3 个主节点。
+                TEMP_LINKS=$(grep -oE "$REGEX_PATTERN" $target_file 2>/dev/null | head -n 3)
                 ARGO_DATA=$(echo -e "${ARGO_DATA}\n${TEMP_LINKS}")
             fi
         done
+        # 清洗去重
         ARGO_DATA=$(echo "$ARGO_DATA" | sort -u | grep -v '^$' | tr -d '\r')
 
-        # --- 💡 核心逻辑二：底层标准配置扫描 (开源万能底座) ---
-        # 扫描真实配置目录，坚决不扫 /root/ 下的未知历史残留
+        # --- 💡 模块二：底层核心标准配置扫描 (开源万能底座) ---
+        # 只扫真实配置目录，坚决不扫 /root/ 下的未知垃圾
         CORE_DATA=$(grep -rhoE "$REGEX_PATTERN" /etc/x-ui/ /etc/s-box/ /etc/sing-box/ /usr/local/etc/xray/ 2>/dev/null | sort -u)
 
-        # --- 💡 核心逻辑三：全合流去重 ---
+        # --- 💡 模块三：全合流缝合 ---
         ALL_LINKS=$(echo -e "${ARGO_DATA}\n${CORE_DATA}" | sort -u | grep -v '^$' | tr -d '\r')
 
         if [ -n "$ALL_LINKS" ]; then
-            # --- 💡 核心逻辑四：Base64 聚合编码 ---
+            # --- 💡 模块四：Base64 聚合编码 ---
             BASE64_SUB=$(echo -e "$ALL_LINKS" | base64 -w 0)
 
-            echo -e "\n${green}🎉 扫描完毕！成功为您抓取到以下核心节点：${plain}"
+            echo -e "\n${green}🎉 扫描完毕！成功为您抓取到以下节点：${plain}"
             echo -e "${yellow}======================================================================${plain}"
             
             echo -e "🚀【 全节点聚合订阅 (Base64编码) 】"
-            echo -e "分享链接（可直接粘贴到客户端的“从剪贴板导入订阅”）："
+            echo -e "分享链接（可直接粘贴到客户端导入）："
             echo -e "${cyan}${BASE64_SUB}${plain}\n"
             
             echo -e "📦【 纯净明文节点列表 (供一次性批量复制) 】："
@@ -1251,10 +1252,10 @@ EOF3
             for link in $ALL_LINKS; do
                 PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
                 
-                # 智能身份打标：如果在咱们的语义提取库里，说明它是带有高级说明的节点（大概率是 Argo 等）
+                # 智能身份打标：来源聚合文件的，统一打上高级标签
                 TAG="【 $PROTO 直连协议 】"
                 if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
-                    TAG="${red}【 ARGO 隧道或高级节点 】${plain}"
+                    TAG="${red}【 隧道或聚合主节点 】${plain}"
                 fi
 
                 echo -e "${yellow}------------------------------------------------${plain}"
