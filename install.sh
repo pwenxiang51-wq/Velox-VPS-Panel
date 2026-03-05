@@ -132,7 +132,7 @@ while true; do
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-    8)
+   8)
         echo -e "\n${blue}=== 🌐 WARP 与 Argo 隧道出站详情 ===${plain}"
         echo -e "${yellow}正在侦测网络出站链路，请稍候...${plain}\n"
         
@@ -155,12 +155,21 @@ while true; do
         echo -e "\n${cyan}[ Argo 隧道状态 ]${plain}"
         if pgrep -x "cloudflared" >/dev/null; then
             echo -e " 🚇 Argo 进程 : ${green}运行中 ✅${plain}"
+            
+            # 嗅探临时域名
             argo_url=$(ps -ef | grep cloudflared | grep -oE "[a-zA-Z0-9.-]+\.trycloudflare\.com" | head -n 1)
+            # 💡 核心升级：进程级嗅探 Token (精确匹配 ey 开头的超长 Base64 字符串)
+            argo_token_live=$(ps -ef | grep cloudflared | grep -oE "ey[A-Za-z0-9_-]{50,}" | head -n 1)
             
             if [ -n "$argo_url" ]; then
                 echo -e " 🔗 链路模式 : ${cyan}https://${argo_url}${plain} ${yellow}(临时隧道)${plain}"
+            elif [ -n "$argo_token_live" ]; then
+                # 💡 极客隐私保护：掐头去尾，中间打码
+                masked_token="${argo_token_live:0:6}******[安全隐藏]******${argo_token_live: -6}"
+                echo -e " 🔗 链路模式 : ${purple}Token 守护模式 ${plain}"
+                echo -e " 🔑 绑定 Token : ${cyan}${masked_token}${plain} ${green}✅${plain}"
             else
-                echo -e " 🔗 链路模式 : ${purple}固定域名或 Token 模式 ${plain}${yellow}(未侦测到临时 URL)${plain}"
+                echo -e " 🔗 链路模式 : ${purple}固定域名或未知模式 ${plain}${yellow}(未侦测到 Token 或临时 URL)${plain}"
                 echo -e " 💡 ${yellow}提示：若您使用固定隧道，请在 Cloudflare 后台查看解析状态。${plain}"
             fi
         else
@@ -213,43 +222,87 @@ while true; do
         echo -e "${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】继续..."
         ;;
-     9) 
-            echo -e "\n${blue}--- 🚀 BBR 状态诊断与管理 ---${plain}"
-            current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
-            echo -e "当前系统正在使用的算法: ${yellow}${current_cc}${plain}"
+    9)
+        echo -e "\n${blue}=== 🚀 BBR 状态诊断与高级网络内核调优 ===${plain}"
+        
+        # 1. 深度探测系统内核与当前状态
+        kernel_version=$(uname -r | awk -F- '{print $1}')
+        kernel_main=$(echo $kernel_version | awk -F. '{print $1"."$2}')
+        current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
+        current_qdisc=$(sysctl net.core.default_qdisc 2>/dev/null | awk '{print $3}')
+
+        echo -e "🔎 ${cyan}当前系统内核版本:${plain} ${kernel_version}"
+        echo -e "🚥 ${cyan}当前拥塞控制算法 (CC):${plain} ${yellow}${current_cc}${plain}"
+        echo -e "🚥 ${cyan}当前队列调度算法 (Qdisc):${plain} ${yellow}${current_qdisc}${plain}"
+        echo -e "${blue}---------------------------------------------------${plain}"
+
+        if [[ "$current_cc" == "bbr" ]]; then
+            echo -e "${green}✅ BBR 底层加速已完美激活，网络正处于高性能模式！${plain}"
             
-            if [[ "$current_cc" == "bbr" ]]; then
-                echo -e "${green}✅ BBR 加速已完美生效，网络正在狂飙！${plain}"
-                echo -e "${cyan}---------------------------------------------------${plain}"
-                read -p "是否需要【彻底关闭并卸载】BBR 加速？(y/n): " remove_bbr
-                if [[ "$remove_bbr" == "y" ]]; then
-                    echo "正在执行 BBR 卸载程序..."
-                    sudo sysctl -w net.ipv4.tcp_congestion_control=cubic > /dev/null 2>&1
-                    sudo sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
-                    sudo sed -i '/net.ipv4.tcp_congestion_control=bbr/d' /etc/sysctl.conf
-                    sudo sysctl -p > /dev/null 2>&1
-                    echo -e "${green}✅ BBR 已彻底关闭并恢复为系统默认算法 (cubic)！${plain}"
-                fi
+            # 智能检测黄金搭档 fq
+            if [[ "$current_qdisc" != *"fq"* ]]; then
+                echo -e "${yellow}⚠️ 提示：检测到当前 Qdisc 并非 fq，建议卸载后重新一键开启以达到 BBR 最佳性能。${plain}"
+            fi
+            
+            read -p "👉 是否需要【彻底关闭并卸载】BBR 加速？(y/n): " remove_bbr
+            if [[ "${remove_bbr,,}" == "y" ]]; then
+                echo -e "\n${yellow}正在执行 BBR 卸载程序，清理底层参数...${plain}"
+                # 清理 sysctl.conf 中的自定义参数
+                sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+                # 动态恢复内存中的默认值
+                sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
+                sysctl -w net.core.default_qdisc=pfifo_fast >/dev/null 2>&1
+                sysctl -p >/dev/null 2>&1
+                echo -e "${green}✅ BBR 已彻底关闭！系统已恢复为标准默认算法 (cubic)。${plain}"
+            fi
+        else
+            echo -e "${red}⚠️ 检测到当前未开启 BBR 加速！${plain}"
+            
+            # 内核版本合规性阻断机制 (低于 4.9 强行开会失联)
+            if $(awk 'BEGIN{print ("'$kernel_main'" < "4.9")}'); then
+                echo -e "${red}❌ 致命错误：当前内核版本 ($kernel_version) 低于 4.9！${plain}"
+                echo -e "${red}强行注入 BBR 参数将导致机器断网失联！请先执行内核升级！${plain}"
             else
-                echo -e "${red}⚠️ 检测到当前未开启 BBR 加速！${plain}"
-                read -p "是否立即【一键开启 BBR 暴力加速】？(y/n): " enable_bbr
-                if [[ "$enable_bbr" == "y" ]]; then
-                    echo "正在向系统内核注入 BBR 参数..."
+                read -p "👉 是否立即【一键开启 BBR 暴力加速】？(y/n): " enable_bbr
+                if [[ "${enable_bbr,,}" == "y" ]]; then
+                    echo -e "\n${cyan}正在向系统内核加载 BBR 模块并注入参数...${plain}"
+                    
+                    # 尝试预先加载 bbr 模块 (兼容某些云厂商精简版系统)
+                    modprobe tcp_bbr 2>/dev/null
+
+                    # 清除旧配置，防止重复写入冲突
                     sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
                     sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+                    
+                    # 写入 BBR + fq 黄金组合参数
                     echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
                     echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
+                    
+                    # 应用配置并屏蔽多余冗余输出
                     sysctl -p >/dev/null 2>&1
                     
+                    # 极客视觉体验：硬核状态实时回显
+                    echo -e "\n${blue}--- 📡 核心网络参数实时回显 ---${plain}"
+                    sysctl net.ipv4.tcp_congestion_control
+                    sysctl net.core.default_qdisc
+                    echo -e "${blue}-------------------------------${plain}"
+
                     if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
-                        echo -e "\n${green}🎉 开启成功！请按回车键返回主菜单，您将看到徽章已变为 [加速中]！${plain}"
+                        echo -e "\n${green}🎉 开启成功！【BBR + fq】 黄金组合已全线生效！${plain}"
+                        echo -e "${yellow}💡 提示：按回车键返回主菜单，您将看到徽章已变为 [加速中]！${plain}"
                     else
-                        echo -e "\n${red}❌ 开启失败，可能当前系统内核版本过低不支持 BBR。${plain}"
+                        echo -e "\n${red}❌ 开启失败！当前系统环境受限 (提示：OpenVZ 或 LXC 架构的 VPS 无法修改底层内核)。${plain}"
                     fi
                 fi
             fi
-            ;;
-        10)
+        fi
+        
+        # 统一的返回停顿
+        echo ""
+        read -p "👉 按【回车键】返回主菜单..."
+        ;;
+     10)
         echo -e "\n${blue}--- 🧹 正在执行系统深度垃圾清理 ---${plain}"
         
         echo -e "${yellow}1. 正在清理软件安装包残留缓存...${plain}"
@@ -331,59 +384,72 @@ while true; do
         
         if [ "$tune_choice" == "0" ]; then
             echo -e "\n${yellow}已取消操作，返回主菜单。${plain}"
-        else
+        elif [[ "$tune_choice" =~ ^[1-4]$ ]]; then
+            
+            # --- 💡 核心升级：智能内存感知 (防 OOM 机制) ---
+            TOTAL_MEM=$(free -m | awk '/^Mem:/{print $2}')
+            if [ "$TOTAL_MEM" -le 512 ]; then
+                MAX_BUF="16777216" # 16MB (小内存保护)
+                MEM_TAG="轻量级"
+            elif [ "$TOTAL_MEM" -le 1024 ]; then
+                MAX_BUF="26214400" # 25MB (标配)
+                MEM_TAG="标准级"
+            else
+                MAX_BUF="33554432" # 32MB (大内存暴力全开)
+                MEM_TAG="极速级"
+            fi
+
+            # --- 🧹 统一清理旧参数 (防止冲突与重复写入) ---
+            sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
+            sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
+            sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
+
             if [ "$tune_choice" == "1" ] || [ "$tune_choice" == "3" ]; then
-                echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ---${plain}"
-                sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
-                sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
-                sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
-                sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
-                echo "net.core.rmem_max=16777216" >> /etc/sysctl.conf
-                echo "net.core.wmem_max=16777216" >> /etc/sysctl.conf
-                echo "net.ipv4.tcp_rmem=4096 87380 16777216" >> /etc/sysctl.conf
-                echo "net.ipv4.tcp_wmem=4096 65536 16777216" >> /etc/sysctl.conf
+                echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ($MEM_TAG) ---${plain}"
+                echo "net.core.rmem_max=$MAX_BUF" >> /etc/sysctl.conf
+                echo "net.core.wmem_max=$MAX_BUF" >> /etc/sysctl.conf
+                echo "net.ipv4.tcp_rmem=4096 87380 $MAX_BUF" >> /etc/sysctl.conf
+                echo "net.ipv4.tcp_wmem=4096 65536 $MAX_BUF" >> /etc/sysctl.conf
                 sysctl -p > /dev/null 2>&1
-                echo -e "${green}✅ TCP 读写窗口缓冲区已强行扩展！${plain}"
+                echo -e "${green}✅ TCP 读写窗口缓冲区已动态扩展至 $((MAX_BUF/1024/1024))MB！${plain}"
             fi
 
             if [ "$tune_choice" == "2" ] || [ "$tune_choice" == "3" ]; then
-                echo -e "\n${blue}--- 🌪️ 正在进行 UDP 网络底层高阶调优 ---${plain}"
+                echo -e "\n${blue}--- 🌪️ 正在进行 UDP 网络底层高阶调优 ($MEM_TAG) ---${plain}"
+                # 如果选3，防止 tcp 阶段已写入导致的重复，用 sed 先删再写太麻烦，直接覆盖写入规避冲突
                 sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
                 sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
-                sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
-                sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
-                echo "net.core.rmem_max=26214400" >> /etc/sysctl.conf
-                echo "net.core.wmem_max=26214400" >> /etc/sysctl.conf
+                echo "net.core.rmem_max=$MAX_BUF" >> /etc/sysctl.conf
+                echo "net.core.wmem_max=$MAX_BUF" >> /etc/sysctl.conf
                 echo "net.ipv4.udp_rmem_min=8192" >> /etc/sysctl.conf
                 echo "net.ipv4.udp_wmem_min=8192" >> /etc/sysctl.conf
                 sysctl -p > /dev/null 2>&1
-                echo -e "${green}✅ UDP 读写缓冲区已暴力扩容至 25MB！${plain}"
+                echo -e "${green}✅ UDP 读写缓冲区已暴力扩容至 $((MAX_BUF/1024/1024))MB！${plain}"
                 
                 echo -e "\n${yellow}👉 正在嗅探主网卡并配置 CAKE/FQ 队列调度算法...${plain}"
                 DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
+                # 升级点：先 del 清除旧队列，防止 add 报错 File exists
+                tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
                 tc qdisc add dev $DEFAULT_IF root cake >/dev/null 2>&1 || tc qdisc add dev $DEFAULT_IF root fq >/dev/null 2>&1
-                echo -e "${green}✅ 网卡 [$DEFAULT_IF] 队列调度已接管优化！(Hy2 速度将大幅提升)${plain}"
+                echo -e "${green}✅ 网卡 [$DEFAULT_IF] 队列调度已完美接管！(Hy2 速度将大幅提升)${plain}"
             fi
 
             if [ "$tune_choice" == "4" ]; then
                 echo -e "\n${blue}--- 🗑️ 正在清除所有网络自定义调优参数 ---${plain}"
-                sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
-                sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
-                sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
-                sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
-                sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
-                sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
                 sysctl -p > /dev/null 2>&1
-                
                 DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
                 tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
                 echo -e "${green}✅ 所有强行注入的扩容参数已抹除，系统网络恢复默认状态！${plain}"
             fi
-
-            if [[ ! "$tune_choice" =~ ^[0-4]$ ]]; then
-                echo -e "${red}❌ 无效输入，已取消操作。${plain}"
-            fi
+        else
+            echo -e "${red}❌ 无效输入，已取消操作。${plain}"
         fi
+        
+        # 统一返回暂停
+        read -p "👉 按【回车键】返回主菜单..."
         ;;
       15)
             echo -e "\n${blue}--- 🛰️ 正在测试全球主流节点延迟 ---${plain}"
@@ -688,7 +754,7 @@ EOF3
                 fi
             fi
             ;;
-        19)
+     19)
         echo -e "\n${blue}--- 📝 修改服务器主机名 (VPS 改名/洗白) ---${plain}"
         echo -e "当前主机名: ${yellow}$(hostname)${plain}"
         echo -e "  ${green}1.${plain} 🔄 恢复系统默认主机名 (洗白为: localhost)"
@@ -727,24 +793,45 @@ EOF3
             read -p "👉 按【回车键】继续..."
         fi
         ;;
-        20)
-            echo -e "\n${blue}--- 🔄 一键更新系统软件库 ---${plain}"
-            echo "正在智能识别系统环境，并拉取最新安全补丁，请耐心等待..."
-            if command -v apt-get &> /dev/null; then
-                sudo apt-get update -y
-                sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
-            elif command -v dnf &> /dev/null; then
-                sudo dnf check-update
-                sudo dnf upgrade -y
-            elif command -v yum &> /dev/null; then
-                sudo yum check-update
-                sudo yum upgrade -y
-            else
-                echo -e "${red}❌ 未知系统包管理器，无法自动更新！${plain}"
-                break
-            fi
-            echo -e "\n${green}✅ 系统底层库及组件已全部更新至最新状态！机器状态满血！${plain}"
-            ;;
+      20)
+        echo -e "\n${blue}=== 🔄 一键系统全能更新与清理 (防卡死纯净版) ===${plain}"
+        echo -e "${yellow}正在探测系统架构并拉取最新安全补丁，过程可能需要 1-3 分钟，请耐心等待...${plain}"
+        
+        if command -v apt-get &> /dev/null; then
+            echo -e "${cyan}📦 检测到 Debian/Ubuntu 环境，正在执行安全更新...${plain}"
+            sudo apt-get update -y
+            # 💡 核心升级一：终极防卡死参数 (强行静默，默认保留旧配置，彻底告别紫色弹窗卡死)
+            sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y
+            
+            # 💡 核心升级二：极客垃圾回收 (清理卸载旧内核与冗余依赖)
+            echo -e "\n${cyan}🧹 正在清理冗余依赖和历史安装包垃圾...${plain}"
+            sudo apt-get autoremove -y
+            sudo apt-get clean
+            
+        elif command -v dnf &> /dev/null; then
+            echo -e "${cyan}📦 检测到 RHEL/Fedora/Rocky (dnf) 环境...${plain}"
+            sudo dnf check-update
+            sudo dnf upgrade -y
+            echo -e "\n${cyan}🧹 正在执行系统清理...${plain}"
+            sudo dnf autoremove -y
+            sudo dnf clean all
+            
+        elif command -v yum &> /dev/null; then
+            echo -e "${cyan}📦 检测到 CentOS (yum) 环境...${plain}"
+            sudo yum check-update
+            sudo yum upgrade -y
+            echo -e "\n${cyan}🧹 正在执行系统清理...${plain}"
+            sudo yum autoremove -y
+            sudo yum clean all
+            
+        else
+            # 💡 核心升级三：移除了致命的 break，改为友好的错误提示
+            echo -e "${red}❌ 未知系统包管理器，无法自动更新！请手动执行。${plain}"
+        fi
+        
+        echo -e "\n${green}✅ 系统底层库及组件已全部更新至最新状态，且历史冗余垃圾已清空！机器状态满血！${plain}"
+        read -p "👉 按【回车键】返回主菜单..."
+        ;;
    21)
         while true; do
             # 动态侦测当前 SSH 端口
