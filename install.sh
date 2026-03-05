@@ -1587,7 +1587,7 @@ EOF3
         echo -e "${red}                ⚠️ 终极卸载与物理粉碎程序                ${plain}"
         echo -e "${red}=======================================================${plain}"
         echo -e "${yellow}💡 提示：此操作将彻底拔除 Velox 面板及其在系统底层留下的所有痕迹。${plain}"
-        echo -e "${green}🛡️  放心：您的代理节点 (X-UI/Sing-box) 和 Acme 域名证书将原封不动保留！${plain}\n"
+        echo -e "${green}🛡️  放心：您的代理节点 (X-UI/Sing-box/Argo) 和 Acme 域名证书将原封不动保留！${plain}\n"
         
         read -p "👉 确定要彻底卸载本面板并【焦土化抹除】所有底层修改吗？(y/n): " confirm_uninstall
         if [[ "$confirm_uninstall" == "y" || "$confirm_uninstall" == "Y" ]]; then
@@ -1631,11 +1631,9 @@ EOF3
             sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
             sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
             
-            # 👇 这两行是专门给 9号 BBR 准备的物理粉碎 👇
             sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
             sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
             
-            # 强行切回出厂默认的 cubic 拥塞控制算法
             sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
             sysctl -p > /dev/null 2>&1
             
@@ -1666,27 +1664,12 @@ EOF3
                 echo -e "[${green}已彻底抹除${plain}]"
             fi
 
-            # 💡 核心新增：第 8 步，物理强拆 Argo 隧道守护进程
-            echo -n "8. 正在排查并拆除 Argo 隧道 (cloudflared) 进程与 Token... "
+            # 8. 💡 核心修正：真正的智能探测与保护 Argo
+            echo -n "8. 正在排查 Argo 隧道进程... "
             if command -v cloudflared >/dev/null 2>&1 || pgrep -x "cloudflared" >/dev/null; then
-                # 1. 尝试文明停止服务
-                systemctl stop cloudflared >/dev/null 2>&1
-                systemctl disable cloudflared >/dev/null 2>&1
-                cloudflared service uninstall >/dev/null 2>&1
-                
-                # 2. 物理超度内存中的僵尸进程 (这步最关键，直接秒杀残留)
-                pkill -9 cloudflared >/dev/null 2>&1
-                
-                # 3. 扬其骨灰：连根拔起配置、底座文件和执行文件
-                rm -rf /etc/cloudflared
-                rm -f /usr/bin/cloudflared
-                rm -f /usr/local/bin/cloudflared
-                rm -f /etc/systemd/system/cloudflared.service
-                
-                systemctl daemon-reload
-                echo -e "[${green}已彻底物理粉碎并释放系统资源${plain}]"
+                echo -e "[${green}🛡️ 发现存活进程，为防节点断网，已智能保护并跳过卸载${plain}]"
             else
-                echo -e "[${cyan}未发现 Argo 进程，已跳过${plain}]"
+                echo -e "[${cyan}未部署 Argo 隧道，已跳过${plain}]"
             fi
 
             # 9. Fail2Ban 强拆询问
@@ -1720,7 +1703,7 @@ EOF3
             sleep 1
         fi
         ;;
-        0) echo -e "\n${green}祝Velox折腾愉快！${plain}\n"; exit ;;
+      0)   echo -e "\n${green}祝Velox折腾愉快！${plain}\n"; exit ;;
         *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
     
