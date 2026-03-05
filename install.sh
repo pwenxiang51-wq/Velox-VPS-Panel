@@ -342,144 +342,139 @@ while true; do
         [[ "$c" == "y" || "$c" == "Y" ]] && sudo reboot 
         ;;
      12)
-        echo -e "\n${blue}=== 🎬 Velox 终极全能流媒体与 AI 解锁雷达 (V5.0) ===${plain}"
+        echo -e "\n${blue}=== 🎬 Velox 终极流媒体与 AI 雷达 (V5.1 原生双栈版) ===${plain}"
         echo -e "${yellow}正在进行底层网络身份握手与区域探针注入，请稍候...${plain}\n"
 
-        # --- 1. IP 身份与归属地智能鉴定 ---
         echo -e "${cyan}【 🌐 本机网络出口身份深度解析 】${plain}"
         
+        # 💡 强悍的 IP 身份鉴定器
         get_ip_info() {
             local ip=$1
             local type=$2
-            if [ -z "$ip" ]; then echo -e " 🔹 $type: ${red}无连接或未配置${plain}"; return; fi
-            local geo=$(curl -s "http://ip-api.com/json/$ip?lang=zh-CN" 2>/dev/null)
+            if [ -z "$ip" ] || [ "$ip" == "无网络" ]; then 
+                echo -e " 🔹 $type: ${red}无连接或未配置${plain}"
+                return
+            fi
+            
+            # 拉取带 hosting(机房) 字段的底层数据
+            local geo=$(curl -s -m 3 "http://ip-api.com/json/$ip?lang=zh-CN&fields=country,countryCode,regionName,isp,as,hosting,proxy" 2>/dev/null)
             local loc=$(echo "$geo" | grep -o '"country":"[^"]*"' | cut -d'"' -f4)
+            local code=$(echo "$geo" | grep -o '"countryCode":"[^"]*"' | cut -d'"' -f4)
             local isp=$(echo "$geo" | grep -o '"isp":"[^"]*"' | cut -d'"' -f4)
             local asn=$(echo "$geo" | grep -o '"as":"[^"]*"' | cut -d'"' -f4 | awk '{print $1}')
+            local is_hosting=$(echo "$geo" | grep -o '"hosting":true')
             
-            local tag="${green}原生/机房 IP${plain}"
-            # 💡 智能识别 WARP 接管状态
-            if echo "$isp" | grep -qiE "cloudflare|warp"; then tag="${purple}Cloudflare WARP 代理接管${plain}"; fi
+            # 智能身份打标
+            local tag="${green}ISP 原生家宽 (极品)${plain}"
+            if [ -n "$is_hosting" ]; then tag="${yellow}Hosting 机房 IP${plain}"; fi
+            if echo "$isp" | grep -qiE "cloudflare|warp"; then tag="${purple}WARP 代理接管${plain}"; fi
             
-            echo -e " 🔹 $type: ${cyan}$ip${plain} | 地区: ${yellow}$loc${plain} | 属性: $tag ($isp $asn)"
+            echo -e " 🔹 $type: ${cyan}$ip${plain} | 地区: ${yellow}$loc ($code)${plain} | 属性: $tag ($isp $asn)"
             
-            # 提取国家代码用于后续区域判断 (仅限 IPv4)
-            if [ "$type" == "IPv4" ]; then
-                echo "$geo" | grep -o '"countryCode":"[^"]*"' | cut -d'"' -f4 > /tmp/velox_loc 2>/dev/null
-            fi
+            # 提取国家代码给后面的流媒体作为检测依据
+            if [ "$type" == "IPv4" ] && [ -n "$code" ]; then echo "$code" > /tmp/velox_loc; fi
         }
 
         # 并发获取双栈 IP
-        ip4=$(curl -s4m 3 https://api.ipify.org 2>/dev/null)
-        ip6=$(curl -s6m 3 https://api64.ipify.org 2>/dev/null)
-        [ "$ip4" == "$ip6" ] && ip6="" 
+        ip4=$(curl -s4m 3 https://api.ipify.org 2>/dev/null || echo "无网络")
+        ip6=$(curl -s6m 3 https://api64.ipify.org 2>/dev/null || echo "无网络")
+        [ "$ip4" == "$ip6" ] && ip6="无网络" 
         
+        rm -f /tmp/velox_loc
         get_ip_info "$ip4" "IPv4"
         get_ip_info "$ip6" "IPv6"
 
         LOC=$(cat /tmp/velox_loc 2>/dev/null || echo "US")
         rm -f /tmp/velox_loc
         
-        echo -e "\n${cyan}【 📺 跨国流媒体 & 全球 AI 解锁深度测试 】${plain}"
+        echo -e "\n${cyan}【 📺 双栈流媒体 & 全球 AI 解锁深度测试 】${plain}"
         echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
-        printf " %-22s | %-45s \n" "平台 / 服务名称" "解锁状态与原生区域代码"
-        echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
-
+        
         UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         
-        # 💡 极客 API 解析引擎：不靠外包脚本，原生提取 JSON 里的区域代码
-        check_unlock() {
+        check_unlock_dual() {
             local name=$1; local mode=$2; local url=$3
-            local result=""; local color=$green
             
-            case $mode in
-                "netflix")
-                    local res=$(curl -s4L -m 3 -A "$UA" "$url" 2>/dev/null)
-                    local loc=$(echo "$res" | grep -o '"geolocation":{"country":"[A-Z]*"' | cut -d'"' -f6)
-                    if [ -n "$loc" ]; then result="原生解锁 ✅ (Region: $loc)"; else result="${red}未解锁 ❌ (或仅限自制剧)${plain}"; color=$red; fi
-                    ;;
-                "youtube")
-                    local res=$(curl -s4L -m 3 -A "$UA" "$url" -H "Accept-Language: en" 2>/dev/null)
-                    local loc=$(echo "$res" | grep -o '"countryCode":"[a-zA-Z]*"' | head -n 1 | cut -d'"' -f4)
-                    if [ -n "$loc" ]; then result="原生解锁 ✅ (Region: $loc)"; else result="${red}未解锁 ❌${plain}"; color=$red; fi
-                    ;;
-                "spotify")
-                    local res=$(curl -s4L -m 3 "$url" 2>/dev/null)
-                    local loc=$(echo "$res" | grep -o '"country":"[A-Z]*"' | cut -d'"' -f4)
-                    if [ -n "$loc" ]; then result="原生解锁 ✅ (Region: $loc)"; else result="${red}未解锁 ❌${plain}"; color=$red; fi
-                    ;;
-                "steam")
-                    local res=$(curl -s4L -m 3 "$url" 2>/dev/null)
-                    local loc=$(echo "$res" | grep -o '"country":"[A-Z]*"' | cut -d'"' -f4)
-                    if [ -n "$loc" ]; then result="原生解锁 ✅ (Currency: $loc)"; else result="${red}未解锁 ❌${plain}"; color=$red; fi
-                    ;;
-                "chatgpt")
-                    local res=$(curl -s4 -m 3 -I "$url" 2>/dev/null)
-                    if echo "$res" | grep -qi "cf-mitigated\|403"; then result="${red}被阻断 ❌ (IP被封禁)${plain}"; color=$red; else result="原生解锁 ✅ (Region: $LOC)"; fi
-                    ;;
-                "gemini")
-                    local res=$(curl -s4L -m 3 -I -A "$UA" "$url" 2>/dev/null)
-                    if echo "$res" | grep -qi "location_unsupported"; then result="${red}未解锁 ❌ (当前区域不支持)${plain}"; color=$red; else result="原生解锁 ✅ (Region: $LOC)"; fi
-                    ;;
-                "disney")
-                    local res=$(curl -s4L -m 3 -A "$UA" "$url" 2>/dev/null)
-                    if echo "$res" | grep -qi "unavailable"; then result="${red}未解锁 ❌${plain}"; color=$red; else result="原生解锁 ✅ (Region: $LOC)"; fi
-                    ;;
-                "tiktok")
-                    local res=$(curl -s4L -m 3 -I -A "$UA" "$url" 2>/dev/null)
-                    if echo "$res" | grep -qi "Access Denied"; then result="${red}未解锁 ❌ (区域限制)${plain}"; color=$red; else result="原生解锁 ✅ (Region: $LOC)"; fi
-                    ;;
-                "iqiyi")
-                    local res=$(curl -s4L -m 3 -A "$UA" "https://www.iq.com/" 2>/dev/null)
-                    if echo "$res" | grep -qi "forbidden"; then result="${red}未解锁 ❌${plain}"; color=$red; else result="原生解锁 ✅ (Region: $LOC)"; fi
-                    ;;
-                "http_200")
-                    local res=$(curl -s4 -o /dev/null -w "%{http_code}" -m 3 -A "$UA" "$url" 2>/dev/null)
-                    if [ "$res" == "200" ] || [ "$res" == "301" ] || [ "$res" == "302" ]; then result="原生解锁 ✅ (Region: $LOC)"; else result="${red}未解锁 ❌ (HTTP: $res)${plain}"; color=$red; fi
-                    ;;
-            esac
+            # 内部检测引擎
+            run_check() {
+                local ip_ver=$1
+                local res=""
+                
+                # 没网直接报错，不再浪费时间去 curl
+                if [ "$ip_ver" == "4" ] && [ "$ip4" == "无网络" ]; then echo -ne "\033[1;31m无网络 ❌       \033[0m"; return; fi
+                if [ "$ip_ver" == "6" ] && [ "$ip6" == "无网络" ]; then echo -ne "\033[1;31m无网络 ❌       \033[0m"; return; fi
+                
+                case $mode in
+                    "netflix")
+                        res=$(curl -s${ip_ver}L -m 3 -A "$UA" "$url" 2>/dev/null | tr -d '\0')
+                        local loc=$(echo "$res" | grep -o '"geolocation":{"country":"[A-Z]*"' | cut -d'"' -f6)
+                        if [ -n "$loc" ]; then echo -ne "\033[1;32m解锁 ✅ ($loc)  \033[0m"; else echo -ne "\033[1;31m未解锁 ❌       \033[0m"; fi
+                        ;;
+                    "youtube")
+                        res=$(curl -s${ip_ver}L -m 3 -A "$UA" "$url" -H "Accept-Language: en" 2>/dev/null | tr -d '\0')
+                        local loc=$(echo "$res" | grep -o '"countryCode":"[a-zA-Z]*"' | head -n 1 | cut -d'"' -f4)
+                        if [ -n "$loc" ]; then echo -ne "\033[1;32m解锁 ✅ ($loc)  \033[0m"; else echo -ne "\033[1;31m未解锁 ❌       \033[0m"; fi
+                        ;;
+                    "disney")
+                        res=$(curl -s${ip_ver}L -m 3 -A "$UA" "$url" 2>/dev/null | tr -d '\0')
+                        if echo "$res" | grep -qi "unavailable"; then echo -ne "\033[1;31m未解锁 ❌       \033[0m"; else echo -ne "\033[1;32m解锁 ✅       \033[0m"; fi
+                        ;;
+                    "chatgpt")
+                        res=$(curl -s${ip_ver} -m 3 -I -A "$UA" "$url" 2>/dev/null | tr -d '\0')
+                        if echo "$res" | grep -qi "cf-mitigated\|403"; then echo -ne "\033[1;31m封禁 ❌       \033[0m"; else echo -ne "\033[1;32m解锁 ✅       \033[0m"; fi
+                        ;;
+                    "gemini")
+                        res=$(curl -s${ip_ver}L -m 3 -I -A "$UA" "$url" 2>/dev/null | tr -d '\0')
+                        if echo "$res" | grep -qi "location_unsupported"; then echo -ne "\033[1;31m未解锁 ❌       \033[0m"; else echo -ne "\033[1;32m解锁 ✅       \033[0m"; fi
+                        ;;
+                    "tiktok")
+                        res=$(curl -s${ip_ver}L -m 3 -I -A "$UA" "$url" 2>/dev/null | tr -d '\0')
+                        if echo "$res" | grep -qi "Access Denied\|403"; then echo -ne "\033[1;31m限制 ❌       \033[0m"; else echo -ne "\033[1;32m解锁 ✅       \033[0m"; fi
+                        ;;
+                    "http_200")
+                        res=$(curl -s${ip_ver} -o /dev/null -w "%{http_code}" -m 3 -A "$UA" "$url" 2>/dev/null)
+                        if [ "$res" == "200" ] || [ "$res" == "301" ] || [ "$res" == "302" ]; then echo -ne "\033[1;32m解锁 ✅       \033[0m"; else echo -ne "\033[1;31m未解锁 ❌       \033[0m"; fi
+                        ;;
+                esac
+            }
             
-            # 使用极致强迫症排版输出
-            printf " %-24s | %b%s%b\n" "$name" "$color" "$result" "$plain"
+            # 使用制表符 \t 强行排版，彻底解决因颜色代码导致 printf 对齐失效的问题
+            echo -e " 📺 $name\t| V4: $(run_check 4)\t| V6: $(run_check 6)"
         }
 
         # 🚀 全球顶级必测项目
-        check_unlock "Netflix (自制+版权剧)" "netflix" "https://www.netflix.com/title/81215567"
-        check_unlock "YouTube Premium" "youtube" "https://www.youtube.com/premium"
-        check_unlock "Disney+" "disney" "https://www.disneyplus.com"
-        check_unlock "Spotify Registration" "spotify" "https://spclient.wg.spotify.com/signup/public/v1/account"
-        check_unlock "Steam Currency" "steam" "https://store.steampowered.com/api/userdata.json"
-        check_unlock "TikTok (网页版)" "tiktok" "https://www.tiktok.com"
-        check_unlock "iQIYI (爱奇艺海外版)" "iqiyi" "https://www.iq.com/"
-        check_unlock "ChatGPT (OpenAI)" "chatgpt" "https://chatgpt.com"
-        check_unlock "Google Gemini" "gemini" "https://gemini.google.com"
+        check_unlock_dual "Netflix (自制+版权)" "netflix" "https://www.netflix.com/title/81215567"
+        check_unlock_dual "YouTube Premium    " "youtube" "https://www.youtube.com/premium"
+        check_unlock_dual "Disney+            " "disney" "https://www.disneyplus.com"
+        check_unlock_dual "ChatGPT (OpenAI)   " "chatgpt" "https://chatgpt.com"
+        check_unlock_dual "Google Gemini      " "gemini" "https://gemini.google.com"
+        check_unlock_dual "TikTok (网页版)    " "tiktok" "https://www.tiktok.com"
 
         # 🚀 根据上面的 IP 身份，智能追加测试当地特色平台！
         echo -e "${cyan}---------------------- [ 特色区域附加测试: $LOC ] ----------------------${plain}"
         case $LOC in
-            SG) check_unlock "StarHub TV+" "http_200" "https://www.starhub.com"
-                check_unlock "meWATCH" "http_200" "https://www.mewatch.sg"
-                check_unlock "Bilibili (东南亚)" "http_200" "https://www.bilibili.tv" ;;
-            HK|MO) check_unlock "Now E" "http_200" "https://www.nowe.com"
-                   check_unlock "Viu.com" "http_200" "https://www.viu.com"
-                   check_unlock "Bilibili (港澳台)" "http_200" "https://www.bilibili.com" ;;
-            TW) check_unlock "Bahamut Anime (动画疯)" "http_200" "https://ani.gamer.com.tw/"
-                check_unlock "KKTV" "http_200" "https://www.kktv.me"
-                check_unlock "Bilibili (港澳台)" "http_200" "https://www.bilibili.com" ;;
-            JP) check_unlock "DMM / Fanza" "http_200" "https://www.dmm.co.jp"
-                check_unlock "Abema TV" "http_200" "https://abema.tv"
-                check_unlock "Niconico" "http_200" "https://www.nicovideo.jp" ;;
-            KR) check_unlock "Wavve" "http_200" "https://www.wavve.com"
-                check_unlock "Coupang Play" "http_200" "https://www.coupangplay.com" ;;
-            US|CA|GB) check_unlock "HBO Max" "http_200" "https://www.max.com"
-                      check_unlock "Hulu" "http_200" "https://www.hulu.com"
-                      check_unlock "Paramount+" "http_200" "https://www.paramountplus.com" ;;
-            *) check_unlock "Bilibili (国际版)" "http_200" "https://www.bilibili.tv" ;;
+            SG) check_unlock_dual "StarHub TV+        " "http_200" "https://www.starhub.com"
+                check_unlock_dual "meWATCH            " "http_200" "https://www.mewatch.sg"
+                check_unlock_dual "Bilibili (东南亚)  " "http_200" "https://www.bilibili.tv" ;;
+            HK|MO) check_unlock_dual "Now E              " "http_200" "https://www.nowe.com"
+                   check_unlock_dual "Viu.com            " "http_200" "https://www.viu.com"
+                   check_unlock_dual "Bilibili (港澳台)  " "http_200" "https://www.bilibili.com" ;;
+            TW) check_unlock_dual "Bahamut Anime(台湾)" "http_200" "https://ani.gamer.com.tw/"
+                check_unlock_dual "KKTV               " "http_200" "https://www.kktv.me"
+                check_unlock_dual "Bilibili (港澳台)  " "http_200" "https://www.bilibili.com" ;;
+            JP) check_unlock_dual "DMM / Fanza        " "http_200" "https://www.dmm.co.jp"
+                check_unlock_dual "Abema TV           " "http_200" "https://abema.tv"
+                check_unlock_dual "Niconico           " "http_200" "https://www.nicovideo.jp" ;;
+            KR) check_unlock_dual "Wavve              " "http_200" "https://www.wavve.com"
+                check_unlock_dual "Coupang Play       " "http_200" "https://www.coupangplay.com" ;;
+            US|CA|GB) check_unlock_dual "HBO Max            " "http_200" "https://www.max.com"
+                      check_unlock_dual "Hulu               " "http_200" "https://www.hulu.com"
+                      check_unlock_dual "Paramount+         " "http_200" "https://www.paramountplus.com" ;;
+            *) check_unlock_dual "Bilibili (国际版)  " "http_200" "https://www.bilibili.tv" ;;
         esac
 
         echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
-        echo -e "💡 ${green}极客内核说明：${plain} 此雷达采用纯 Bash 原生 API 解析技术，直接从流媒体底层抓取 JSON 区域代码。"
-        echo -e "💡 比外部拉取的几千行庞大脚本更快、更准，且绝对不会出现 \`command not found\` 的报错！"
+        echo -e "💡 ${green}极客内核说明：${plain} 本雷达直接提取底层 JSON 区域代码，展示原生双栈 (IPv4/IPv6) 详情。"
         ;;
      13)
         echo -e "\n${blue}=== 🛡️ 节点 IP 纯净度与欺诈风险体检 ===${plain}"
