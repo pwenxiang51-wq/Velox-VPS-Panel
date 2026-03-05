@@ -1701,7 +1701,7 @@ EOF3
         *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
     
-    if [[ "$choice" != "7" && "$choice" != "8" && "$choice" != "9" && "$choice" != "10" && "$choice" != "19" && "$choice" != "21" && "$choice" != "22" && "$choice" != "23" && "$choice" != "24" && "$choice" != "26" && "$choice" != "27" ]]; then
+    if [[ "$choice" != "7" && "$choice" != "8" && "$choice" != "9" && "$choice" != "10" && "$choice" != "16"&& "$choice" != "19" && "$choice" != "21" && "$choice" != "22" && "$choice" != "23" && "$choice" != "24" && "$choice" != "26" && "$choice" != "27" ]]; then
         echo -e "\n${cyan}按回车键继续...${plain}"; read
     fi
 done
