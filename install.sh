@@ -1356,8 +1356,8 @@ EOF3
 
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-     26)
-        echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 ===${plain}"
+    26)
+        echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (智能避让版) ===${plain}"
         
         # 智能侦测 Acme.sh 真实路径
         ACME_BIN=""
@@ -1385,19 +1385,37 @@ EOF3
             if [[ "$force_renew" == "y" || "$force_renew" == "Y" ]]; then
                 read -p "✍️ 请输入上方列表中你需要续签的【主域名 Main_Domain】 (例如 bwg.123.xyz): " renew_domain
                 if [ -n "$renew_domain" ]; then
-                    echo -e "\n${cyan}⏳ 正在向签发机构强制请求续签域名 [ ${renew_domain} ]，请耐心等待...${plain}"
+                    
+                    echo -e "\n${yellow}⏳ 正在侦测并智能清理 80 端口占用情况...${plain}"
+                    # 🚀 核心升级：智能避让机制。先把可能占用 80 端口的 Web 容器停掉
+                    systemctl stop nginx >/dev/null 2>&1
+                    systemctl stop apache2 >/dev/null 2>&1
+                    systemctl stop httpd >/dev/null 2>&1
+                    fuser -k 80/tcp >/dev/null 2>&1
+                    
+                    echo -e "${cyan}⏳ 正在向签发机构强制请求续签域名 [ ${renew_domain} ]，请耐心等待...${plain}"
                     
                     # 采用 Acme 官方标准续签语法，并兼容 ECC 证书
-                    "$ACME_BIN" --renew -d "$renew_domain" --force --ecc 2>/dev/null
+                    "$ACME_BIN" --renew -d "$renew_domain" --force --ecc
                     if [ $? -ne 0 ]; then
-                        # 若 ECC 失败，则尝试普通 RSA 证书续签模式
+                        echo -e "\n${yellow}⚠️ ECC 模式续签失败，正在尝试切换为 RSA 模式重试...${plain}"
                         "$ACME_BIN" --renew -d "$renew_domain" --force
                     fi
                     
-                    echo -e "\n${cyan}⚡ 续签流程结束！正在联动重启底层代理核心，让新证书瞬间生效...${plain}"
+                    echo -e "\n${cyan}⚡ 续签流程结束！正在联动重启底层代理核心与 Web 容器，让新证书瞬间生效...${plain}"
+                    
+                    # 恢复 Web 容器
+                    systemctl start nginx >/dev/null 2>&1
+                    systemctl start apache2 >/dev/null 2>&1
+                    systemctl start httpd >/dev/null 2>&1
+                    
+                    # 联动重启主流代理核心
                     systemctl restart sing-box >/dev/null 2>&1
                     systemctl restart xray >/dev/null 2>&1
-                    echo -e "${green}✅ 操作完毕！代理服务已满血复活！${plain}"
+                    systemctl restart x-ui >/dev/null 2>&1
+                    rc-service sing-box restart >/dev/null 2>&1
+                    
+                    echo -e "${green}✅ 操作完毕！Web 容器与代理服务已满血复活！${plain}"
                 else
                     echo -e "${red}❌ 域名输入为空，已取消续签操作。${plain}"
                 fi
