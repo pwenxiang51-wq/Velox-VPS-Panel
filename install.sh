@@ -1198,62 +1198,52 @@ EOF3
         ;;
         
    25)
-        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (终极聚合版) ===${plain}"
+        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (属性识别版) ===${plain}"
         
-        # 0. 自动安装二维码组件
-        if ! command -v qrencode >/dev/null 2>&1; then
-            apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1 || yum install qrencode -y >/dev/null 2>&1
-        fi
-
-        # 终极通用正则
+        # 核心正则与路径
         REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
+        echo -e "${cyan}📡 正在启动智能属性雷达，正在识别 Argo 身份...${plain}"
 
-        echo -e "${cyan}📡 正在启动全能雷达，正在跨目录缝合所有节点...${plain}"
-
-        # --- 💡 核心逻辑：多路抓取并合并 ---
-        
-        # 1. 抓取专属 Argo 文件 (解决标识并提取链接)
-        ARGO_LINKS=""
+        # --- 💡 模块一：抓取最新的 Argo 资产库 ---
+        ARGO_DATA=""
         if [ -f "/root/agsbx/jh.txt" ]; then
-            echo -e "\n${yellow}=== 📦 发现 Argo 聚合节点库 (已提取标识) ===${plain}"
-            cat /root/agsbx/jh.txt
-            echo -e "${yellow}====================================================${plain}"
-            # 提取文件内的明文链接备用
-            ARGO_LINKS=$(grep -oE "$REGEX_PATTERN" /root/agsbx/jh.txt 2>/dev/null)
+            # 精准抓取 jh.txt 中最新的几条链接
+            ARGO_DATA=$(grep -oE "$REGEX_PATTERN" /root/agsbx/jh.txt | sort -u | tail -n 2)
+            echo -e "${green}✅ 已锁定 Argo 专属资产库${plain}"
         fi
 
-        # 2. 抓取底层核心配置 (万能兼容路径)
-        CORE_LINKS=$(grep -rhoE "$REGEX_PATTERN" /etc/x-ui/ /etc/s-box/ /etc/sing-box/ /usr/local/etc/xray/ 2>/dev/null)
+        # --- 💡 模块二：底层直连配置扫描 (避开 root 冗余文本) ---
+        CORE_DATA=$(grep -rhoE "$REGEX_PATTERN" /etc/x-ui/ /etc/s-box/ /etc/sing-box/ /usr/local/etc/xray/ 2>/dev/null | sort -u)
 
-        # 3. 终极缝合 + 自动去重
-        ALL_LINKS=$(echo -e "${ARGO_LINKS}\n${CORE_LINKS}" | sort -u | grep -v '^$' | tr -d '\r')
+        # --- 💡 模块三：缝合所有活节点 ---
+        ALL_LINKS=$(echo -e "${ARGO_DATA}\n${CORE_DATA}" | sort -u | grep -v '^$' | tr -d '\r')
 
         if [ -n "$ALL_LINKS" ]; then
-            # 生成 Base64
             BASE64_SUB=$(echo -e "$ALL_LINKS" | base64 -w 0)
-
-            echo -e "\n${green}🎉 扫描完毕！以下是为您汇总的所有节点 (含 Argo & 直连)：${plain}"
-            echo -e "${yellow}======================================================================${plain}"
-            echo -e "🚀【 全节点聚合订阅 (Base64编码) 】"
+            echo -e "\n${green}🎉 扫描完毕！全节点聚合订阅 (Base64编码)：${plain}"
             echo -e "${cyan}${BASE64_SUB}${plain}\n"
-            
-            echo -e "📦【 纯净明文列表 (供批量复制) 】："
-            echo -e "${cyan}${ALL_LINKS}${plain}\n"
-            echo -e "${yellow}======================================================================${plain}"
 
-            echo -e "${cyan}👇 下面展示所有节点的【迷你二维码】：${plain}"
+            echo -e "📦【 纯净明文列表 】："
+            echo -e "${cyan}${ALL_LINKS}${plain}\n"
+
+            echo -e "${cyan}👇 详情展示 (自动标注 Argo 身份)：${plain}"
             for link in $ALL_LINKS; do
                 PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
+                
+                # 智能判断身份
+                TAG="【 $PROTO 直连 】"
+                if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
+                    TAG="${red}【 ARGO 隧道节点 】${plain}"
+                fi
+
                 echo -e "${yellow}------------------------------------------------${plain}"
-                echo -e "🚀【 ${PROTO} 协议 】："
+                echo -e "🚀 $TAG"
                 echo -e "${cyan}${link}${plain}"
                 qrencode -m 2 -t UTF8 "$link"
             done
         else
-            echo -e "\n${red}❌ 扫描结束：未发现有效节点。${plain}"
+            echo -e "\n${red}❌ 仓库暂无节点，请先运行生成脚本！${plain}"
         fi
-
-        echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
      26)
