@@ -260,7 +260,7 @@ while true; do
             echo -e "${red}⚠️ 检测到当前未开启 BBR 加速！${plain}"
             
             # 内核版本合规性阻断机制 (低于 4.9 强行开会失联)
-            if $(awk 'BEGIN{print ("'$kernel_main'" < "4.9")}'); then
+           if awk -v ver="$kernel_main" 'BEGIN {if (ver < 4.9) exit 0; else exit 1}'; then
                 echo -e "${red}❌ 致命错误：当前内核版本 ($kernel_version) 低于 4.9！${plain}"
                 echo -e "${red}强行注入 BBR 参数将导致机器断网失联！请先执行内核升级！${plain}"
             else
