@@ -1668,12 +1668,23 @@ EOF3
 
             # 💡 核心新增：第 8 步，物理强拆 Argo 隧道守护进程
             echo -n "8. 正在排查并拆除 Argo 隧道 (cloudflared) 进程与 Token... "
-            if command -v cloudflared >/dev/null 2>&1 || systemctl list-unit-files | grep -qw cloudflared.service; then
+            if command -v cloudflared >/dev/null 2>&1 || pgrep -x "cloudflared" >/dev/null; then
+                # 1. 尝试文明停止服务
                 systemctl stop cloudflared >/dev/null 2>&1
                 systemctl disable cloudflared >/dev/null 2>&1
                 cloudflared service uninstall >/dev/null 2>&1
+                
+                # 2. 物理超度内存中的僵尸进程 (这步最关键，直接秒杀残留)
+                pkill -9 cloudflared >/dev/null 2>&1
+                
+                # 3. 扬其骨灰：连根拔起配置、底座文件和执行文件
                 rm -rf /etc/cloudflared
-                echo -e "[${green}已彻底粉碎并释放系统资源${plain}]"
+                rm -f /usr/bin/cloudflared
+                rm -f /usr/local/bin/cloudflared
+                rm -f /etc/systemd/system/cloudflared.service
+                
+                systemctl daemon-reload
+                echo -e "[${green}已彻底物理粉碎并释放系统资源${plain}]"
             else
                 echo -e "[${cyan}未发现 Argo 进程，已跳过${plain}]"
             fi
