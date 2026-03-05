@@ -341,55 +341,7 @@ while true; do
         read -p "确定要整机重启吗？(y/n): " c
         [[ "$c" == "y" || "$c" == "Y" ]] && sudo reboot 
         ;;
-     12)
-        echo -e "\n${blue}=== 🎬 Velox 终极流媒体雷达 (原生 IP 溯源 + 权威穿透引擎) ===${plain}"
-        echo -e "${yellow}正在进行底层双栈网络身份握手...${plain}\n"
-
-        echo -e "${cyan}【 🌐 本机网络出口身份深度解析 】${plain}"
-        
-        get_ip_info() {
-            local ip=$1
-            local type=$2
-            if [ -z "$ip" ] || [ "$ip" == "无网络" ]; then 
-                echo -e " 🔹 $type: ${red}无连接或未配置${plain}"
-                return
-            fi
-            
-            local geo=$(curl -s -m 3 "http://ip-api.com/json/$ip?lang=zh-CN&fields=country,countryCode,regionName,isp,as,hosting,proxy" 2>/dev/null)
-            local loc=$(echo "$geo" | grep -o '"country":"[^"]*"' | cut -d'"' -f4)
-            local code=$(echo "$geo" | grep -o '"countryCode":"[^"]*"' | cut -d'"' -f4)
-            local isp=$(echo "$geo" | grep -o '"isp":"[^"]*"' | cut -d'"' -f4)
-            local asn=$(echo "$geo" | grep -o '"as":"[^"]*"' | cut -d'"' -f4 | cut -d' ' -f1)
-            local is_hosting=$(echo "$geo" | grep -o '"hosting":true')
-            
-            # 💡 优先级打标逻辑彻底重构 (修复 WARP 被误判为黑 IP 的 Bug)
-            local tag="${green}ISP 原生家宽 (极品)${plain}"
-            if [ -n "$is_hosting" ]; then tag="${yellow}机房 IP (Hosting)${plain}"; fi
-            if echo "$geo" | grep -qi '"proxy":true'; then tag="${red}被标记的代理/高风险 IP${plain}"; fi
-            
-            # 🚀 WARP 判定优先级最高！强制覆盖前面的所有标记！
-            if echo "$isp" | grep -qiE "cloudflare|warp" || echo "$asn" | grep -qi "AS13335"; then 
-                tag="${purple}Cloudflare WARP 代理接管 ✅${plain}"
-            fi
-            
-            echo -e " 🔹 $type: ${cyan}$ip${plain} | 地区: ${yellow}$loc ($code)${plain} | 属性: $tag ($isp $asn)"
-        }
-
-        # 获取双栈 IP
-        ip4=$(curl -s4m 3 https://api.ipify.org 2>/dev/null || echo "无网络")
-        ip6=$(curl -s6m 3 https://api64.ipify.org 2>/dev/null || echo "无网络")
-        [ "$ip4" == "$ip6" ] && ip6="无网络" 
-        
-        get_ip_info "$ip4" "IPv4"
-        get_ip_info "$ip6" "IPv6"
-
-        echo -e "\n${cyan}【 📺 启动权威 WAF 穿透解析引擎 】${plain}"
-        echo -e "${yellow}说明：为了穿透现代流媒体强大的反爬虫防火墙，已为您无缝调度 xykt 权威扫描底座...${plain}"
-        echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
-        
-        # 完美调用权威脚本，既保留了 100+ 流媒体平台，又融入了 Velox 的极客 UI 封装
-        bash <(curl -L -s check.unlock.media)
-        ;;
+     12) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
      13)
         echo -e "\n${blue}=== 🛡️ 节点 IP 纯净度与欺诈风险体检 ===${plain}"
         echo -e "${yellow}正在向全球数据库查询当前 VPS 的出站 IP 纯净度，请稍候...${plain}\n"
