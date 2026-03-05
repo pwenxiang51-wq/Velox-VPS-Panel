@@ -351,21 +351,30 @@ while true; do
         if [ -n "$VPS_IP" ]; then
             echo -e "🌍 当前出站 IP: ${cyan}${VPS_IP}${plain}\n"
             
-            echo -e "${yellow}--- 📊 IP 综合分析报告 ---${plain}"
-            # 完整输出 ping0 的报告（不限制行数，防截断）
-            curl -sL "https://ping0.cc/geo" 2>/dev/null
+            echo -e "${yellow}--- 📊 核心欺诈数据报告 (来自 Ping0) ---${plain}"
+            # 完整输出 ping0 的报告，加上缩进使其美观
+            curl -sL "https://ping0.cc/geo" 2>/dev/null | sed 's/^/  /'
             
-            # 补充备用数据库查询（更直观的中文格式）
-            echo -e "\n${cyan}--- 🌐 备用数据库补充信息 ---${plain}"
-            curl -sL "http://ip-api.com/line/$VPS_IP?lang=zh-CN&fields=country,regionName,city,isp,org,as,mobile,proxy,hosting" 2>/dev/null | awk 'NR==1{print "国家/地区: "$0} NR==2{print "省份/州: "$0} NR==3{print "城市: "$0} NR==4{print "ISP 运营商: "$0} NR==5{print "所属机构: "$0} NR==6{print "ASN 号: "$0} NR==7{print "是否移动网络: "($0=="true"?"是":"否")} NR==8{print "是否代理/VPN: "($0=="true"?"是 (被标记)":"否 (干净)")} NR==9{print "是否机房 IP: "($0=="true"?"是 (Hosting)":"否 (家宽)")}'
+            # 补充备用数据库查询（格式化对齐输出 + 智能红绿变色）
+            echo -e "\n${cyan}--- 🌐 IP-API 备用数据库补充信息 ---${plain}"
+            curl -sL "http://ip-api.com/line/$VPS_IP?lang=zh-CN&fields=country,regionName,city,isp,org,as,mobile,proxy,hosting" 2>/dev/null | awk '
+            NR==1{printf "  🔹 %-16s : %s\n", "国家/地区", $0} 
+            NR==2{printf "  🔹 %-16s : %s\n", "省份/州", $0} 
+            NR==3{printf "  🔹 %-16s : %s\n", "城市", $0} 
+            NR==4{printf "  🔹 %-16s : %s\n", "ISP 运营商", $0} 
+            NR==5{printf "  🔹 %-16s : %s\n", "所属机构", $0} 
+            NR==6{printf "  🔹 %-16s : %s\n", "ASN 号", $0} 
+            NR==7{printf "  🔹 %-16s : %s\n", "移动网络(手机)", ($0=="true"?"\033[1;33m是\033[0m":"否")} 
+            NR==8{printf "  🔹 %-16s : %s\n", "VPN/代理标记", ($0=="true"?"\033[1;31m是 (高风险)\033[0m":"\033[1;32m否 (干净)\033[0m")} 
+            NR==9{printf "  🔹 %-16s : %s\n", "机房 IP", ($0=="true"?"\033[1;33m是 (Hosting)\033[0m":"\033[1;32m否 (原生家宽)\033[0m")}'
             
             echo -e "\n${green}💡 极客科普：${plain}"
             echo -e "🟢 ${green}原生 IP (ISP)${plain}: 极品！流媒体全解锁，免谷歌验证码。"
             echo -e "🟡 ${yellow}机房 IP (Hosting)${plain}: 普通 VPS 都是这种，偶发验证码。"
             echo -e "🔴 ${red}风险 IP (Risk/Fraud)${plain}: 欺诈值若飘红，说明 IP 已被玩烂，建议套 WARP！"
             echo -e ""
-            echo -e "🔗 ${cyan}想要查看 42% 这种精准欺诈分数，以及是否为广播 IP？${plain}"
-            echo -e "👉 ${green}请按住 Ctrl 点击打开深度体检报告: ${plain}\033[4;34mhttps://ping0.cc/ip/$VPS_IP\033[0m"
+            echo -e "🔗 ${cyan}想要查看更详细的欺诈分数雷达图？${plain}"
+            echo -e "👉 ${green}请按住 Ctrl 点击打开深度体检网页: ${plain}\033[4;34mhttps://ping0.cc/ip/$VPS_IP\033[0m"
         else
             echo -e "${red}❌ 无法获取本机 IP，请检查网络连接。${plain}"
         fi
