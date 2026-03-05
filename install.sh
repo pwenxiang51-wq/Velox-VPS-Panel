@@ -1198,69 +1198,59 @@ EOF3
         ;;
         
    25)
-        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (开源智能版) ===${plain}"
+        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (终极聚合版) ===${plain}"
         
-        # 0. 自动安装终端二维码画图组件
+        # 0. 自动安装二维码组件
         if ! command -v qrencode >/dev/null 2>&1; then
-            echo -e "${yellow}正在给系统安装二维码生成模块 (qrencode)...${plain}"
-            apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1 || yum install qrencode -y >/dev/null 2>&1 || dnf install qrencode -y >/dev/null 2>&1
+            apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1 || yum install qrencode -y >/dev/null 2>&1
         fi
 
-        # --- 💡 模块一：智能嗅探聚合说明文件 (核心: 解决 Argo 标识问题) ---
-        echo -e "${cyan}🎯 [ 智能嗅探 ] 正在检索系统内带有中文标识的节点库...${plain}"
-        
-        # 依次检查常见的聚合节点说明路径 (包含 agsbx 的 jh.txt 和 root 下的分享文件)
-        # 这样无论在谁的 VPS 上，只要有带说明的文件，都会被优先展示
-        CHECK_FILES=("/root/agsbx/jh.txt" "/root/vmess_share.txt" "/root/vless_link.txt")
-        for file in "${CHECK_FILES[@]}"; do
-            if [ -f "$file" ]; then
-                echo -e "\n${yellow}=== 📦 发现聚合说明文件: $(basename $file) ===${plain}"
-                cat "$file"
-                echo -e "${yellow}======================================================================${plain}"
-            fi
-        done
-
-        # --- 💡 模块二：底层核心路径正则扫描 (核心: 万能兼容，精准提取) ---
-        echo -e "\n${cyan}📡 [ 全局雷达 ] 正在通过正则表达式从底层配置中提取所有链接...${plain}"
-
-        # 完整协议库：通杀所有主流协议，vmess 绝对不删！
+        # 终极通用正则
         REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
 
-        # 【开源级扫描优化】：
-        # 1. 扫描所有主流面板和核心的配置存放路径
-        # 2. 避免盲目扫描 /root/ 根目录下的历史备份文本，从而解决“十几个重复备用节点”的问题
-        ALL_LINKS=$(grep -rhoE "$REGEX_PATTERN" /etc/x-ui/ /etc/s-box/ /etc/sing-box/ /etc/v2ray-agent/ /usr/local/etc/xray/ 2>/dev/null | sort -u | tr -d '\r')
+        echo -e "${cyan}📡 正在启动全能雷达，正在跨目录缝合所有节点...${plain}"
+
+        # --- 💡 核心逻辑：多路抓取并合并 ---
+        
+        # 1. 抓取专属 Argo 文件 (解决标识并提取链接)
+        ARGO_LINKS=""
+        if [ -f "/root/agsbx/jh.txt" ]; then
+            echo -e "\n${yellow}=== 📦 发现 Argo 聚合节点库 (已提取标识) ===${plain}"
+            cat /root/agsbx/jh.txt
+            echo -e "${yellow}====================================================${plain}"
+            # 提取文件内的明文链接备用
+            ARGO_LINKS=$(grep -oE "$REGEX_PATTERN" /root/agsbx/jh.txt 2>/dev/null)
+        fi
+
+        # 2. 抓取底层核心配置 (万能兼容路径)
+        CORE_LINKS=$(grep -rhoE "$REGEX_PATTERN" /etc/x-ui/ /etc/s-box/ /etc/sing-box/ /usr/local/etc/xray/ 2>/dev/null)
+
+        # 3. 终极缝合 + 自动去重
+        ALL_LINKS=$(echo -e "${ARGO_LINKS}\n${CORE_LINKS}" | sort -u | grep -v '^$' | tr -d '\r')
 
         if [ -n "$ALL_LINKS" ]; then
-            # 生成 Base64 订阅编码
+            # 生成 Base64
             BASE64_SUB=$(echo -e "$ALL_LINKS" | base64 -w 0)
 
-            echo -e "\n${green}🎉 扫描完毕！成功为您抓取到以下核心节点：${plain}"
+            echo -e "\n${green}🎉 扫描完毕！以下是为您汇总的所有节点 (含 Argo & 直连)：${plain}"
             echo -e "${yellow}======================================================================${plain}"
-            
-            # 模块 A：聚合订阅
             echo -e "🚀【 全节点聚合订阅 (Base64编码) 】"
             echo -e "${cyan}${BASE64_SUB}${plain}\n"
             
-            # 模块 B：明文列表
-            echo -e "📦【 纯净明文节点列表 (供一次性批量复制) 】："
+            echo -e "📦【 纯净明文列表 (供批量复制) 】："
             echo -e "${cyan}${ALL_LINKS}${plain}\n"
             echo -e "${yellow}======================================================================${plain}"
 
-            # 模块 C：瀑布流展示与二维码
-            echo -e "${cyan}👇 下面为您逐一展示节点详情与【迷你二维码】：${plain}"
-            
+            echo -e "${cyan}👇 下面展示所有节点的【迷你二维码】：${plain}"
             for link in $ALL_LINKS; do
                 PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
                 echo -e "${yellow}------------------------------------------------${plain}"
-                echo -e "🚀【 ${PROTO} 协议 】信息如下："
+                echo -e "🚀【 ${PROTO} 协议 】："
                 echo -e "${cyan}${link}${plain}"
-                echo -e "\n二维码："
                 qrencode -m 2 -t UTF8 "$link"
             done
-            echo -e "${yellow}------------------------------------------------${plain}"
         else
-            echo -e "\n${red}❌ 扫描结束：未在底层配置目录中提取到额外链接。${plain}"
+            echo -e "\n${red}❌ 扫描结束：未发现有效节点。${plain}"
         fi
 
         echo -e "\n${yellow}------------------------------------------${plain}"
