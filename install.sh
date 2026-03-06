@@ -749,23 +749,25 @@ EOF3
                   if ! command -v vnstat >/dev/null 2>&1; then
         echo -e "${yellow}检测到未安装 vnstat，正在为您全自动部署底层服务...${plain}"
         
-        # 1. 全系统兼容安装引擎 (保留你引以为傲的多平台逻辑)
+        # 1. 全系统兼容安装引擎
         if command -v apt-get >/dev/null; then apt-get update -y >/dev/null 2>&1 && apt-get install vnstat -y >/dev/null 2>&1; fi
         if command -v yum >/dev/null; then yum install epel-release -y >/dev/null 2>&1 && yum install vnstat -y >/dev/null 2>&1; fi
         if command -v dnf >/dev/null; then dnf install epel-release -y >/dev/null 2>&1 && dnf install vnstat -y >/dev/null 2>&1; fi
         
-        # 2. 启动服务并强制绑定网卡
         systemctl enable --now vnstat >/dev/null 2>&1
         
-        # 🚀 核心补丁 A：强制注册当前网卡 (解决 WARP/wgcf 识别问题)
+        # 🚀 补丁 A：强制注册当前网卡 (解决 WARP/wgcf 识别问题)
         vnstat --add -i $DEFAULT_IF >/dev/null 2>&1
         
-        # 🚀 核心补丁 B：强制初始化并刷入第一条存盘数据 (解决“查无数据”假死问题)
+        # 🚀 补丁 B：流量人工呼吸 (为了让别人拿去用也能秒出数据表)
+        # 用 curl 悄悄拉取一个 1KB 的小网页，产生一点点真实流量刺激数据库
+        curl -s http://www.google.com > /dev/null
+        
+        # 🚀 补丁 C：强制立刻存盘 (跳过 5 分钟等待)
         vnstat -u -i $DEFAULT_IF >/dev/null 2>&1
         
-        # 3. 结果反馈
-        echo -e "${green}✅ 流量统计引擎已成功激活！Velox 已打通监控通道。${plain}"
-        echo -e "💡 ${cyan}极客科普：数据正在实时写入，现在退出重进即可看到初始报表！${plain}\n"
+        echo -e "${green}✅ 流量引擎已成功激活！Velox 已为您强行打通监控通道。${plain}"
+        echo -e "💡 ${cyan}极客科普：数据已实时刷入，现在退出重进即可看到完整报表！${plain}\n"
     fi
                     
                     VNSTAT_OUT=$(vnstat -i $DEFAULT_IF -m 2>&1)
