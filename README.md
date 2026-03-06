@@ -6,7 +6,8 @@
 
 > **“不只是一个面板，它是拥有智能感知能力的 VPS 私人管家。”**
 >
-> 作者 GitHub: [@pwenxiang51-wq](https://github.com/pwenxiang51-wq) | 官方博客: [222382.xyz](https://222382.xyz)
+> 作者 GitHub: [@pwenxiang51-wq](https://github.com/pwenxiang51-wq) | 官方博客: [222382.xyz](https://222382.xyz) |  报告 Bug](https://github.com/pwenxiang51-wq/Velox-VPS-Panel/issues)
+
 
 Velox Panel 是一款专为极客与重度折腾玩家打造的 Linux 终端运维面板。V4.1 版本引入了史诗级的**“智能状态感知引擎”**与**“双核主动防御系统”**，将复杂的代理维护、网络调优、安全防爆破与跨机容灾，全部浓缩进了 27 项极致丝滑的交互菜单中。
 
@@ -64,7 +65,7 @@ bash <(curl -sL https://sink.222382.xyz/kggwmy)
 
 5. 📈 实时监控 CPU 与内存 (按 q 退出)
 
-🔌 查看系统监听端口
+6. 🔌 查看系统监听端口
 
 [ 板块二：🚀 网络高阶调优 ]
 7. 📦 查看代理服务运行状态 (深度体检与 IP 查询)
@@ -109,6 +110,7 @@ bash <(curl -sL https://sink.222382.xyz/kggwmy)
 🛡️ 卸载说明 (Uninstall)
 如果你想让系统恢复极其纯净的出厂状态，可在面板主菜单输入 U 进行卸载。
 系统将启动焦土化物理粉碎程序，抹除所有面板、防御机枪塔、监控探针及网络调优参数，但会自动智能保留你的代理节点容器与 Acme 证书，保证业务不断网！
+---
 
 ☕ 赞赏与支持
 开源不易，如果 Velox 面板让你的折腾之旅变得更加优雅，为你节省了宝贵的时间，请务必在右上角给我点一个 Star ⭐️ ！你的点赞是我持续维护的唯一动力。
@@ -117,7 +119,7 @@ bash <(curl -sL https://sink.222382.xyz/kggwmy)
 
 <div align="center">
 <img src="coffee.jpg" alt="Velox 赞赏码" width="300" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,00,0,0.1);" />
----
+
 
 
 
