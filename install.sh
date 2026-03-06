@@ -647,94 +647,208 @@ EOF3
             read -p "👉 按【回车键】返回主菜单..."
             ;;
     17)
-        echo -e "\n${cyan}请选择网卡流量监控模式：${plain}"
-        echo -e "  ${green}1.${plain} 📊 静态累计流量报表 (查看自上次开机后的总消耗)"
-        echo -e "  ${green}2.${plain} 📈 极客动态流量视窗 (黑客级 TUI 实时网速监控仪表盘)"
-        echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
-        read -p "👉 请输入选择 [0-2]: " traffic_choice
+        # 🚀 智能定位物理网卡/虚拟网卡，彻底免疫 WARP 路由表污染
+        DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
+        # 定义 Velox 全局 TG 配置文件路径
+        TG_CONF="/etc/velox_tg.conf"
 
-        if [ "$traffic_choice" == "0" ]; then
-            echo -e "\n${yellow}已取消操作，返回主菜单。${plain}"
-            
-        elif [ "$traffic_choice" == "1" ]; then
-            echo -e "\n${blue}=== 📊 本机网卡累计流量报表 ===${plain}"
-            echo -e "统计自上次开机以来的总流量 (重启系统后会清零)："
-            echo -e "${cyan}-------------------------------------------------------------${plain}"
-            awk '
-            BEGIN {
-                printf "%-12s | %-12s | %-12s | %-12s\n", "🌐 网卡接口", "⬇️ 下载量", "⬆️ 上传量", "🔄 流量总计"
-                printf "-------------------------------------------------------------\n"
-            }
-            NR > 2 {
-                rx = $2; tx = $10; total = rx + tx;
-                if (rx > 1073741824) {rx_str = sprintf("%.2f GB", rx/1073741824)}
-                else if (rx > 1048576) {rx_str = sprintf("%.2f MB", rx/1048576)}
-                else {rx_str = sprintf("%.2f KB", rx/1024)}
-                
-                if (tx > 1073741824) {tx_str = sprintf("%.2f GB", tx/1073741824)}
-                else if (tx > 1048576) {tx_str = sprintf("%.2f MB", tx/1048576)}
-                else {tx_str = sprintf("%.2f KB", tx/1024)}
-                
-                if (total > 1073741824) {total_str = sprintf("%.2f GB", total/1073741824)}
-                else if (total > 1048576) {total_str = sprintf("%.2f MB", total/1048576)}
-                else {total_str = sprintf("%.2f KB", total/1024)}
-                
-                if ($1 != "lo:") {
-                    printf "%-14s | %-14s | %-14s | %-14s\n", $1, rx_str, tx_str, total_str
-                }
-            }
-            ' /proc/net/dev
-            echo -e "${cyan}-------------------------------------------------------------${plain}"
-            echo -e "💡 ${yellow}提示：${plain} 此数据为系统底层实时统计。如果需要按月统计的持久化账单，建议以后考虑安装 vnstat。"
-            
-        elif [ "$traffic_choice" == "2" ]; then
-            # 🚀 智能定位物理网卡/虚拟网卡，彻底免疫 WARP 等代理路由表突变
-            DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
-            
+        while true; do
             clear
             echo -e "${cyan}=======================================================${plain}"
-            echo -e "      📈 Velox 极客视窗 - 实时网络监控仪 (网卡: $DEFAULT_IF)"
-            echo -e "      💡 ${yellow}直接在键盘按【任意键】即可无缝退出监控模式${plain}"
-            echo -e "${cyan}=======================================================${plain}\n\n\n\n"
-            
-            while true; do
-                # 防死循环护盾：如果连智能获取都失败，直接跳出，防止屏幕无限刷红字
-                if [ ! -d "/sys/class/net/$DEFAULT_IF/statistics" ]; then
-                    echo -e "\033[4A\033[J"
-                    echo -e "${red}❌ 致命错误：无法定位活动网卡 [$DEFAULT_IF] 的流量接口。${plain}"
-                    echo -e "可能原因：系统内核精简，或虚拟网卡驱动未挂载。请按任意键返回主菜单。"
-                    break
-                fi
+            echo -e "       📈 Velox 流量大管家 (全平台通用 / 数据库持久化版)"
+            echo -e "       当前监听主网卡: ${yellow}$DEFAULT_IF${plain}"
+            echo -e "${cyan}=======================================================${plain}"
+            echo -e "  ${green}1.${plain} 📊 查看看板 (包含本次开机临时流量 & 本月持久化总账单)"
+            echo -e "  ${red}2.${plain} 🚨 部署防线 (双模式：支持云大厂防扣费 或 普通VPS防停机)"
+            echo -e "  ${purple}3.${plain} 📈 极客视窗 (黑客级 TUI 实时网速动态监控仪表盘)"
+            echo -e "  ${yellow}0.${plain} 🔙 返回主菜单"
+            echo -e "-------------------------------------------------------"
+            read -p "👉 请选择操作 [0-3]: " traffic_choice
 
-                RX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes 2>/dev/null || echo 0)
-                TX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes 2>/dev/null || echo 0)
-                
-                read -t 1 -n 1 -s key
-                if [[ $? -eq 0 ]]; then break; fi
-                
-                RX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes 2>/dev/null || echo 0)
-                TX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes 2>/dev/null || echo 0)
-                
-                RX_KB=$(( (RX2 - RX1) / 1024 ))
-                TX_KB=$(( (TX2 - TX1) / 1024 ))
-                
-                RX_BAR_LEN=$((RX_KB / 50)); [[ $RX_BAR_LEN -gt 35 ]] && RX_BAR_LEN=35
-                TX_BAR_LEN=$((TX_KB / 50)); [[ $TX_BAR_LEN -gt 35 ]] && TX_BAR_LEN=35
-                
-                RX_BAR=$(printf '%*s' $RX_BAR_LEN '' | tr ' ' '#')
-                TX_BAR=$(printf '%*s' $TX_BAR_LEN '' | tr ' ' '#')
-                
-                echo -en "\033[4A\033[J"
-                echo -e "⬇️  下载: ${green}$(printf "%7s" $RX_KB) KB/s${plain} | ${cyan}$RX_BAR${plain}"
-                echo -e "⬆️  上传: ${red}$(printf "%7s" $TX_KB) KB/s${plain} | ${yellow}$TX_BAR${plain}"
-                echo -e "\n👉 ${yellow}正在实时监控中... (按任意键返回主菜单)${plain}"
-            done
-            echo -e "\n${green}✅ 已退出动态监控模式。${plain}"
-            sleep 0.5
-            
-        else
-            echo -e "${red}❌ 无效输入，已取消操作。${plain}"
+            case $traffic_choice in
+                1)
+                    # 模块A：读取瞬时内存流量
+                    echo -e "\n${blue}=== 📊 临时报表：自本次开机以来的消耗 ===${plain}"
+                    awk '
+                    BEGIN {
+                        printf "%-12s | %-12s | %-12s | %-12s\n", "🌐 网卡接口", "⬇️ 下载量", "⬆️ 上传量", "🔄 流量总计"
+                        printf "-------------------------------------------------------------\n"
+                    }
+                    NR > 2 {
+                        rx = $2; tx = $10; total = rx + tx;
+                        if (rx > 1073741824) {rx_str = sprintf("%.2f GB", rx/1073741824)}
+                        else if (rx > 1048576) {rx_str = sprintf("%.2f MB", rx/1048576)}
+                        else {rx_str = sprintf("%.2f KB", rx/1024)}
+                        if (tx > 1073741824) {tx_str = sprintf("%.2f GB", tx/1073741824)}
+                        else if (tx > 1048576) {tx_str = sprintf("%.2f MB", tx/1048576)}
+                        else {tx_str = sprintf("%.2f KB", tx/1024)}
+                        if (total > 1073741824) {total_str = sprintf("%.2f GB", total/1073741824)}
+                        else if (total > 1048576) {total_str = sprintf("%.2f MB", total/1048576)}
+                        else {total_str = sprintf("%.2f KB", total/1024)}
+                        if ($1 != "lo:") {
+                            printf "%-14s | %-14s | %-14s | %-14s\n", $1, rx_str, tx_str, total_str
+                        }
+                    }
+                    ' /proc/net/dev
+
+                    # 模块B：读取底层持久化数据库
+                    echo -e "\n${blue}=== 📅 月度账单：数据库持久化记录 (重启不丢) ===${plain}"
+                    if ! command -v vnstat >/dev/null 2>&1; then
+                        echo -e "${yellow}检测到未安装 vnstat，正在为您全自动部署底层服务...${plain}"
+                        if command -v apt-get >/dev/null; then apt-get update -y >/dev/null 2>&1 && apt-get install vnstat -y >/dev/null 2>&1; fi
+                        if command -v yum >/dev/null; then yum install epel-release -y >/dev/null 2>&1 && yum install vnstat -y >/dev/null 2>&1; fi
+                        if command -v dnf >/dev/null; then dnf install epel-release -y >/dev/null 2>&1 && dnf install vnstat -y >/dev/null 2>&1; fi
+                        systemctl enable --now vnstat >/dev/null 2>&1
+                    fi
+                    
+                    VNSTAT_OUT=$(vnstat -i $DEFAULT_IF -m 2>&1)
+                    if echo "$VNSTAT_OUT" | grep -qE "Not enough data|not found|No data"; then
+                         echo -e "${yellow}⚠️ 数据库刚刚建立，底层正在疯狂采集中。请等待约 3-5 分钟后再来查看！${plain}"
+                         echo -e "💡 极客科普：统计引擎无法穿越回过去，它只能记录【从刚才安装这一刻起】的后续流量。"
+                    else
+                         echo -e "${cyan}$VNSTAT_OUT${plain}"
+                    fi
+                    echo ""
+                    read -p "👉 按【回车键】继续..."
+                    ;;
+                    
+                2)
+                    echo -e "\n${yellow}正在校验底层依赖...${plain}"
+                    if ! command -v vnstat >/dev/null 2>&1; then
+                        echo -e "${red}❌ 错误：请先执行选项 [1] 建立流量数据库！${plain}"
+                    else
+                        echo -e "\n${blue}--- 🚨 部署隐蔽流量防线与 TG 预警 ---${plain}"
+                        echo -e "💡 极客科普：不同服务商的计费规则不同，请根据你的 VPS 类型进行选择："
+                        echo -e "  ${cyan}1.${plain} 【单向出站计费】 (仅算上传，如 GCP、AWS、Azure 等云大厂)"
+                        echo -e "  ${cyan}2.${plain} 【双向总计计费】 (上下行全算，如 搬瓦工、DMIT、RN 等各类 VPS)"
+                        read -p "👉 请选择计费模式 [1-2, 直接回车取消]: " mode_choice
+                        
+                        if [ -z "$mode_choice" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
+                        
+                        if [ "$mode_choice" == "1" ]; then
+                            FIELD=7
+                            MODE_NAME="出站上传(TX)"
+                            echo -e "✅ 已选择: ${green}单向出站模式 (仅统计上传)${plain}"
+                        elif [ "$mode_choice" == "2" ]; then
+                            FIELD=8
+                            MODE_NAME="双向总计(Total)"
+                            echo -e "✅ 已选择: ${green}双向总计模式 (统计上下行总和)${plain}"
+                        else
+                            echo -e "${red}❌ 输入错误，已取消。${plain}"; read -p "按回车键继续..."; continue
+                        fi
+
+                        echo -e "\n⚠️  ${yellow}极客建议：为了防止面板统计与服务商后台存在细微的字节换算误差，强烈建议扣除 5% 作为安全缓冲！${plain}"
+                        echo -e "   例如：GCP 免费 200G，请填 190；搬瓦工/RN 额度 1000G，请填 950！"
+                        read -p "👉 请输入每月的流量熔断红线 (单位GB) [直接回车取消]: " limit_gb
+                        if [ -z "$limit_gb" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
+                        
+                        # ======== 🚀 核心：全局 TG 配置智能嗅探 ========
+                        if [ -f "$TG_CONF" ]; then
+                            source "$TG_CONF"
+                            if [ -n "$GLOBAL_TG_TOKEN" ] && [ -n "$GLOBAL_TG_CHATID" ]; then
+                                echo -e "\n${green}✅ 检测到全局 TG 机器人配置，已自动复用！无需重复输入。${plain}"
+                                tg_token="$GLOBAL_TG_TOKEN"
+                                tg_chatid="$GLOBAL_TG_CHATID"
+                            fi
+                        fi
+
+                        # 如果没有嗅探到，则要求输入并保存全局
+                        if [ -z "$tg_token" ] || [ -z "$tg_chatid" ]; then
+                            read -p "👉 请输入你的 TG Bot Token [直接回车取消]: " tg_token
+                            if [ -z "$tg_token" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
+                            
+                            read -p "👉 请输入你的 TG Chat ID [直接回车取消]: " tg_chatid
+                            if [ -z "$tg_chatid" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
+                            
+                            # 保存为全局配置，供 16 号和其他组件复用
+                            echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
+                            echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
+                            echo -e "${green}✅ TG 凭证已保存为全局变量。${plain}"
+                        fi
+                        # ===============================================
+                        
+                        if [[ "$limit_gb" =~ ^[0-9]+$ ]]; then
+                            # 写入绝对安全的防错后台脚本
+                            cat << EOF2 > /usr/local/bin/velox_traffic_alert.sh
+#!/bin/bash
+IFACE="$DEFAULT_IF"
+LIMIT=$limit_gb
+TOKEN="$tg_token"
+CHATID="$tg_chatid"
+
+DATA=\$(vnstat -i \$IFACE --oneline b 2>/dev/null)
+if [[ "\$DATA" == 1;* ]] || [[ "\$DATA" == 2;* ]]; then
+    MONTH_BYTES=\$(echo "\$DATA" | cut -d ';' -f $FIELD)
+    
+    if [[ "\$MONTH_BYTES" =~ ^[0-9]+$ ]]; then
+        USAGE_GB=\$(echo "scale=2; \$MONTH_BYTES / 1073741824" | bc)
+        
+        if (( \$(echo "\$USAGE_GB > \$LIMIT" | bc -l) )); then
+            MSG="🚨 [Velox 流量熔断预警] 
+大佬，系统报告您的机器 \$(hostname) 本月【$MODE_NAME】已飙升至 \${USAGE_GB} GB！
+已突破设定的 \${LIMIT} GB 安全红线，请立即登入后台处理以防天价账单或被强制停机！"
+            curl -s -X POST "https://api.telegram.org/bot\$TOKEN/sendMessage" -d "chat_id=\$CHATID" -d "text=\$MSG" >/dev/null 2>&1
         fi
+    fi
+fi
+EOF2
+                            chmod +x /usr/local/bin/velox_traffic_alert.sh
+                            crontab -l 2>/dev/null | grep -v "velox_traffic_alert.sh" | crontab -
+                            (crontab -l 2>/dev/null; echo "0 * * * * /usr/local/bin/velox_traffic_alert.sh") | crontab -
+                            
+                            echo -e "\n${green}✅ [$MODE_NAME] 防线部署成功！雷达已潜伏入系统底层守护！${plain}"
+                            echo -e "系统将每小时执行一次隐蔽扫描，一旦流量突破 ${yellow}${limit_gb} GB${plain}，警报会瞬间发送至您的 TG！"
+                        else
+                            echo -e "\n${red}❌ 格式输入错误，必须是纯数字。${plain}"
+                        fi
+                    fi
+                    read -p "👉 按【回车键】继续..."
+                    ;;
+                    
+                3)
+                    clear
+                    echo -e "${cyan}=======================================================${plain}"
+                    echo -e "      📈 Velox 极客视窗 - 实时网络监控仪 (网卡: $DEFAULT_IF)"
+                    echo -e "      💡 ${yellow}直接在键盘按【任意键】即可无缝退出监控模式${plain}"
+                    echo -e "${cyan}=======================================================${plain}\n\n\n\n"
+                    
+                    while true; do
+                        if [ ! -d "/sys/class/net/$DEFAULT_IF/statistics" ]; then
+                            echo -e "\033[4A\033[J"
+                            echo -e "${red}❌ 致命错误：无法定位网卡 [$DEFAULT_IF]。${plain}"
+                            break
+                        fi
+                        RX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes 2>/dev/null || echo 0)
+                        TX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes 2>/dev/null || echo 0)
+                        
+                        read -t 1 -n 1 -s key
+                        if [[ $? -eq 0 ]]; then break; fi
+                        
+                        RX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes 2>/dev/null || echo 0)
+                        TX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes 2>/dev/null || echo 0)
+                        
+                        RX_KB=$(( (RX2 - RX1) / 1024 ))
+                        TX_KB=$(( (TX2 - TX1) / 1024 ))
+                        
+                        RX_BAR_LEN=$((RX_KB / 50)); [[ $RX_BAR_LEN -gt 35 ]] && RX_BAR_LEN=35
+                        TX_BAR_LEN=$((TX_KB / 50)); [[ $TX_BAR_LEN -gt 35 ]] && TX_BAR_LEN=35
+                        
+                        RX_BAR=$(printf '%*s' $RX_BAR_LEN '' | tr ' ' '#')
+                        TX_BAR=$(printf '%*s' $TX_BAR_LEN '' | tr ' ' '#')
+                        
+                        echo -en "\033[4A\033[J"
+                        echo -e "⬇️  下载: ${green}$(printf "%7s" $RX_KB) KB/s${plain} | ${cyan}$RX_BAR${plain}"
+                        echo -e "⬆️  上传: ${red}$(printf "%7s" $TX_KB) KB/s${plain} | ${yellow}$TX_BAR${plain}"
+                        echo -e "\n👉 ${yellow}正在实时监控中... (按任意键退出)${plain}"
+                    done
+                    echo -e "\n${green}✅ 已退出动态监控。${plain}"
+                    sleep 0.5
+                    ;;
+                    
+                0) break ;;
+                *) echo -e "\n${red}❌ 无效选择。${plain}"; sleep 1 ;;
+            esac
+        done
         ;;
       18)
             echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
