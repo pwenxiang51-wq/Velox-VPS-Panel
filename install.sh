@@ -831,20 +831,27 @@ EOF3
         ;;
    21)
         while true; do
-            # 动态侦测当前 SSH 端口
+            # --- 🕵️‍♂️ 史诗级智能侦测引擎 ---
+            # 1. 动态侦测当前 SSH 端口
             current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
             [ -z "$current_port" ] && current_port="22 (默认)"
 
-            # 动态侦测密码登录状态
-            if grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config; then
-                pw_status="${red}已关闭 (高安全)${plain}"
-                pw_toggle="重新开启"
+            # 2. 提取密码登录开关状态
+            pwd_auth=$(grep -i "^PasswordAuthentication" /etc/ssh/sshd_config | awk '{print $2}' | tr -d '\r' | head -n 1)
+
+            # 3. 核心：智能判定当前真实登录模式
+            if [[ "$pwd_auth" == "no" ]]; then
+                login_status="${green}仅限密钥登录 (极高安全) 🛡️${plain}"
+                pw_toggle="重新开启密码"
+            elif [ -f ~/.ssh/authorized_keys ] && [ -s ~/.ssh/authorized_keys ]; then
+                login_status="${yellow}密钥/密码混合模式 (建议锁死) ⚠️${plain}"
+                pw_toggle="强制关闭密码"
             else
-                pw_status="${green}已开启 (有风险)${plain}"
-                pw_toggle="强制关闭"
+                login_status="${red}纯密码登录 (极高风险) 🚨${plain}"
+                pw_toggle="强制关闭密码"
             fi
 
-            # 💡 史诗级双核动态侦测：看看到底装了哪个防盗门
+            # 4. 动态侦测防盗门状态
             defender_status="${red}裸奔中 (未部署防爆破)${plain}"
             if systemctl is-active --quiet velox-defender 2>/dev/null; then
                 defender_status="${cyan}已激活 (纯 Bash 轻量机枪塔)${plain}"
@@ -853,16 +860,17 @@ EOF3
             fi
 
             echo -e "\n${blue}=== 🚨 SSH 隐身防盗门与双核防御中心 ===${plain}"
-            echo -e "${yellow}⚠️ 当前状态 -> 端口: [$current_port] | 密码: [$pw_status] | 防御: [$defender_status]${plain}\n"
-            
-            echo -e "  ${yellow}1.${plain} 🕵️  查看当前在线 SSH 用户并实施制裁"
-            echo -e "  ${yellow}2.${plain} 💣  审计被拦截的黑客爆破日志 (查外鬼)"
-            echo -e "  ${yellow}3.${plain} 🚪  修改 SSH 端口 (输入 22 即可恢复默认)"
+            echo -e "🔹 当前状态 -> 端口: [${cyan}$current_port${plain}] | 模式: [$login_status]"
+            echo -e "🔹 实时防御: [$defender_status]"
+            echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
+            echo -e "  ${green}1.${plain} 🕵️  查看当前在线 SSH 用户并实施制裁"
+            echo -e "  ${green}2.${plain} 💣  审计被拦截的黑客爆破日志 (查外鬼)"
+            echo -e "  ${cyan}3.${plain} 🚪  修改 SSH 端口 (输入 22 即可恢复默认)"
             echo -e "  ${yellow}4.${plain} 🔑  一键切换密码登录开关 (执行: $pw_toggle)"
-            echo -e "  ${yellow}5.${plain} 🛡️  ${green}一键添加 SSH 公钥 (配置免密登录必备)${plain}"
-            echo -e "  ${red}6. 🚀 部署/卸载安全防御武器库 (机枪塔 / Fail2Ban 双核任选)${plain}"
-            echo -e "  ${cyan}0.${plain}  返回主菜单"
-            echo -e "--------------------------------------------------------"
+            echo -e "  ${purple}5.${plain} 🚀  注入新密钥并升级为【纯密钥模式】"
+            echo -e "  ${red}6.${plain} 🛡️  部署/卸载安全防御武器库 (机枪塔/Fail2Ban)"
+            echo -e "  ${yellow}0.${plain} 🔙  返回主菜单"
+            echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
             read -p "👉 请选择安全操作 [0-6]: " ssh_choice
             
             case $ssh_choice in
@@ -926,27 +934,45 @@ EOF3
                     fi
                     ;;
                 4)
-                    if grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config; then
+                    if [[ "$pwd_auth" == "no" ]]; then
                         sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
                         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                        echo -e "\n${yellow}🔓 密码登录已【重新开启】！${plain}"
+                        echo -e "\n${yellow}🔓 密码登录已【重新开启】！(防线已降级)${plain}"
                     else
-                        read -p "⚠️ 确认关闭密码登录？(y/n): " confirm_key
+                        read -p "⚠️ 确认关闭密码登录？(请确保已配置密钥，否则可能失联！) (y/n): " confirm_key
                         if [[ "$confirm_key" == "y" || "$confirm_key" == "Y" ]]; then
                             sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
                             grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
                             systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                            echo -e "\n${green}✅ 密码登录已【永久关闭】！${plain}"
+                            echo -e "\n${green}✅ 密码登录已【永久关闭】！(防线已锁死)${plain}"
                         fi
                     fi
                     ;;
                 5)
-                    echo -e "\n${blue}--- 🛡️ 一键添加 SSH 公钥 (配置免密登录) ---${plain}"
-                    read -p "👉 请粘贴公钥: " ssh_pub_key
+                    echo -e "\n${cyan}=== 🔐 极客级密钥部署与防线飞升程序 ===${plain}"
+                    echo -e "${yellow}说明：此操作会把公钥存入 VPS，并【物理拔管】切断密码通道，实现全自动免密登录。${plain}"
+                    read -p "👉 请粘贴公钥 (ssh-rsa/ssh-ed25519 ...): " ssh_pub_key
                     if [[ "$ssh_pub_key" == ssh-rsa* ]] || [[ "$ssh_pub_key" == ssh-ed25519* ]] || [[ "$ssh_pub_key" == ecdsa-sha2* ]]; then
-                        mkdir -p ~/.ssh && chmod 700 ~/.ssh; echo "$ssh_pub_key" >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys
-                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null; echo -e "\n${green}✅ 公钥已成功注入系统底座！${plain}"
-                    else echo -e "\n${red}❌ 格式识别失败！${plain}"; fi
+                        # 1. 创建目录并确保极限权限
+                        mkdir -p ~/.ssh && chmod 700 ~/.ssh
+                        # 2. 注入公钥 (去重逻辑)
+                        if ! grep -q "$ssh_pub_key" ~/.ssh/authorized_keys 2>/dev/null; then
+                            echo "$ssh_pub_key" >> ~/.ssh/authorized_keys
+                        fi
+                        chmod 600 ~/.ssh/authorized_keys
+                        
+                        # 3. 焦土化清理：彻底粉碎密码验证开关
+                        sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
+                        sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
+                        grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
+                        
+                        # 4. 联动拉起核心
+                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                        echo -e "\n${green}✅ 公钥已成功注入系统底座！密码登录已物理切断。${plain}"
+                        echo -e "💡 ${cyan}极客提示：您现在已飞升至【纯密钥模式】，防御力拉满！${plain}"
+                    else 
+                        echo -e "\n${red}❌ 格式识别失败！请提供标准的 SSH 公钥。${plain}"
+                    fi
                     ;;
                 6)
                     echo -e "\n${blue}--- 🚀 Velox 双核安全防御武器库 ---${plain}"
