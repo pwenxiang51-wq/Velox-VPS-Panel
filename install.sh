@@ -672,20 +672,41 @@ EOF3
             echo ""
             read -p "👉 按【回车键】返回主菜单..."
             ;;
-    17)
+   17)
         # 🚀 智能定位物理网卡/虚拟网卡，彻底免疫 WARP 路由表污染
         DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
         # 定义 Velox 全局 TG 配置文件路径
         TG_CONF="/etc/velox_tg.conf"
 
         while true; do
+            # ======== 🚀 动态嗅探防线状态与 TG 状态 ========
+            if [ -f "/usr/local/bin/velox_traffic_alert.sh" ]; then
+                # 从底层脚本里直接把红线数值和模式"抠"出来显示
+                LIMIT_VAL=$(grep "^LIMIT=" /usr/local/bin/velox_traffic_alert.sh | cut -d '=' -f2)
+                if grep -q "出站" /usr/local/bin/velox_traffic_alert.sh; then
+                    MODE_STR="出站"
+                else
+                    MODE_STR="双向"
+                fi
+                GUARD_STAT="${green}运行中✅ (红线:${LIMIT_VAL}G | 模式:${MODE_STR})${plain}"
+            else
+                GUARD_STAT="${yellow}未部署⚠️${plain}"
+            fi
+
+            if [ -f "$TG_CONF" ] && grep -q "GLOBAL_TG_TOKEN" "$TG_CONF"; then
+                TG_STAT="${green}已绑定✅${plain}"
+            else
+                TG_STAT="${yellow}未绑定⚠️${plain}"
+            fi
+            # ===============================================
+
             clear
             echo -e "${cyan}=======================================================${plain}"
             echo -e "       📈 Velox 流量大管家 (全平台通用 / 数据库持久化版)"
             echo -e "       当前监听主网卡: ${yellow}$DEFAULT_IF${plain}"
             echo -e "${cyan}=======================================================${plain}"
             echo -e "  ${green}1.${plain} 📊 查看看板 (包含本次开机临时流量 & 本月持久化总账单)"
-            echo -e "  ${red}2.${plain} 🚨 部署防线 (双模式：支持云大厂防扣费 或 普通VPS防停机)"
+            echo -e "  ${red}2.${plain} 🚨 部署防线 [防线: $GUARD_STAT | TG: $TG_STAT]"
             echo -e "  ${purple}3.${plain} 📈 极客视窗 (黑客级 TUI 实时网速动态监控仪表盘)"
             echo -e "  ${yellow}0.${plain} 🔙 返回主菜单"
             echo -e "-------------------------------------------------------"
@@ -742,60 +763,75 @@ EOF3
                     echo -e "\n${yellow}正在校验底层依赖...${plain}"
                     if ! command -v vnstat >/dev/null 2>&1; then
                         echo -e "${red}❌ 错误：请先执行选项 [1] 建立流量数据库！${plain}"
+                        read -p "👉 按【回车键】继续..."
+                        continue
+                    fi
+
+                    # ======== 🚀 新增：智能卸载与重置逻辑 ========
+                    if [ -f "/usr/local/bin/velox_traffic_alert.sh" ]; then
+                        echo -e "\n${green}✅ 检测到当前已部署流量熔断防线！${plain}"
+                        read -p "👉 请选择操作 (r:重新配置 / d:彻底卸载 / n:返回): " guard_choice
+                        if [[ "$guard_choice" == "d" || "$guard_choice" == "D" ]]; then
+                            rm -f /usr/local/bin/velox_traffic_alert.sh
+                            crontab -l 2>/dev/null | grep -v "velox_traffic_alert.sh" | crontab -
+                            echo -e "${green}✅ 流量报警防线已彻底无痕卸载！(系统已停止监控流量)${plain}"
+                            read -p "👉 按【回车键】继续..."
+                            continue
+                        elif [[ "$guard_choice" != "r" && "$guard_choice" != "R" ]]; then
+                            continue
+                        fi
+                    fi
+                    # ============================================
+
+                    echo -e "\n${blue}--- 🚨 部署隐蔽流量防线与 TG 预警 ---${plain}"
+                    echo -e "💡 极客科普：不同服务商的计费规则不同，请根据你的 VPS 类型进行选择："
+                    echo -e "  ${cyan}1.${plain} 【单向出站计费】 (仅算上传，如 GCP、AWS、Azure 等云大厂)"
+                    echo -e "  ${cyan}2.${plain} 【双向总计计费】 (上下行全算，如 搬瓦工、DMIT、RN 等各类 VPS)"
+                    read -p "👉 请选择计费模式 [1-2, 直接回车取消]: " mode_choice
+                    
+                    if [ -z "$mode_choice" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
+                    
+                    if [ "$mode_choice" == "1" ]; then
+                        FIELD=7
+                        MODE_NAME="出站上传(TX)"
+                        echo -e "✅ 已选择: ${green}单向出站模式 (仅统计上传)${plain}"
+                    elif [ "$mode_choice" == "2" ]; then
+                        FIELD=8
+                        MODE_NAME="双向总计(Total)"
+                        echo -e "✅ 已选择: ${green}双向总计模式 (统计上下行总和)${plain}"
                     else
-                        echo -e "\n${blue}--- 🚨 部署隐蔽流量防线与 TG 预警 ---${plain}"
-                        echo -e "💡 极客科普：不同服务商的计费规则不同，请根据你的 VPS 类型进行选择："
-                        echo -e "  ${cyan}1.${plain} 【单向出站计费】 (仅算上传，如 GCP、AWS、Azure 等云大厂)"
-                        echo -e "  ${cyan}2.${plain} 【双向总计计费】 (上下行全算，如 搬瓦工、DMIT、RN 等各类 VPS)"
-                        read -p "👉 请选择计费模式 [1-2, 直接回车取消]: " mode_choice
-                        
-                        if [ -z "$mode_choice" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
-                        
-                        if [ "$mode_choice" == "1" ]; then
-                            FIELD=7
-                            MODE_NAME="出站上传(TX)"
-                            echo -e "✅ 已选择: ${green}单向出站模式 (仅统计上传)${plain}"
-                        elif [ "$mode_choice" == "2" ]; then
-                            FIELD=8
-                            MODE_NAME="双向总计(Total)"
-                            echo -e "✅ 已选择: ${green}双向总计模式 (统计上下行总和)${plain}"
-                        else
-                            echo -e "${red}❌ 输入错误，已取消。${plain}"; read -p "按回车键继续..."; continue
-                        fi
+                        echo -e "${red}❌ 输入错误，已取消。${plain}"; read -p "按回车键继续..."; continue
+                    fi
 
-                        echo -e "\n⚠️  ${yellow}极客建议：为了防止面板统计与服务商后台存在细微的字节换算误差，强烈建议扣除 5% 作为安全缓冲！${plain}"
-                        echo -e "   例如：GCP 免费 200G，请填 190；搬瓦工/RN 额度 1000G，请填 950！"
-                        read -p "👉 请输入每月的流量熔断红线 (单位GB) [直接回车取消]: " limit_gb
-                        if [ -z "$limit_gb" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
-                        
-                        # ======== 🚀 核心：全局 TG 配置智能嗅探 ========
-                        if [ -f "$TG_CONF" ]; then
-                            source "$TG_CONF"
-                            if [ -n "$GLOBAL_TG_TOKEN" ] && [ -n "$GLOBAL_TG_CHATID" ]; then
-                                echo -e "\n${green}✅ 检测到全局 TG 机器人配置，已自动复用！无需重复输入。${plain}"
-                                tg_token="$GLOBAL_TG_TOKEN"
-                                tg_chatid="$GLOBAL_TG_CHATID"
-                            fi
+                    echo -e "\n⚠️  ${yellow}极客建议：为了防止面板统计与服务商后台存在细微的字节换算误差，强烈建议扣除 5% 作为安全缓冲！${plain}"
+                    echo -e "   例如：GCP 免费 200G，请填 190；搬瓦工/RN 额度 1000G，请填 950！"
+                    read -p "👉 请输入每月的流量熔断红线 (单位GB) [直接回车取消]: " limit_gb
+                    if [ -z "$limit_gb" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
+                    
+                    # 全局 TG 配置智能嗅探
+                    if [ -f "$TG_CONF" ]; then
+                        source "$TG_CONF"
+                        if [ -n "$GLOBAL_TG_TOKEN" ] && [ -n "$GLOBAL_TG_CHATID" ]; then
+                            echo -e "\n${green}✅ 检测到全局 TG 机器人配置，已自动复用！无需重复输入。${plain}"
+                            tg_token="$GLOBAL_TG_TOKEN"
+                            tg_chatid="$GLOBAL_TG_CHATID"
                         fi
+                    fi
 
-                        # 如果没有嗅探到，则要求输入并保存全局
-                        if [ -z "$tg_token" ] || [ -z "$tg_chatid" ]; then
-                            read -p "👉 请输入你的 TG Bot Token [直接回车取消]: " tg_token
-                            if [ -z "$tg_token" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
-                            
-                            read -p "👉 请输入你的 TG Chat ID [直接回车取消]: " tg_chatid
-                            if [ -z "$tg_chatid" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
-                            
-                            # 保存为全局配置，供 16 号和其他组件复用
-                            echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
-                            echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
-                            echo -e "${green}✅ TG 凭证已保存为全局变量。${plain}"
-                        fi
-                        # ===============================================
+                    if [ -z "$tg_token" ] || [ -z "$tg_chatid" ]; then
+                        read -p "👉 请输入你的 TG Bot Token [直接回车取消]: " tg_token
+                        if [ -z "$tg_token" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
                         
-                        if [[ "$limit_gb" =~ ^[0-9]+$ ]]; then
-                            # 写入绝对安全的防错后台脚本
-                            cat << EOF2 > /usr/local/bin/velox_traffic_alert.sh
+                        read -p "👉 请输入你的 TG Chat ID [直接回车取消]: " tg_chatid
+                        if [ -z "$tg_chatid" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
+                        
+                        echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
+                        echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
+                        echo -e "${green}✅ TG 凭证已保存为全局变量。${plain}"
+                    fi
+                    
+                    if [[ "$limit_gb" =~ ^[0-9]+$ ]]; then
+                        cat << EOF2 > /usr/local/bin/velox_traffic_alert.sh
 #!/bin/bash
 IFACE="$DEFAULT_IF"
 LIMIT=$limit_gb
@@ -818,15 +854,14 @@ if [[ "\$DATA" == 1;* ]] || [[ "\$DATA" == 2;* ]]; then
     fi
 fi
 EOF2
-                            chmod +x /usr/local/bin/velox_traffic_alert.sh
-                            crontab -l 2>/dev/null | grep -v "velox_traffic_alert.sh" | crontab -
-                            (crontab -l 2>/dev/null; echo "0 * * * * /usr/local/bin/velox_traffic_alert.sh") | crontab -
-                            
-                            echo -e "\n${green}✅ [$MODE_NAME] 防线部署成功！雷达已潜伏入系统底层守护！${plain}"
-                            echo -e "系统将每小时执行一次隐蔽扫描，一旦流量突破 ${yellow}${limit_gb} GB${plain}，警报会瞬间发送至您的 TG！"
-                        else
-                            echo -e "\n${red}❌ 格式输入错误，必须是纯数字。${plain}"
-                        fi
+                        chmod +x /usr/local/bin/velox_traffic_alert.sh
+                        crontab -l 2>/dev/null | grep -v "velox_traffic_alert.sh" | crontab -
+                        (crontab -l 2>/dev/null; echo "0 * * * * /usr/local/bin/velox_traffic_alert.sh") | crontab -
+                        
+                        echo -e "\n${green}✅ [$MODE_NAME] 防线部署成功！雷达已潜伏入系统底层守护！${plain}"
+                        echo -e "系统将每小时执行一次隐蔽扫描，一旦流量突破 ${yellow}${limit_gb} GB${plain}，警报会瞬间发送至您的 TG！"
+                    else
+                        echo -e "\n${red}❌ 格式输入错误，必须是纯数字。${plain}"
                     fi
                     read -p "👉 按【回车键】继续..."
                     ;;
