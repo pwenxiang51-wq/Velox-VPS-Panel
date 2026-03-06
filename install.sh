@@ -1842,129 +1842,138 @@ EOF2
         done
         ;;
      U|u)
-        echo -e "\n${red}=======================================================${plain}"
-        echo -e "${red}                ⚠️ 终极卸载与物理粉碎程序                ${plain}"
-        echo -e "${red}=======================================================${plain}"
-        echo -e "${yellow}💡 提示：此操作将彻底拔除 Velox 面板及其在系统底层留下的所有痕迹。${plain}"
-        echo -e "${green}🛡️  放心：您的代理节点 (X-UI/Sing-box/Argo) 和 Acme 域名证书将原封不动保留！${plain}\n"
-        
-        read -p "👉 确定要彻底卸载本面板并【焦土化抹除】所有底层修改吗？(y/n): " confirm_uninstall
-        if [[ "$confirm_uninstall" == "y" || "$confirm_uninstall" == "Y" ]]; then
-            echo -e "\n${cyan}🚀 正在启动全功率焦土卸载引擎...${plain}"
-
-            # 1. 拆除核心面板与旧版报警组件
-            echo -n "1. 正在清理面板本体与关联报警脚本... "
-            rm -f /usr/local/bin/velox
-            rm -f /usr/local/bin/ssh_tg_alert.sh
-            rm -f /usr/local/bin/tg_boot_alert.sh
-            sed -i '/ssh_tg_alert.sh/d' /etc/profile
-            sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
-            systemctl disable --now tg_boot_alert.service >/dev/null 2>&1
-            rm -f /etc/systemd/system/tg_boot_alert.service
-            systemctl daemon-reload
-            echo -e "[${green}已彻底抹除${plain}]"
-
-            # 2. 拆除 Bash 机枪塔
-            echo -n "2. 正在物理粉碎 Bash 防爆破机枪塔与击毙日志... "
-            systemctl stop velox-defender >/dev/null 2>&1
-            systemctl disable velox-defender >/dev/null 2>&1
-            rm -f /usr/local/bin/velox-defender.sh
-            rm -f /etc/systemd/system/velox-defender.service
-            rm -f /tmp/velox_ip_counts.txt
-            rm -f /var/log/velox-defender.log
-            systemctl daemon-reload
-            echo -e "[${green}已彻底抹除${plain}]"
-
-            # 3. 销毁星际舰队兵符
-            echo -n "3. 正在销毁星际舰队跨机互信兵符与点名册... "
-            rm -f /root/.velox_fleet_nodes.txt
-            rm -f ~/.ssh/velox_fleet_rsa ~/.ssh/velox_fleet_rsa.pub
-            echo -e "[${green}已彻底抹除${plain}]"
-
-            # 4. 恢复网络底层默认参数 (包含 TCP/UDP 与 9号 BBR)
-            echo -n "4. 正在抹除底层网络调优 (TCP/UDP/BBR) 并恢复出厂状态... "
-            sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
-            sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
+            echo -e "\n${red}=======================================================${plain}"
+            echo -e "${red}                ⚠️ 终极卸载与物理粉碎程序                ${plain}"
+            echo -e "${red}=======================================================${plain}"
+            echo -e "${yellow}💡 提示：此操作将彻底拔除 Velox 面板及其在系统底层留下的所有痕迹。${plain}"
+            echo -e "${green}🛡️  放心：您的代理节点 (X-UI/Sing-box/Argo) 和 Acme 域名证书将原封不动保留！${plain}\n"
             
-            sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
-            sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
-            
-            sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
-            sysctl -p > /dev/null 2>&1
-            
-            DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
-            [ -n "$DEFAULT_IF" ] && tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
-            echo -e "[${green}已彻底抹除${plain}]"
+            read -p "👉 确定要彻底卸载本面板并【焦土化抹除】所有底层修改吗？(y/n): " confirm_uninstall
+            if [[ "$confirm_uninstall" == "y" || "$confirm_uninstall" == "Y" ]]; then
+                echo -e "\n${cyan}🚀 正在启动全功率焦土卸载引擎...${plain}"
 
-            # 5. 清除虚拟内存 (Swap) 释放硬盘
-            echo -n "5. 正在检查并清除自定义 Swap 虚拟内存... "
-            if grep -q "swapfile" /etc/fstab; then
-                swapoff /swapfile >/dev/null 2>&1
-                rm -f /swapfile
-                sed -i '/swapfile/d' /etc/fstab
-                echo -e "[${green}已抹除并释放硬盘空间${plain}]"
-            else
-                echo -e "[${cyan}未发现 Swap，已跳过${plain}]"
-            fi
+                # 1. 拆除核心面板与旧版报警组件
+                echo -n "1. 正在清理面板本体与关联报警脚本... "
+                rm -f /usr/local/bin/velox
+                rm -f /root/velox.sh 2>/dev/null
+                rm -f /usr/local/bin/ssh_tg_alert.sh
+                rm -f /usr/local/bin/tg_boot_alert.sh
+                sed -i '/ssh_tg_alert.sh/d' /etc/profile
+                sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
+                systemctl disable --now tg_boot_alert.service >/dev/null 2>&1
+                rm -f /etc/systemd/system/tg_boot_alert.service
+                systemctl daemon-reload 
+                echo -e "[${green}已彻底抹除${plain}]"
 
-            # 6. 洗白主机名
-            echo -n "6. 正在将 VPS 主机名强行洗白恢复出厂... "
-            hostnamectl set-hostname "localhost" >/dev/null 2>&1
-            echo -e "[${green}已恢复为 localhost${plain}]"
+                # 🚀 [新增] 1.5 拆除全局 TG 凭证与流量大管家防线
+                echo -n "1.5 正在清洗全局 TG 凭证与流量防线脚本... "
+                rm -f /etc/velox_tg.conf
+                rm -f /usr/local/bin/velox_traffic_alert.sh
+                # 清洗 crontab 中潜伏的流量监控探针
+                crontab -l 2>/dev/null | grep -v "velox_traffic_alert.sh" | crontab -
+                echo -e "[${green}已彻底清洗${plain}]"
 
-            # 7. 💡 极致精准清理：仅干掉面板下发的 WARP 相关定时任务 (保留重启/Acme/节点守护)
-            echo -n "7. 正在清理面板关联的 WARP 维护任务... "
-            if crontab -l 2>/dev/null | grep -qE "warp-go|wg-quick|warp-svc|WARP-UP.sh|warpip"; then
-                # 🚀 过滤逻辑：只删除包含这些 WARP 关键字的行，从而完美保留您的定时重启、Acme续签和Sing-box守护
-                crontab -l 2>/dev/null | grep -vE "warp-go|wg-quick|warp-svc|WARP-UP.sh|warpip" | crontab -
-                echo -e "[${green}已精准清理，您的定时重启与节点任务已保留${plain}]"
-            else
-                echo -e "[${cyan}未发现相关 WARP 任务，已跳过${plain}]"
-            fi
+                # 2. 拆除 Bash 机枪塔
+                echo -n "2. 正在物理粉碎 Bash 防爆破机枪塔与击毙日志... "
+                systemctl stop velox-defender >/dev/null 2>&1
+                systemctl disable velox-defender >/dev/null 2>&1
+                rm -f /usr/local/bin/velox-defender.sh
+                rm -f /etc/systemd/system/velox-defender.service
+                rm -f /tmp/velox_ip_counts.txt
+                rm -f /var/log/velox-defender.log
+                systemctl daemon-reload
+                echo -e "[${green}已彻底抹除${plain}]"
 
-            # 8. 💡 核心修正：真正的智能探测与保护 Argo
-            echo -n "8. 正在排查 Argo 隧道进程... "
-            if command -v cloudflared >/dev/null 2>&1 || pgrep -x "cloudflared" >/dev/null; then
-                echo -e "[${green}🛡️ 发现存活进程，为防节点断网，已智能保护并跳过卸载${plain}]"
-            else
-                echo -e "[${cyan}未部署 Argo 隧道，已跳过${plain}]"
-            fi
+                # 3. 销毁星际舰队兵符
+                echo -n "3. 正在销毁星际舰队跨机互信兵符与点名册... "
+                rm -f /root/.velox_fleet_nodes.txt
+                rm -f ~/.ssh/velox_fleet_rsa ~/.ssh/velox_fleet_rsa.pub
+                echo -e "[${green}已彻底抹除${plain}]"
 
-            # 9. Fail2Ban 强拆询问
-            if command -v fail2ban-client >/dev/null 2>&1; then
-                echo -e "\n${yellow}⚠️ 检测到系统中安装了 Fail2Ban 工业级防御装甲。${plain}"
-                read -p "👉 是否一并【彻底强拆】Fail2Ban？(y/n): " remove_f2b
-                if [[ "$remove_f2b" == "y" || "$remove_f2b" == "Y" ]]; then
-                    echo -n "正在全网追剿 Fail2Ban 及其依赖残留... "
-                    systemctl stop fail2ban >/dev/null 2>&1
-                    systemctl disable fail2ban >/dev/null 2>&1
-                    if command -v apt-get >/dev/null 2>&1; then
-                        apt-get remove --purge fail2ban -y >/dev/null 2>&1
-                        apt-get autoremove -y >/dev/null 2>&1
-                    elif command -v yum >/dev/null 2>&1; then
-                        yum remove fail2ban -y >/dev/null 2>&1
-                    elif command -v dnf >/dev/null 2>&1; then
-                        dnf remove fail2ban -y >/dev/null 2>&1
-                    fi
-                    rm -rf /etc/fail2ban
-                    echo -e "[${green}已彻底抹除${plain}]"
+                # 4. 恢复网络底层默认参数 (包含 TCP/UDP 与 9号 BBR)
+                echo -n "4. 正在抹除底层网络调优 (TCP/UDP/BBR) 并恢复出厂状态... "
+                sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
+                sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
+                
+                sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+                sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+                
+                sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
+                sysctl -p > /dev/null 2>&1
+                
+                DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
+                [ -n "$DEFAULT_IF" ] && tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
+                echo -e "[${green}已彻底抹除${plain}]"
+
+                # 5. 清除虚拟内存 (Swap) 释放硬盘
+                echo -n "5. 正在检查并清除自定义 Swap 虚拟内存... "
+                if grep -q "swapfile" /etc/fstab; then
+                    swapoff /swapfile >/dev/null 2>&1
+                    rm -f /swapfile
+                    sed -i '/swapfile/d' /etc/fstab
+                    echo -e "[${green}已抹除并释放硬盘空间${plain}]"
                 else
-                    echo -e "${cyan}已跳过 Fail2Ban 卸载，系统防盗门继续服役。${plain}"
+                    echo -e "[${cyan}未发现 Swap，已跳过${plain}]"
                 fi
-            fi
 
-            echo -e "\n${green}🎉 卸载完毕！Velox 面板已事了拂衣去，您的系统已恢复至极其纯净的【出厂状态】！${plain}"
-            echo -e "${purple}江湖再见，祝您折腾愉快！🚀${plain}\n"
-            exit
-        else
-            echo -e "\n${yellow}已取消卸载，即将返回主菜单...${plain}"
-            sleep 1
-        fi
-        ;;
+                # 6. 洗白主机名
+                echo -n "6. 正在将 VPS 主机名强行洗白恢复出厂... "
+                hostnamectl set-hostname "localhost" >/dev/null 2>&1
+                echo -e "[${green}已恢复为 localhost${plain}]"
+
+                # 7. 💡 极致精准清理：仅干掉面板下发的 WARP 相关定时任务 (保留重启/Acme/节点守护)
+                echo -n "7. 正在清理面板关联的 WARP 维护任务... "
+                if crontab -l 2>/dev/null | grep -qE "warp-go|wg-quick|warp-svc|WARP-UP.sh|warpip"; then
+                    # 🚀 过滤逻辑：只删除包含这些 WARP 关键字的行，从而完美保留您的定时重启、Acme续签和Sing-box守护
+                    crontab -l 2>/dev/null | grep -vE "warp-go|wg-quick|warp-svc|WARP-UP.sh|warpip" | crontab -
+                    echo -e "[${green}已精准清理，您的定时重启与节点任务已保留${plain}]"
+                else
+                    echo -e "[${cyan}未发现相关 WARP 任务，已跳过${plain}]"
+                fi
+
+                # 8. 💡 核心修正：真正的智能探测与保护 Argo
+                echo -n "8. 正在排查 Argo 隧道进程... "
+                if command -v cloudflared >/dev/null 2>&1 || pgrep -x "cloudflared" >/dev/null; then
+                    echo -e "[${green}🛡️ 发现存活进程，为防节点断网，已智能保护并跳过卸载${plain}]"
+                else
+                    echo -e "[${cyan}未部署 Argo 隧道，已跳过${plain}]"
+                fi
+
+                # 9. Fail2Ban 强拆询问
+                if command -v fail2ban-client >/dev/null 2>&1; then
+                    echo -e "\n${yellow}⚠️ 检测到系统中安装了 Fail2Ban 工业级防御装甲。${plain}"
+                    read -p "👉 是否一并【彻底强拆】Fail2Ban？(y/n): " remove_f2b
+                    if [[ "$remove_f2b" == "y" || "$remove_f2b" == "Y" ]]; then
+                        echo -n "正在全网追剿 Fail2Ban 及其依赖残留... "
+                        systemctl stop fail2ban >/dev/null 2>&1
+                        systemctl disable fail2ban >/dev/null 2>&1
+                        if command -v apt-get >/dev/null 2>&1; then
+                            apt-get remove --purge fail2ban -y >/dev/null 2>&1
+                            apt-get autoremove -y >/dev/null 2>&1
+                        elif command -v yum >/dev/null 2>&1; then
+                            yum remove fail2ban -y >/dev/null 2>&1
+                        elif command -v dnf >/dev/null 2>&1; then
+                            dnf remove fail2ban -y >/dev/null 2>&1
+                        fi
+                        rm -rf /etc/fail2ban
+                        echo -e "[${green}已彻底抹除${plain}]"
+                    else
+                        echo -e "${cyan}已跳过 Fail2Ban 卸载，系统防盗门继续服役。${plain}"
+                    fi
+                fi
+
+                echo -e "\n${green}🎉 卸载完毕！Velox 面板已事了拂衣去，您的系统已恢复至极其纯净的【出厂状态】！${plain}"
+                echo -e "${purple}江湖再见，祝您折腾愉快！🚀${plain}\n"
+                exit
+            else
+                echo -e "\n${yellow}已取消卸载，即将返回主菜单...${plain}"
+                sleep 1
+            fi
+            ;;
       0)   echo -e "\n${green}祝Velox折腾愉快！${plain}\n"; exit ;;
         *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
