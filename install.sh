@@ -721,8 +721,8 @@ EOF3
                 RX_BAR_LEN=$((RX_KB / 50)); [[ $RX_BAR_LEN -gt 35 ]] && RX_BAR_LEN=35
                 TX_BAR_LEN=$((TX_KB / 50)); [[ $TX_BAR_LEN -gt 35 ]] && TX_BAR_LEN=35
                 
-                RX_BAR=$(printf '%*s' $RX_BAR_LEN '' | tr ' ' '█')
-                TX_BAR=$(printf '%*s' $TX_BAR_LEN '' | tr ' ' '█')
+                RX_BAR=$(printf '%*s' $RX_BAR_LEN '' | tr ' ' '#')
+                TX_BAR=$(printf '%*s' $TX_BAR_LEN '' | tr ' ' '#')
                 
                 echo -en "\033[4A\033[J"
                 echo -e "⬇️  下载: ${green}$(printf "%7s" $RX_KB) KB/s${plain} | ${cyan}$RX_BAR${plain}"
