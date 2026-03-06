@@ -831,7 +831,7 @@ EOF3
         ;;
    21)
         while true; do
-            # --- 🕵️‍♂️ 史诗级智能侦测引擎 ---
+            # --- 🕵️‍♂️ 史诗级智能侦测引擎 (开源全兼容版) ---
             # 1. 动态侦测当前 SSH 端口
             current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
             [ -z "$current_port" ] && current_port="22 (默认)"
@@ -859,7 +859,7 @@ EOF3
                 defender_status="${purple}已激活 (Fail2Ban 工业级装甲)${plain}"
             fi
 
-            echo -e "\n${blue}=== 🚨 SSH 隐身防盗门与双核防御中心 ===${plain}"
+            echo -e "\n${blue}=== 🚨 SSH 智能动态防盗门与双核防御中心 (状态感知/免密飞升/机枪塔) ===${plain}"
             echo -e "🔹 当前状态 -> 端口: [${cyan}$current_port${plain}] | 模式: [$login_status]"
             echo -e "🔹 实时防御: [$defender_status]"
             echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
@@ -867,7 +867,7 @@ EOF3
             echo -e "  ${green}2.${plain} 💣  审计被拦截的黑客爆破日志 (查外鬼)"
             echo -e "  ${cyan}3.${plain} 🚪  修改 SSH 端口 (输入 22 即可恢复默认)"
             echo -e "  ${yellow}4.${plain} 🔑  一键切换密码登录开关 (执行: $pw_toggle)"
-            echo -e "  ${purple}5.${plain} 🚀  注入新密钥并升级为【纯密钥模式】"
+            echo -e "  ${purple}5.${plain} 🚀  一键部署免密登录并【锁死密码】(全平台通用)"
             echo -e "  ${red}6.${plain} 🛡️  部署/卸载安全防御武器库 (机枪塔/Fail2Ban)"
             echo -e "  ${yellow}0.${plain} 🔙  返回主菜单"
             echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
@@ -913,6 +913,7 @@ EOF3
                 2)
                     echo -e "\n${blue}--- 💣 正在统计恶意爆破日志 (Top 10) ---${plain}"
                     ATTACKS=""
+                    # 兼容 Debian(auth.log) 与 CentOS(secure)
                     if [ -f "/var/log/auth.log" ]; then
                         ATTACKS=$(grep "Failed password" /var/log/auth.log | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
                     elif [ -f "/var/log/secure" ]; then
@@ -949,9 +950,16 @@ EOF3
                     fi
                     ;;
                 5)
-                    echo -e "\n${cyan}=== 🔐 极客级密钥部署与防线飞升程序 ===${plain}"
-                    echo -e "${yellow}说明：此操作会把公钥存入 VPS，并【物理拔管】切断密码通道，实现全自动免密登录。${plain}"
-                    read -p "👉 请粘贴公钥 (ssh-rsa/ssh-ed25519 ...): " ssh_pub_key
+                    echo -e "\n${cyan}=== 🔐 极客级密钥部署与防线飞升程序 (全平台通用版) ===${plain}"
+                    echo -e "${yellow}💡 如何在【您的本地电脑】获取公钥数字串？${plain}"
+                    echo -e "   -------------------------------------------------------"
+                    echo -e "   🍎 ${cyan}Mac / Linux${plain}  : 执行 ${green}cat ~/.ssh/id_ed25519.pub${plain}"
+                    echo -e "   🪟 ${cyan}Windows${plain}      : 执行 ${green}type %userprofile%\\.ssh\\id_ed25519.pub${plain}"
+                    echo -e "   📱 ${cyan}手机端应用${plain}   : 在 App 的 Key 菜单点 ${green}Export Public Key${plain}"
+                    echo -e "   -------------------------------------------------------"
+                    echo -e "   📌 ${red}若提示找不到文件${plain}，请先在本地执行: ${yellow}ssh-keygen -t ed25519 -N \"\"${plain}\n"
+                    
+                    read -p "✍️  请在此粘贴您的公钥 (ssh-rsa/ssh-ed25519...): " ssh_pub_key
                     if [[ "$ssh_pub_key" == ssh-rsa* ]] || [[ "$ssh_pub_key" == ssh-ed25519* ]] || [[ "$ssh_pub_key" == ecdsa-sha2* ]]; then
                         # 1. 创建目录并确保极限权限
                         mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -966,12 +974,12 @@ EOF3
                         sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
                         grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
                         
-                        # 4. 联动拉起核心
+                        # 4. 联动拉起核心 (全兼容重启)
                         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
                         echo -e "\n${green}✅ 公钥已成功注入系统底座！密码登录已物理切断。${plain}"
-                        echo -e "💡 ${cyan}极客提示：您现在已飞升至【纯密钥模式】，防御力拉满！${plain}"
+                        echo -e "💡 ${cyan}极客提示：您现在已飞升至【纯密钥模式】，防御力拉满！再次进入菜单状态会自动更新。${plain}"
                     else 
-                        echo -e "\n${red}❌ 格式识别失败！请提供标准的 SSH 公钥。${plain}"
+                        echo -e "\n${red}❌ 格式识别失败！请确保粘贴的是以 ssh- 开头的【公钥】。${plain}"
                     fi
                     ;;
                 6)
@@ -1027,6 +1035,7 @@ EOF3
                         if command -v yum >/dev/null; then yum install epel-release -y >/dev/null 2>&1; yum install fail2ban -y >/dev/null 2>&1; fi
                         if command -v dnf >/dev/null; then dnf install epel-release -y >/dev/null 2>&1; dnf install fail2ban -y >/dev/null 2>&1; fi
                         
+                        # 智能识别日志路径
                         LOGPATH="/var/log/auth.log"; [ -f /var/log/secure ] && LOGPATH="/var/log/secure"
                         echo '[sshd]' > /etc/fail2ban/jail.local
                         echo 'enabled = true' >> /etc/fail2ban/jail.local
