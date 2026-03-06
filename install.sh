@@ -71,7 +71,7 @@ while true; do
     echo -e "  ${yellow}18.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
     echo -e "  ${yellow}19.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
     echo -e "  ${yellow}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
-    echo -e "  ${yellow}21.${plain} 🚨 ${red}SSH 隐身防盗门与双核防御中心 (抓外鬼/锁密码/防爆破机枪塔)${plain}"
+    echo -e "  ${yellow}21.${plain} 🚨 ${red}SSH 智能动态防盗门与双核防御中心 (状态感知/免密飞升/改端口/机枪塔)${plain}"
     echo -e "  ${yellow}22.${plain} 🚀 ${purple}召唤甬哥全家桶 (Sing-box 终端版 / X-UI 网页版)${plain}"
     # --- 第五板块：核心修复与导出 ---
     echo -e "\n${blue}[ 板块五：⚡ 核心修复与配置提取 ]${plain}"
