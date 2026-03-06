@@ -746,28 +746,33 @@ EOF3
 
                     # 模块B：读取底层持久化数据库
                     echo -e "\n${blue}=== 📅 月度账单：数据库持久化记录 (重启不丢) ===${plain}"
-                  if ! command -v vnstat >/dev/null 2>&1; then
+                 if ! command -v vnstat >/dev/null 2>&1; then
         echo -e "${yellow}检测到未安装 vnstat，正在为您全自动部署底层服务...${plain}"
         
-        # 1. 全系统兼容安装引擎
+        # 1. 兼容安装
         if command -v apt-get >/dev/null; then apt-get update -y >/dev/null 2>&1 && apt-get install vnstat -y >/dev/null 2>&1; fi
         if command -v yum >/dev/null; then yum install epel-release -y >/dev/null 2>&1 && yum install vnstat -y >/dev/null 2>&1; fi
         if command -v dnf >/dev/null; then dnf install epel-release -y >/dev/null 2>&1 && dnf install vnstat -y >/dev/null 2>&1; fi
         
         systemctl enable --now vnstat >/dev/null 2>&1
         
-        # 🚀 补丁 A：强制注册当前网卡 (解决 WARP/wgcf 识别问题)
+        # 🚀 终极暴力补丁：人工干预数据库初始化
+        # A. 强行把当前网卡注册进去
         vnstat --add -i $DEFAULT_IF >/dev/null 2>&1
         
-        # 🚀 补丁 B：流量人工呼吸 (为了让别人拿去用也能秒出数据表)
-        # 用 curl 悄悄拉取一个 1KB 的小网页，产生一点点真实流量刺激数据库
-        curl -s http://www.google.com > /dev/null
+        # B. 【关键】如果数据库还是空的，我们强行给它塞一个“初始存盘点”
+        # 哪怕只有几字节，也要让 vnstat 觉得它“有活干了”
+        vnstat --create -i $DEFAULT_IF >/dev/null 2>&1
         
-        # 🚀 补丁 C：强制立刻存盘 (跳过 5 分钟等待)
+        # C. 产生一点点微小的流量刺激（访问谷歌 API 的一小块数据）
+        curl -s --connect-timeout 2 http://www.google.com/generate_204 > /dev/null 2>&1
+        
+        # D. 强制立刻刷入硬盘，不再等 5 分钟
         vnstat -u -i $DEFAULT_IF >/dev/null 2>&1
+        systemctl restart vnstat >/dev/null 2>&1
         
-        echo -e "${green}✅ 流量引擎已成功激活！Velox 已为您强行打通监控通道。${plain}"
-        echo -e "💡 ${cyan}极客科普：数据已实时刷入，现在退出重进即可看到完整报表！${plain}\n"
+        echo -e "${green}✅ 流量统计引擎已满血激活！Velox 已为您强行打通监控通道。${plain}"
+        echo -e "💡 ${cyan}提示：由于是首次启动，若数据表暂为空，请退出重进即可！${plain}\n"
     fi
                     
                     VNSTAT_OUT=$(vnstat -i $DEFAULT_IF -m 2>&1)
