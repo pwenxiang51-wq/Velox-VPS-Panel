@@ -34,6 +34,12 @@ while true; do
         tg_stat=$(echo -e "${yellow}[未设置]${plain}")
     fi
 
+# 17号 流量防线状态检测
+if [ -f "/usr/local/bin/velox_traffic_alert.sh" ]; then
+    traffic_stat=$(echo -e "${green}[已部署]${plain}")
+else
+    traffic_stat=$(echo -e "${yellow}[未设置]${plain}")
+fi
     clear
     # ================= 专属署名区 =================
     echo -e "${cyan}=====================================================${plain}"
@@ -67,7 +73,7 @@ while true; do
     echo -e "  ${yellow}16.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 (含开机秒报 & 环境深度兼容) ${tg_stat}${plain}"
     # --- 第四板块：自动化与工具 ---
     echo -e "\n${blue}[ 板块四：🛠️ 自动化与高阶工具 ]${plain}"
-    echo -e "  ${yellow}17.${plain} 📈 ${purple}网卡流量统计与极客动态视窗 (防超标 / 实时看网速)${plain}"
+    echo -e "  ${yellow}17.${plain} 📈 ${blue}Velox 流量大管家 (防扣费/防停机/月账单)${plain} ${traffic_stat}"
     echo -e "  ${yellow}18.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
     echo -e "  ${yellow}19.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
     echo -e "  ${yellow}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
