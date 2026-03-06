@@ -464,6 +464,9 @@ while true; do
         16)
             echo -e "\n${blue}--- 🚨 设置/管理 Telegram 智能报警监控 (全能体检版) ---${plain}"
             
+            # 定义全局 TG 配置文件路径 (核心升级项)
+            TG_CONF="/etc/velox_tg.conf"
+            
             # 兼容性环境检查
             if ! command -v curl &> /dev/null; then
                 echo -e "${yellow}正在安装必须的网络组件 curl...${plain}"
@@ -503,7 +506,8 @@ while true; do
                     fi
                     # -------------------------
                     
-                    echo -e "${green}✅ TG 报警防线已彻底无痕卸载！您可以回到主菜单查看状态。${plain}"
+                    echo -e "${green}✅ TG 报警防线已彻底无痕卸载！(注: 已为您智能保留全局 TG 配置，以免影响流量大管家)${plain}"
+                    echo -e "您可以回到主菜单查看状态。"
                 elif [[ "$tg_choice" == "r" || "$tg_choice" == "R" ]]; then
                     tg_setup_flag=1
                 else
@@ -517,10 +521,32 @@ while true; do
 
             if [[ "$tg_setup_flag" == "1" ]]; then
                 echo -e "\n💡 准备配置，Token 仅保存在本机，绝对安全！"
-                read -p "请输入你的 TG Bot Token: " tg_token
-                read -p "请输入你的 TG Chat ID: " tg_chatid
+                
+                # ======== 🚀 核心升级：全局 TG 配置智能嗅探与复用 ========
+                if [ -f "$TG_CONF" ]; then
+                    source "$TG_CONF"
+                fi
+
+                if [ -n "$GLOBAL_TG_TOKEN" ] && [ -n "$GLOBAL_TG_CHATID" ]; then
+                    echo -e "${green}✅ 检测到系统全局公共池已存在 TG 凭证！${plain}"
+                    read -p "👉 请输入新的 TG Bot Token [直接回车复用现有配置]: " input_token
+                    tg_token="${input_token:-$GLOBAL_TG_TOKEN}"
+                    
+                    read -p "👉 请输入新的 TG Chat ID [直接回车复用现有配置]: " input_chatid
+                    tg_chatid="${input_chatid:-$GLOBAL_TG_CHATID}"
+                else
+                    read -p "👉 请输入你的 TG Bot Token: " tg_token
+                    read -p "👉 请输入你的 TG Chat ID: " tg_chatid
+                fi
+                # =======================================================
+
                 if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
                     
+                    # 🚀 将确认的凭证写入全局配置池，供 17号等所有组件无缝共享
+                    echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
+                    echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
+                    echo -e "${green}✅ TG 凭证已同步至系统全局配置池！${plain}"
+
                     # ==========================================
                     # 1. 编写 SSH 登录发信脚本 (集成物理网卡绕过 WARP)
                     # ==========================================
