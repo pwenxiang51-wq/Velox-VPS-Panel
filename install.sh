@@ -646,7 +646,7 @@ EOF3
             echo ""
             read -p "👉 按【回车键】返回主菜单..."
             ;;
-     17)
+    17)
         echo -e "\n${cyan}请选择网卡流量监控模式：${plain}"
         echo -e "  ${green}1.${plain} 📊 静态累计流量报表 (查看自上次开机后的总消耗)"
         echo -e "  ${green}2.${plain} 📈 极客动态流量视窗 (黑客级 TUI 实时网速监控仪表盘)"
@@ -688,7 +688,9 @@ EOF3
             echo -e "💡 ${yellow}提示：${plain} 此数据为系统底层实时统计。如果需要按月统计的持久化账单，建议以后考虑安装 vnstat。"
             
         elif [ "$traffic_choice" == "2" ]; then
-            DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
+            # 🚀 智能定位物理网卡/虚拟网卡，彻底免疫 WARP 等代理路由表突变
+            DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
+            
             clear
             echo -e "${cyan}=======================================================${plain}"
             echo -e "      📈 Velox 极客视窗 - 实时网络监控仪 (网卡: $DEFAULT_IF)"
@@ -696,18 +698,32 @@ EOF3
             echo -e "${cyan}=======================================================${plain}\n\n\n\n"
             
             while true; do
-                RX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes)
-                TX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes)
+                # 防死循环护盾：如果连智能获取都失败，直接跳出，防止屏幕无限刷红字
+                if [ ! -d "/sys/class/net/$DEFAULT_IF/statistics" ]; then
+                    echo -e "\033[4A\033[J"
+                    echo -e "${red}❌ 致命错误：无法定位活动网卡 [$DEFAULT_IF] 的流量接口。${plain}"
+                    echo -e "可能原因：系统内核精简，或虚拟网卡驱动未挂载。请按任意键返回主菜单。"
+                    break
+                fi
+
+                RX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes 2>/dev/null || echo 0)
+                TX1=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes 2>/dev/null || echo 0)
+                
                 read -t 1 -n 1 -s key
                 if [[ $? -eq 0 ]]; then break; fi
-                RX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes)
-                TX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes)
+                
+                RX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/rx_bytes 2>/dev/null || echo 0)
+                TX2=$(cat /sys/class/net/$DEFAULT_IF/statistics/tx_bytes 2>/dev/null || echo 0)
+                
                 RX_KB=$(( (RX2 - RX1) / 1024 ))
                 TX_KB=$(( (TX2 - TX1) / 1024 ))
+                
                 RX_BAR_LEN=$((RX_KB / 50)); [[ $RX_BAR_LEN -gt 35 ]] && RX_BAR_LEN=35
                 TX_BAR_LEN=$((TX_KB / 50)); [[ $TX_BAR_LEN -gt 35 ]] && TX_BAR_LEN=35
+                
                 RX_BAR=$(printf '%*s' $RX_BAR_LEN '' | tr ' ' '█')
                 TX_BAR=$(printf '%*s' $TX_BAR_LEN '' | tr ' ' '█')
+                
                 echo -en "\033[4A\033[J"
                 echo -e "⬇️  下载: ${green}$(printf "%7s" $RX_KB) KB/s${plain} | ${cyan}$RX_BAR${plain}"
                 echo -e "⬆️  上传: ${red}$(printf "%7s" $TX_KB) KB/s${plain} | ${yellow}$TX_BAR${plain}"
