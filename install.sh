@@ -765,7 +765,7 @@ EOF3
                     read -p "👉 按【回车键】继续..."
                     ;;
                     
-                2)
+               2)
                     echo -e "\n${yellow}正在校验底层依赖...${plain}"
                     if ! command -v vnstat >/dev/null 2>&1; then
                         echo -e "${red}❌ 错误：请先执行选项 [1] 建立流量数据库！${plain}"
@@ -773,7 +773,7 @@ EOF3
                         continue
                     fi
 
-                    # ======== 🚀 新增：智能卸载与重置逻辑 ========
+                    # 智能卸载与重置逻辑
                     if [ -f "/usr/local/bin/velox_traffic_alert.sh" ]; then
                         echo -e "\n${green}✅ 检测到当前已部署流量熔断防线！${plain}"
                         read -p "👉 请选择操作 (r:重新配置 / d:彻底卸载 / n:返回): " guard_choice
@@ -787,7 +787,6 @@ EOF3
                             continue
                         fi
                     fi
-                    # ============================================
 
                     echo -e "\n${blue}--- 🚨 部署隐蔽流量防线与 TG 预警 ---${plain}"
                     echo -e "💡 极客科普：不同服务商的计费规则不同，请根据你的 VPS 类型进行选择："
@@ -837,12 +836,24 @@ EOF3
                     fi
                     
                     if [[ "$limit_gb" =~ ^[0-9]+$ ]]; then
+                        # 🚀 测试模块：先抓取当前真实流量，用于下发首封测试信
+                        DATA=$(vnstat -i $DEFAULT_IF --oneline b 2>/dev/null)
+                        MONTH_BYTES=$(echo "$DATA" | cut -d ';' -f $FIELD)
+                        if [[ -z "$MONTH_BYTES" || ! "$MONTH_BYTES" =~ ^[0-9]+$ ]]; then MONTH_BYTES=0; fi
+                        CURRENT_GB=$(echo "scale=2; $MONTH_BYTES / 1073741824" | bc)
+
                         cat << EOF2 > /usr/local/bin/velox_traffic_alert.sh
 #!/bin/bash
 IFACE="$DEFAULT_IF"
 LIMIT=$limit_gb
 TOKEN="$tg_token"
 CHATID="$tg_chatid"
+
+# 🚀 计算 80% 黄金预警线，并设置当月专属锁文件 (防轰炸机制)
+LIMIT_80=\$(echo "scale=2; \$LIMIT * 0.8" | bc)
+CURRENT_MONTH=\$(date +%Y-%m)
+LOCK_80="/tmp/velox_warn_80_\${CURRENT_MONTH}.lock"
+LOCK_100="/tmp/velox_warn_100_\${CURRENT_MONTH}.lock"
 
 DATA=\$(vnstat -i \$IFACE --oneline b 2>/dev/null)
 if [[ "\$DATA" == 1;* ]] || [[ "\$DATA" == 2;* ]]; then
@@ -851,11 +862,25 @@ if [[ "\$DATA" == 1;* ]] || [[ "\$DATA" == 2;* ]]; then
     if [[ "\$MONTH_BYTES" =~ ^[0-9]+$ ]]; then
         USAGE_GB=\$(echo "scale=2; \$MONTH_BYTES / 1073741824" | bc)
         
+        # 1. 判断是否超过 100% 熔断红线 (最优先)
         if (( \$(echo "\$USAGE_GB > \$LIMIT" | bc -l) )); then
-            MSG="🚨 [Velox 流量熔断预警] 
-大佬，系统报告您的机器 \$(hostname) 本月【$MODE_NAME】已飙升至 \${USAGE_GB} GB！
-已突破设定的 \${LIMIT} GB 安全红线，请立即登入后台处理以防天价账单或被强制停机！"
-            curl -s -X POST "https://api.telegram.org/bot\$TOKEN/sendMessage" -d "chat_id=\$CHATID" -d "text=\$MSG" >/dev/null 2>&1
+            if [ ! -f "\$LOCK_100" ]; then
+                MSG="🚨 [Velox 流量熔断绝杀] 
+velox，系统报告您的机器 \$(hostname) 本月【$MODE_NAME】已飙升至 \${USAGE_GB} GB！
+已突破设定的 \${LIMIT} GB 终极红线，请立即登入后台处理以防天价账单或被强制停机！"
+                curl -s -X POST "https://api.telegram.org/bot\$TOKEN/sendMessage" -d "chat_id=\$CHATID" -d "text=\$MSG" >/dev/null 2>&1
+                touch "\$LOCK_100"
+            fi
+            
+        # 2. 判断是否超过 80% 预警黄线
+        elif (( \$(echo "\$USAGE_GB > \$LIMIT_80" | bc -l) )); then
+            if [ ! -f "\$LOCK_80" ]; then
+                MSG="⚠️ [Velox 流量超标预警] 
+velox注意！您的机器 \$(hostname) 本月【$MODE_NAME】已达 \${USAGE_GB} GB！
+已超过 80% 安全警戒线 (\${LIMIT_80} GB)，请合理安排后续使用节奏！"
+                curl -s -X POST "https://api.telegram.org/bot\$TOKEN/sendMessage" -d "chat_id=\$CHATID" -d "text=\$MSG" >/dev/null 2>&1
+                touch "\$LOCK_80"
+            fi
         fi
     fi
 fi
@@ -865,7 +890,22 @@ EOF2
                         (crontab -l 2>/dev/null; echo "0 * * * * /usr/local/bin/velox_traffic_alert.sh") | crontab -
                         
                         echo -e "\n${green}✅ [$MODE_NAME] 防线部署成功！雷达已潜伏入系统底层守护！${plain}"
-                        echo -e "系统将每小时执行一次隐蔽扫描，一旦流量突破 ${yellow}${limit_gb} GB${plain}，警报会瞬间发送至您的 TG！"
+                        
+                        # ==========================================
+                        # 🚀 发送即时连通性测试报文
+                        # ==========================================
+                        WARN_GB=$(echo "scale=2; $limit_gb * 0.8" | bc)
+                        TEST_MSG="🟢 [Velox 流量大管家] 部署成功测试！
+velox，您的服务器 $(hostname) 流量防线已成功激活！
+👉 监控模式: $MODE_NAME
+📊 当前已用: ${CURRENT_GB} GB
+⚠️ 预警黄线: ${WARN_GB} GB (达到80%将自动报警)
+🛑 熔断红线: ${limit_gb} GB (达到100%将发起绝杀)
+(此消息用于确认 TG 报警通道畅通)"
+                        curl -s -X POST "https://api.telegram.org/bot$tg_token/sendMessage" -d "chat_id=$tg_chatid" -d "text=$TEST_MSG" >/dev/null 2>&1
+                        
+                        echo -e "系统将每小时执行一次隐蔽扫描，并在达到 80% 和 100% 时自动通知您。"
+                        echo -e "${purple}🔔 叮咚！已向您的 TG 发生了一封【部署连通性测试信】，请立即查看手机！${plain}"
                     else
                         echo -e "\n${red}❌ 格式输入错误，必须是纯数字。${plain}"
                     fi
