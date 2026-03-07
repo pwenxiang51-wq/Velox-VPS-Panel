@@ -747,7 +747,7 @@ EOF3
                     # === 模块B：读取底层持久化数据库 ===
                     echo -e "\n${blue}=== 🗓️ 月度账单：数据库持久化记录 (重启不丢) ===${plain}"
 
-                    # 1. 核心安装防线 (全平台纯净部署)
+                    # 1. 核心安装防线 (不仅查命令，还要防残留)
                     if ! command -v vnstat >/dev/null 2>&1; then
                         echo -e "${yellow}检测到未安装 vnstat，正在为您全自动部署底层服务...${plain}"
                         if command -v apt-get >/dev/null; then 
@@ -760,22 +760,19 @@ EOF3
                             dnf install epel-release -y >/dev/null 2>&1
                             dnf install vnstat -y >/dev/null 2>&1
                         fi
-                        systemctl enable --now vnstat >/dev/null 2>&1
                     fi
+                    
+                    # 🚀 新增心脏起搏：不管是不是新装的，只要进面板，统统强行拉起守护进程！专治手动瞎卸载导致的服务假死。
+                    systemctl enable vnstat >/dev/null 2>&1
+                    systemctl start vnstat >/dev/null 2>&1
 
-                    # 2. 🚀 动态网卡无缝自适应核心逻辑 (彻底解决 WARP 随时开关的世界难题)
-                    # 试探引擎是否认识当前主网卡，如果不认识（退出了错误码），则触发“核武级”重置
+                    # 2. 动态网卡无缝自适应核心逻辑
                     if ! vnstat -i $DEFAULT_IF >/dev/null 2>&1; then
-                        # 停服务 -> 强绑 -> 重建库 -> 赋权 -> 启服务 -> 刷流量 -> 强行存盘
                         systemctl stop vnstat >/dev/null 2>&1
                         vnstat --add -i $DEFAULT_IF >/dev/null 2>&1
                         vnstat --create -i $DEFAULT_IF >/dev/null 2>&1
                         chown -R vnstat:vnstat /var/lib/vnstat >/dev/null 2>&1
                         systemctl start vnstat >/dev/null 2>&1
-                        
-                        # 打入真实流量，打破 0 字节死锁
-                        ping -c 4 8.8.8.8 >/dev/null 2>&1
-                        vnstat -u -i $DEFAULT_IF >/dev/null 2>&1
                     fi
                     
                     # 3. 探针正式抓取
@@ -783,8 +780,12 @@ EOF3
 
                     # 4. 智能拦截与底层催熟
                     if echo "$VNSTAT_OUT" | grep -qE "Not enough data|not found|No data"; then
-                        ping -c 3 8.8.8.8 >/dev/null 2>&1
+                        ping -c 4 8.8.8.8 >/dev/null 2>&1
                         vnstat -u -i $DEFAULT_IF >/dev/null 2>&1
+                        
+                        # 🚀 新增防冲撞缓冲：给系统硬盘 2 秒钟的时间，把刚刚的流量死死写进数据库！
+                        sleep 2 
+                        
                         VNSTAT_OUT=$(vnstat -i $DEFAULT_IF -m 2>&1)
                         
                         if echo "$VNSTAT_OUT" | grep -qE "Not enough data|not found|No data"; then
