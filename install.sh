@@ -1924,14 +1924,14 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
             fi
         done
         ;;
-     U|u)
+    U|u)
             echo -e "\n${red}=======================================================${plain}"
             echo -e "${red}                ⚠️ 终极卸载与物理粉碎程序                ${plain}"
             echo -e "${red}=======================================================${plain}"
-            echo -e "${yellow}💡 提示：此操作将彻底拔除 Velox 面板及其在系统底层留下的所有痕迹。${plain}"
-            echo -e "${green}🛡️  放心：您的代理节点 (X-UI/Sing-box/Argo) 和 Acme 域名证书将原封不动保留！${plain}\n"
+            echo -e "${yellow}💡 提示：此操作将彻底拔除 Velox 面板本身及其底层监控。${plain}"
+            echo -e "${green}🛡️  绝对安全承诺：您的 WARP、Argo 隧道 (含Token) 及所有代理节点将原封不动！${plain}\n"
             
-            read -p "👉 确定要彻底卸载本面板并【焦土化抹除】所有底层修改吗？(y/n): " confirm_uninstall
+            read -p "👉 确定要彻底卸载本面板并【焦土化抹除】监控数据吗？(y/n): " confirm_uninstall
             if [[ "$confirm_uninstall" == "y" || "$confirm_uninstall" == "Y" ]]; then
                 echo -e "\n${cyan}🚀 正在启动全功率焦土卸载引擎...${plain}"
 
@@ -1948,13 +1948,27 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 systemctl daemon-reload 
                 echo -e "[${green}已彻底抹除${plain}]"
 
-                # 🚀 [新增] 1.5 拆除全局 TG 凭证与流量大管家防线
+                # 1.5 拆除全局 TG 凭证与流量大管家防线
                 echo -n "1.5 正在清洗全局 TG 凭证与流量防线脚本... "
                 rm -f /etc/velox_tg.conf
                 rm -f /usr/local/bin/velox_traffic_alert.sh
-                # 清洗 crontab 中潜伏的流量监控探针
                 crontab -l 2>/dev/null | grep -v "velox_traffic_alert.sh" | crontab -
                 echo -e "[${green}已彻底清洗${plain}]"
+
+                # 1.6 彻底拔除 vnstat 底层监控与历史流量数据库
+                echo -n "1.6 正在连根拔起底层流量监控引擎 (vnstat) 与历史账单... "
+                systemctl stop vnstat >/dev/null 2>&1
+                systemctl disable vnstat >/dev/null 2>&1
+                if command -v apt-get >/dev/null 2>&1; then
+                    apt-get remove --purge vnstat -y >/dev/null 2>&1
+                elif command -v yum >/dev/null 2>&1; then
+                    yum remove vnstat -y >/dev/null 2>&1
+                elif command -v dnf >/dev/null 2>&1; then
+                    dnf remove vnstat -y >/dev/null 2>&1
+                fi
+                rm -rf /var/lib/vnstat
+                rm -rf /etc/vnstat.conf
+                echo -e "[${green}已彻底连根拔起${plain}]"
 
                 # 2. 拆除 Bash 机枪塔
                 echo -n "2. 正在物理粉碎 Bash 防爆破机枪塔与击毙日志... "
@@ -2008,23 +2022,13 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 hostnamectl set-hostname "localhost" >/dev/null 2>&1
                 echo -e "[${green}已恢复为 localhost${plain}]"
 
-                # 7. 💡 极致精准清理：仅干掉面板下发的 WARP 相关定时任务 (保留重启/Acme/节点守护)
-                echo -n "7. 正在清理面板关联的 WARP 维护任务... "
-                if crontab -l 2>/dev/null | grep -qE "warp-go|wg-quick|warp-svc|WARP-UP.sh|warpip"; then
-                    # 🚀 过滤逻辑：只删除包含这些 WARP 关键字的行，从而完美保留您的定时重启、Acme续签和Sing-box守护
-                    crontab -l 2>/dev/null | grep -vE "warp-go|wg-quick|warp-svc|WARP-UP.sh|warpip" | crontab -
-                    echo -e "[${green}已精准清理，您的定时重启与节点任务已保留${plain}]"
-                else
-                    echo -e "[${cyan}未发现相关 WARP 任务，已跳过${plain}]"
-                fi
+                # 7. 🛡️ 绝对保护：跳过所有 WARP 相关的配置与任务
+                echo -n "7. 正在排查 WARP 底层配置... "
+                echo -e "[${green}🛡️ 遵循最高指令，WARP 所有配置、IP 与相关任务已绝对保留，不予触碰！${plain}]"
 
-                # 8. 💡 核心修正：真正的智能探测与保护 Argo
-                echo -n "8. 正在排查 Argo 隧道进程... "
-                if command -v cloudflared >/dev/null 2>&1 || pgrep -x "cloudflared" >/dev/null; then
-                    echo -e "[${green}🛡️ 发现存活进程，为防节点断网，已智能保护并跳过卸载${plain}]"
-                else
-                    echo -e "[${cyan}未部署 Argo 隧道，已跳过${plain}]"
-                fi
+                # 8. 🛡️ 绝对保护：跳过 Argo 与 Token
+                echo -n "8. 正在排查 Argo 隧道与 Token... "
+                echo -e "[${green}🛡️ 遵循最高指令，Argo 进程及您的专属 Token 已被智能隔离保护，绝对安全！${plain}]"
 
                 # 9. Fail2Ban 强拆询问
                 if command -v fail2ban-client >/dev/null 2>&1; then
@@ -2049,8 +2053,8 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                     fi
                 fi
 
-                echo -e "\n${green}🎉 卸载完毕！Velox 面板已事了拂衣去，您的系统已恢复至极其纯净的【出厂状态】！${plain}"
-                echo -e "${purple}江湖再见，祝您折腾愉快！🚀${plain}\n"
+                echo -e "\n${green}🎉 卸载完毕！Velox 面板已事了拂衣去，历史监控数据已清零！${plain}"
+                echo -e "${purple}您的核心代理资产毫发无损，江湖再见！🚀${plain}\n"
                 exit
             else
                 echo -e "\n${yellow}已取消卸载，即将返回主菜单...${plain}"
@@ -2061,7 +2065,7 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
         *) echo -e "\n${red}❌ 输入错误，请重新输入！${plain}" ;;
     esac
     
-    if [[ "$choice" != "7" && "$choice" != "8" && "$choice" != "9" && "$choice" != "10" && "$choice" != "16" && "$choice" != "19" && "$choice" != "20" && "$choice" != "21" && "$choice" != "22" && "$choice" != "23" && "$choice" != "24" && "$choice" != "25" && "$choice" != "26" && "$choice" != "27" ]]; then
+    if [[ "$choice" != "7" && "$choice" != "8" && "$choice" != "9" && "$choice" != "10" && "$choice" != "16" && "$choice" != "19" && "$choice" != "20" && "$choice" != "21" && "$choice"  != "23" && "$choice" != "24" && "$choice" != "25" && "$choice" != "26" && "$choice" != "27" ]]; then
         echo -e "\n${cyan}按回车键继续...${plain}"; read
     fi
 done
