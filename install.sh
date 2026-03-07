@@ -744,48 +744,62 @@ EOF3
                     }
                     ' /proc/net/dev
 
-                   # === 模块B：读取底层持久化数据库 ===
-    echo -e "\n${blue}=== 🗓️ 月度账单：数据库持久化记录 (重启不丢) ===${plain}"
+                    # === 模块B：读取底层持久化数据库 ===
+                    echo -e "\n${blue}=== 🗓️ 月度账单：数据库持久化记录 (重启不丢) ===${plain}"
 
-    # 1. 核心安装防线 (只负责纯净部署软件)
-    if ! command -v vnstat >/dev/null 2>&1; then
-        echo -e "${yellow}检测到未安装 vnstat，正在为您全自动部署底层服务...${plain}"
-        if command -v apt-get >/dev/null; then apt-get update -y >/dev/null 2>&1 && apt-get install vnstat -y >/dev/null 2>&1; fi
-        if command -v yum >/dev/null; then yum install epel-release -y >/dev/null 2>&1 && yum install vnstat -y >/dev/null 2>&1; fi
-        if command -v dnf >/dev/null; then dnf install epel-release -y >/dev/null 2>&1 && dnf install vnstat -y >/dev/null 2>&1; fi
-        systemctl enable --now vnstat >/dev/null 2>&1
-    fi
+                    # 1. 核心安装防线 (全平台纯净部署)
+                    if ! command -v vnstat >/dev/null 2>&1; then
+                        echo -e "${yellow}检测到未安装 vnstat，正在为您全自动部署底层服务...${plain}"
+                        if command -v apt-get >/dev/null; then 
+                            apt-get update -y >/dev/null 2>&1
+                            apt-get install vnstat -y >/dev/null 2>&1
+                        elif command -v yum >/dev/null; then 
+                            yum install epel-release -y >/dev/null 2>&1
+                            yum install vnstat -y >/dev/null 2>&1
+                        elif command -v dnf >/dev/null; then 
+                            dnf install epel-release -y >/dev/null 2>&1
+                            dnf install vnstat -y >/dev/null 2>&1
+                        fi
+                        systemctl enable --now vnstat >/dev/null 2>&1
+                    fi
 
-    # 2. 动态网卡无缝自适应 (解决随时开/关 WARP 的世界级难题)
-    # 不管软件是啥时候装的，每次查看看板，都强制把当前的 $DEFAULT_IF 塞进监控池
-    vnstat --add -i $DEFAULT_IF >/dev/null 2>&1
-    
-    # 3. 探针抓取
-    VNSTAT_OUT=$(vnstat -i $DEFAULT_IF -m 2>&1)
+                    # 2. 🚀 动态网卡无缝自适应核心逻辑 (彻底解决 WARP 随时开关的世界难题)
+                    # 试探引擎是否认识当前主网卡，如果不认识（退出了错误码），则触发“核武级”重置
+                    if ! vnstat -i $DEFAULT_IF >/dev/null 2>&1; then
+                        # 停服务 -> 强绑 -> 重建库 -> 赋权 -> 启服务 -> 刷流量 -> 强行存盘
+                        systemctl stop vnstat >/dev/null 2>&1
+                        vnstat --add -i $DEFAULT_IF >/dev/null 2>&1
+                        vnstat --create -i $DEFAULT_IF >/dev/null 2>&1
+                        chown -R vnstat:vnstat /var/lib/vnstat >/dev/null 2>&1
+                        systemctl start vnstat >/dev/null 2>&1
+                        
+                        # 打入真实流量，打破 0 字节死锁
+                        ping -c 4 8.8.8.8 >/dev/null 2>&1
+                        vnstat -u -i $DEFAULT_IF >/dev/null 2>&1
+                    fi
+                    
+                    # 3. 探针正式抓取
+                    VNSTAT_OUT=$(vnstat -i $DEFAULT_IF -m 2>&1)
 
-    # 4. 智能拦截与底层催熟
-    if echo "$VNSTAT_OUT" | grep -qE "Not enough data|not found|No data"; then
-        # 抓不到数据？说明切换了新网卡，强制建库并人工呼吸！
-        vnstat --create -i $DEFAULT_IF >/dev/null 2>&1
-        ping -c 3 8.8.8.8 >/dev/null 2>&1
-        vnstat -u -i $DEFAULT_IF >/dev/null 2>&1
-        
-        # 催熟后再抓一次
-        VNSTAT_OUT=$(vnstat -i $DEFAULT_IF -m 2>&1)
-        
-        if echo "$VNSTAT_OUT" | grep -qE "Not enough data|not found|No data"; then
-            echo -e "${yellow}⚠️ 数据库刚刚建立，底层正在疯狂采集中。请等待约 3-5 分钟后再来查看！${plain}"
-            echo -e "💡 极客科普：统计引擎无法穿越回过去，它只能记录【从刚才安装这一刻起】的后续流量。"
-        else
-            echo -e "${cyan}$VNSTAT_OUT${plain}"
-        fi
-    else
-        echo -e "${cyan}$VNSTAT_OUT${plain}"
-    fi
+                    # 4. 智能拦截与底层催熟
+                    if echo "$VNSTAT_OUT" | grep -qE "Not enough data|not found|No data"; then
+                        ping -c 3 8.8.8.8 >/dev/null 2>&1
+                        vnstat -u -i $DEFAULT_IF >/dev/null 2>&1
+                        VNSTAT_OUT=$(vnstat -i $DEFAULT_IF -m 2>&1)
+                        
+                        if echo "$VNSTAT_OUT" | grep -qE "Not enough data|not found|No data"; then
+                            echo -e "${yellow}⚠️ 数据库刚刚建立，底层正在疯狂采集中。请稍等片刻后再来查看！${plain}"
+                        else
+                            echo -e "${green}✅ 流量统计引擎已满血激活！Velox 已成功接管 [$DEFAULT_IF] 网卡。${plain}"
+                            echo -e "${cyan}$VNSTAT_OUT${plain}"
+                        fi
+                    else
+                        echo -e "${cyan}$VNSTAT_OUT${plain}"
+                    fi
 
-    echo ""
-    read -p "👉 按【回车键】继续..."
-    ;;
+                    echo ""
+                    read -p "👉 按【回车键】继续..."
+                    ;;
                     
                2)
                     echo -e "\n${yellow}正在校验底层依赖...${plain}"
