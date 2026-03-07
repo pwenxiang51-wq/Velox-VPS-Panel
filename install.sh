@@ -746,33 +746,35 @@ EOF3
 
                     # 模块B：读取底层持久化数据库
                     echo -e "\n${blue}=== 📅 月度账单：数据库持久化记录 (重启不丢) ===${plain}"
-                 if ! command -v vnstat >/dev/null 2>&1; then
+                if ! command -v vnstat >/dev/null 2>&1; then
         echo -e "${yellow}检测到未安装 vnstat，正在为您全自动部署底层服务...${plain}"
         
-        # 1. 兼容安装
-        if command -v apt-get >/dev/null; then apt-get update -y >/dev/null 2>&1 && apt-get install vnstat -y >/dev/null 2>&1; fi
-        if command -v yum >/dev/null; then yum install epel-release -y >/dev/null 2>&1 && yum install vnstat -y >/dev/null 2>&1; fi
-        if command -v dnf >/dev/null; then dnf install epel-release -y >/dev/null 2>&1 && dnf install vnstat -y >/dev/null 2>&1; fi
+        # 1. 真正的全系统兼容安装引擎 (涵盖 apt 和 yum 体系)
+        if command -v apt-get >/dev/null; then
+            apt-get update -y >/dev/null 2>&1
+            apt-get install vnstat -y >/dev/null 2>&1
+        elif command -v yum >/dev/null; then
+            yum install epel-release -y >/dev/null 2>&1
+            yum install vnstat -y >/dev/null 2>&1
+        fi
         
+        # 2. 启动引擎并给予 1 秒缓冲，让守护进程稳住阵脚
         systemctl enable --now vnstat >/dev/null 2>&1
+        sleep 1
         
-        # 🚀 终极暴力补丁：人工干预数据库初始化
-        # A. 强行把当前网卡注册进去
+        # 3. 核心破局点：无视物理还是虚拟，强行把当前网卡塞进监控名单
         vnstat --add -i $DEFAULT_IF >/dev/null 2>&1
         
-        # B. 【关键】如果数据库还是空的，我们强行给它塞一个“初始存盘点”
-        # 哪怕只有几字节，也要让 vnstat 觉得它“有活干了”
-        vnstat --create -i $DEFAULT_IF >/dev/null 2>&1
+        # 4. 强行制造真实流量：连发 4 个 Ping 包，彻底打破 "0字节" 死锁
+        ping -c 4 8.8.8.8 >/dev/null 2>&1
         
-        # C. 产生一点点微小的流量刺激（访问谷歌 API 的一小块数据）
-        curl -s --connect-timeout 2 http://www.google.com/generate_204 > /dev/null 2>&1
-        
-        # D. 强制立刻刷入硬盘，不再等 5 分钟
-        vnstat -u -i $DEFAULT_IF >/dev/null 2>&1
+        # 5. 重启引擎，并下达最高指令：立刻！马上！把刚才的 Ping 流量写进硬盘！
         systemctl restart vnstat >/dev/null 2>&1
+        sleep 1
+        vnstat -u -i $DEFAULT_IF >/dev/null 2>&1
         
-        echo -e "${green}✅ 流量统计引擎已满血激活！Velox 已为您强行打通监控通道。${plain}"
-        echo -e "💡 ${cyan}提示：由于是首次启动，若数据表暂为空，请退出重进即可！${plain}\n"
+        echo -e "${green}✅ 流量统计引擎已满血激活！Velox 已成功接管 [$DEFAULT_IF] 网卡。${plain}"
+        echo -e "💡 ${cyan}提示：底层已强制刷入初始数据，退出重进即可秒出账单！${plain}\n"
     fi
                     
                     VNSTAT_OUT=$(vnstat -i $DEFAULT_IF -m 2>&1)
