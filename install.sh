@@ -1666,40 +1666,67 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
             ALL_LINKS=$(echo -e "${ARGO_DATA}\n${CORE_DATA}" | sort -u | grep -v '^$' | tr -d '\r')
             
             # ================= 👇 模块 3.5 开始 👇 =================
-            CURRENT_NAME=$(hostname)
-            [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX-Node"
-            PROCESSED_LINKS=""
-            PROCESSED_ARGO=""
+        CURRENT_NAME=$(hostname)
+        [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX-Node"
+        PROCESSED_LINKS=""
+        PROCESSED_ARGO=""
 
-            for link in $ALL_LINKS; do
-                if [[ "$link" == vmess://* ]]; then
-                    b64_str=${link#vmess://}
-                    json_str=$(echo "$b64_str" | base64 -d 2>/dev/null)
-                    if echo "$json_str" | grep -q '"ps"'; then
-                        new_json=$(echo "$json_str" | sed -E 's/"ps"[[:space:]]*:[[:space:]]*"[^"]+"/"ps": "'"$CURRENT_NAME"'"/g')
-                        new_b64=$(echo -n "$new_json" | base64 -w 0 2>/dev/null || echo -n "$new_json" | base64 | tr -d '\n')
-                        new_link="vmess://${new_b64}"
-                    else
-                        new_link="$link"
-                    fi
+        for link in $ALL_LINKS; do
+            # 1. 提取原始名字和协议
+            PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
+            OLD_NAME=""
+            if [[ "$link" == vmess://* ]]; then
+                b64_str=${link#vmess://}
+                json_str=$(echo "$b64_str" | base64 -d 2>/dev/null)
+                OLD_NAME=$(echo "$json_str" | grep -o '"ps"[[:space:]]*:[[:space:]]*"[^"]+"' | cut -d'"' -f4)
+            else
+                OLD_NAME=$(echo "$link" | sed -n 's/.*#//p')
+            fi
+
+            # 2. 智能提取原名中的核心特征标签 (无论旧名字多乱，只抓关键字)
+            PREFIX=""
+            echo "$OLD_NAME" | grep -qi "ws" && PREFIX="${PREFIX}WS-"
+            echo "$OLD_NAME" | grep -qi "tls" && PREFIX="${PREFIX}TLS-"
+            echo "$OLD_NAME" | grep -qi "reality" && PREFIX="${PREFIX}Reality-"
+            echo "$OLD_NAME" | grep -qi "argo" && PREFIX="${PREFIX}Argo-"
+            echo "$OLD_NAME" | grep -qi "grpc" && PREFIX="${PREFIX}gRPC-"
+            echo "$OLD_NAME" | grep -qi "tcp" && PREFIX="${PREFIX}TCP-"
+            
+            # 极限兜底：如果本就是 Argo 聚合节点，哪怕原名没写 argo，也强行打上高亮标签
+            if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
+                echo "$PREFIX" | grep -qi "argo" || PREFIX="${PREFIX}Argo-"
+            fi
+
+            # 3. 组合全新极客风严谨节点名
+            NEW_REMARK="${PROTO}-${PREFIX}${CURRENT_NAME}"
+
+            # 4. 无损替换注入
+            if [[ "$link" == vmess://* ]]; then
+                if echo "$json_str" | grep -q '"ps"'; then
+                    new_json=$(echo "$json_str" | sed -E 's/"ps"[[:space:]]*:[[:space:]]*"[^"]+"/"ps": "'"$NEW_REMARK"'"/g')
+                    new_b64=$(echo -n "$new_json" | base64 -w 0 2>/dev/null || echo -n "$new_json" | base64 | tr -d '\n')
+                    new_link="vmess://${new_b64}"
                 else
-                    if [[ "$link" == *#* ]]; then
-                        new_link=$(echo "$link" | sed -E 's/#[^[:space:]]*$/#'"$CURRENT_NAME"'/')
-                    else
-                        new_link="${link}#${CURRENT_NAME}"
-                    fi
+                    new_link="$link"
                 fi
-                
-                if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
-                    PROCESSED_ARGO=$(echo -e "${PROCESSED_ARGO}\n${new_link}")
+            else
+                if [[ "$link" == *#* ]]; then
+                    new_link=$(echo "$link" | sed -E 's/#[^[:space:]]*$/#'"$NEW_REMARK"'/')
+                else
+                    new_link="${link}#${NEW_REMARK}"
                 fi
-                PROCESSED_LINKS=$(echo -e "${PROCESSED_LINKS}\n${new_link}")
-            done
+            fi
+            
+            if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
+                PROCESSED_ARGO=$(echo -e "${PROCESSED_ARGO}\n${new_link}")
+            fi
+            PROCESSED_LINKS=$(echo -e "${PROCESSED_LINKS}\n${new_link}")
+        done
 
-            ALL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
-            ARGO_DATA=$(echo "$PROCESSED_ARGO" | grep -v '^$' | tr -d '\r')
-            # ================= 👆 模块 3.5 结束 👆 =================
-
+        ALL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
+        ARGO_DATA=$(echo "$PROCESSED_ARGO" | grep -v '^$' | tr -d '\r')
+        # ================= 👆 模块 3.5 结束 👆 =================
+        
             if [ -n "$ALL_LINKS" ]; then
                 # --- 💡 模块四：Base64 聚合编码 ---
                 BASE64_SUB=$(echo -e "$ALL_LINKS" | base64 -w 0)
