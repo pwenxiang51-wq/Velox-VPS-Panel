@@ -1662,10 +1662,7 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
             # 只扫真实配置目录，坚决不扫 /root/ 下的未知垃圾
             CORE_DATA=$(grep -rhoE "$REGEX_PATTERN" /etc/x-ui/ /etc/s-box/ /etc/sing-box/ /usr/local/etc/xray/ 2>/dev/null | sort -u)
 
-            # --- 💡 模块三：全合流缝合 ---
-            ALL_LINKS=$(echo -e "${ARGO_DATA}\n${CORE_DATA}" | sort -u | grep -v '^$' | tr -d '\r')
-            
-            # ================= 👇 模块 3.5 开始 👇 =================
+           # ================= 👇 模块 3.5 开始 👇 =================
         CURRENT_NAME=$(hostname)
         [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX-Node"
         PROCESSED_LINKS=""
@@ -1683,7 +1680,7 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 OLD_NAME=$(echo "$link" | sed -n 's/.*#//p')
             fi
 
-            # 2. 智能提取原名中的核心特征标签 (无论旧名字多乱，只抓关键字)
+            # 2. 智能提取原名中的核心特征标签 (废除强行绑定，只认原名的真实标签)
             PREFIX=""
             echo "$OLD_NAME" | grep -qi "ws" && PREFIX="${PREFIX}WS-"
             echo "$OLD_NAME" | grep -qi "tls" && PREFIX="${PREFIX}TLS-"
@@ -1691,11 +1688,6 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
             echo "$OLD_NAME" | grep -qi "argo" && PREFIX="${PREFIX}Argo-"
             echo "$OLD_NAME" | grep -qi "grpc" && PREFIX="${PREFIX}gRPC-"
             echo "$OLD_NAME" | grep -qi "tcp" && PREFIX="${PREFIX}TCP-"
-            
-            # 极限兜底：如果本就是 Argo 聚合节点，哪怕原名没写 argo，也强行打上高亮标签
-            if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
-                echo "$PREFIX" | grep -qi "argo" || PREFIX="${PREFIX}Argo-"
-            fi
 
             # 3. 组合全新极客风严谨节点名
             NEW_REMARK="${PROTO}-${PREFIX}${CURRENT_NAME}"
