@@ -1665,31 +1665,24 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
         # --- 💡 模块三：全合流缝合 ---
         ALL_LINKS=$(echo -e "${ARGO_DATA}\n${CORE_DATA}" | sort -u | grep -v '^$' | tr -d '\r')
         
-        # --- 💡 模块 3.5：智能拦截与备注重写中间件 (神级黑科技) ---
+        # ================= 👇 模块 3.5 开始 👇 =================
         CURRENT_NAME=$(hostname)
-        [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX-Node" # 极限兜底
-        
+        [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX-Node"
         PROCESSED_LINKS=""
         PROCESSED_ARGO=""
 
         for link in $ALL_LINKS; do
-            # 1. 核心解密与改名逻辑
             if [[ "$link" == vmess://* ]]; then
-                # vmess 协议：必须解密 Base64 -> 提取 JSON -> 修改 ps 字段 -> 重新加密
                 b64_str=${link#vmess://}
                 json_str=$(echo "$b64_str" | base64 -d 2>/dev/null)
-                
                 if echo "$json_str" | grep -q '"ps"'; then
-                    # 霸道正则：精准替换 JSON 里的名称
                     new_json=$(echo "$json_str" | sed -E 's/"ps"[[:space:]]*:[[:space:]]*"[^"]+"/"ps": "'"$CURRENT_NAME"'"/g')
-                    # 重新高强度无缝编码
                     new_b64=$(echo -n "$new_json" | base64 -w 0 2>/dev/null || echo -n "$new_json" | base64 | tr -d '\n')
                     new_link="vmess://${new_b64}"
                 else
                     new_link="$link"
                 fi
             else
-                # 非 vmess 协议 (vless, hy2 等)：直接暴力替换 # 号后面的明文
                 if [[ "$link" == *#* ]]; then
                     new_link=$(echo "$link" | sed -E 's/#[^[:space:]]*$/#'"$CURRENT_NAME"'/')
                 else
@@ -1697,17 +1690,15 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 fi
             fi
             
-            # 2. 同步更新 ARGO_DATA 标识，防止原本的【隧道或聚合】红字标签失效
             if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
                 PROCESSED_ARGO=$(echo -e "${PROCESSED_ARGO}\n${new_link}")
             fi
-            
             PROCESSED_LINKS=$(echo -e "${PROCESSED_LINKS}\n${new_link}")
         done
 
-        # 3. 完美替换原变量，深藏功与名
         ALL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
         ARGO_DATA=$(echo "$PROCESSED_ARGO" | grep -v '^$' | tr -d '\r')
+        # ================= 👆 模块 3.5 结束 👆 =================
 
         if [ -n "$ALL_LINKS" ]; then
             # --- 💡 模块四：Base64 聚合编码 ---
