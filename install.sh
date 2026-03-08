@@ -1630,7 +1630,7 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
         done
         ;;
         
-  25)
+ 25)
             echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (开源防洪版) ===${plain}"
             
             # 0. 自动安装二维码组件
@@ -1649,20 +1649,23 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
             # 兼容各类面板的导出目录 (无论是 agsbx 还是别人写的 share.txt)
             for target_file in /root/agsbx/jh.txt /root/*share*.txt /root/*link*.txt; do
                 if ls $target_file 1> /dev/null 2>&1; then
-                    # 【开源防洪机制】：提取高优先级的前 3 个主节点。
+                    # 【开源防洪机制】：很多脚本会追加几十个 CDN 备用 IP。
+                    # 为了防止终端二维码刷屏崩溃，统一提取高优先级的前 3 个主节点。
                     TEMP_LINKS=$(grep -oE "$REGEX_PATTERN" $target_file 2>/dev/null | head -n 3)
                     ARGO_DATA=$(echo -e "${ARGO_DATA}\n${TEMP_LINKS}")
                 fi
             done
+            # 清洗去重
             ARGO_DATA=$(echo "$ARGO_DATA" | sort -u | grep -v '^$' | tr -d '\r')
 
             # --- 💡 模块二：底层核心标准配置扫描 (开源万能底座) ---
+            # 只扫真实配置目录，坚决不扫 /root/ 下的未知垃圾
             CORE_DATA=$(grep -rhoE "$REGEX_PATTERN" /etc/x-ui/ /etc/s-box/ /etc/sing-box/ /usr/local/etc/xray/ 2>/dev/null | sort -u)
 
             # --- 💡 模块三：全合流缝合 ---
             ALL_LINKS=$(echo -e "${ARGO_DATA}\n${CORE_DATA}" | sort -u | grep -v '^$' | tr -d '\r')
             
-            # ================= 👇 模块 3.5：智能特征重写引擎 👇 =================
+            # ================= 👇 模块 3.5：智能特征提取 (兼容版) 👇 =================
             CURRENT_NAME=$(hostname)
             [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX-Node"
             PROCESSED_LINKS=""
@@ -1680,15 +1683,14 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                     OLD_NAME=$(echo "$link" | sed -n 's/.*#//p')
                 fi
 
-                # 2. 纯 Bash 原生智能提取特征标签 (防报错、防误判，只认原名标签)
+                # 2. 智能提取原名中的核心特征标签 (废除强行绑定，只认原名的真实标签)
                 PREFIX=""
-                lower_name=$(echo "$OLD_NAME" | tr 'A-Z' 'a-z')
-                [[ "$lower_name" == *ws* ]] && PREFIX="${PREFIX}WS-"
-                [[ "$lower_name" == *tls* ]] && PREFIX="${PREFIX}TLS-"
-                [[ "$lower_name" == *reality* ]] && PREFIX="${PREFIX}Reality-"
-                [[ "$lower_name" == *argo* ]] && PREFIX="${PREFIX}Argo-"
-                [[ "$lower_name" == *grpc* ]] && PREFIX="${PREFIX}gRPC-"
-                [[ "$lower_name" == *tcp* ]] && PREFIX="${PREFIX}TCP-"
+                echo "$OLD_NAME" | grep -qi "ws" && PREFIX="${PREFIX}WS-"
+                echo "$OLD_NAME" | grep -qi "tls" && PREFIX="${PREFIX}TLS-"
+                echo "$OLD_NAME" | grep -qi "reality" && PREFIX="${PREFIX}Reality-"
+                echo "$OLD_NAME" | grep -qi "argo" && PREFIX="${PREFIX}Argo-"
+                echo "$OLD_NAME" | grep -qi "grpc" && PREFIX="${PREFIX}gRPC-"
+                echo "$OLD_NAME" | grep -qi "tcp" && PREFIX="${PREFIX}TCP-"
 
                 # 3. 组合全新极客风严谨节点名
                 NEW_REMARK="${PROTO}-${PREFIX}${CURRENT_NAME}"
@@ -1740,6 +1742,7 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 for link in $ALL_LINKS; do
                     PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
                     
+                    # 智能身份打标：来源聚合文件的，统一打上高级标签
                     TAG="【 $PROTO 直连协议 】"
                     if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
                         TAG="${red}【 隧道或聚合主节点 】${plain}"
