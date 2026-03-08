@@ -1197,13 +1197,43 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                     fi
                     if [ -z "$ATTACKS" ]; then echo -e "${green}🎉 系统底层未查到任何被爆破的记录！${plain}"; else echo -e "${yellow}次数   |   攻击者 IP${plain}\n${cyan}$ATTACKS${plain}"; fi
                     ;;
-                3)
+               3)
                     read -p "✍️ 请输入新的 SSH 端口号 (1000-65535, 输入 22 恢复默认): " new_port
                     if [[ "$new_port" =~ ^[0-9]+$ ]] && ([ "$new_port" -eq 22 ] || ([ "$new_port" -ge 1000 ] && [ "$new_port" -le 65535 ])); then
                         sed -i "s/^#\?Port .*/Port $new_port/g" /etc/ssh/sshd_config
                         grep -q "^Port " /etc/ssh/sshd_config || echo "Port $new_port" >> /etc/ssh/sshd_config
                         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                        if [ "$new_port" -eq 22 ]; then echo -e "\n${green}✅ SSH 端口已恢复为默认 ${red}22${plain} 端口！${plain}"; else echo -e "\n${green}✅ SSH 端口已修改为: ${red}$new_port${plain}\n⚠️ ${yellow}切记去云面板放行此端口！${plain}"; fi
+                        
+                        # --- 新增的智能防护与提示逻辑 ---
+                        if [ "$new_port" -eq 22 ]; then 
+                            echo -e "\n${green}✅ SSH 端口已恢复为默认 ${red}22${plain} 端口！${plain}"
+                        else 
+                            # 动态获取本机 IP，加了防超时机制
+                            vps_ip=$(curl -s4m8 https://icanhazip.com 2>/dev/null || wget -qO- -t1 -T2 ipv4.icanhazip.com 2>/dev/null)
+                            [ -z "$vps_ip" ] && vps_ip="你的服务器IP"
+
+                            echo -e "\n${yellow}================ 🚨 极客换门指南 & 避坑必读 🚨 =================${plain}"
+                            echo -e "${green}✅ SSH 端口已成功切换至: ${new_port}${plain}"
+                            echo -e "👉 当前窗口断开后，请使用以下全新口令登录："
+                            echo -e "${cyan}ssh root@${vps_ip} -p ${new_port}${plain}\n"
+                            
+                            echo -e "${purple}💡 【如果改完端口后连不上怎么办？】${plain}"
+                            echo -e "若你是重装系统后首次改端口，本地电脑的防黑客机制可能会拦截你的登录。"
+                            echo -e "请根据你的连接工具，对号入座解决："
+                            echo -e ""
+                            echo -e " ${cyan}▶ 场景 A: 使用 Windows CMD / PowerShell / Mac 终端${plain}"
+                            echo -e "   如果屏幕出现红色警告包含 ${red}REMOTE HOST IDENTIFICATION HAS CHANGED${plain}"
+                            echo -e "   请在你的【本地电脑】终端里，直接复制并运行这行命令洗白记录："
+                            echo -e "   ${green}ssh-keygen -R \"[${vps_ip}]:${new_port}\"${plain}"
+                            echo -e "   (若依然报错，可执行: ssh-keygen -R ${vps_ip})"
+                            echo -e "   洗白后，再次输入 ssh 登录命令即可丝滑进入！"
+                            echo -e ""
+                            echo -e " ${cyan}▶ 场景 B: 使用 FinalShell / Xshell / Termius 等 SSH 软件${plain}"
+                            echo -e "   软件会自动弹出一个【安全警告】或【主机密钥已更改】的提示框。"
+                            echo -e "   不用慌，直接点击弹窗上的 ${green}「接受并保存」${plain} 或 ${green}「更新密钥」${plain} 即可进入！"
+                            echo -e "${yellow}=================================================================${plain}\n"
+                            echo -e "⚠️ ${red}切记：请务必去云服务商（如 GCP/AWS/阿里云）的网页防火墙放行 ${new_port} 端口！${plain}"
+                        fi
                     else
                         echo -e "\n${red}❌ 端口不合法。${plain}"
                     fi
