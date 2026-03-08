@@ -1680,16 +1680,16 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                     OLD_NAME=$(echo "$json_str" | grep -o '"ps"[[:space:]]*:[[:space:]]*"[^"]+"' | cut -d'"' -f4)
                     
                     config_text=$(echo "$json_str" | tr 'A-Z' 'a-z' | tr -d ' ')
-                    echo "$config_text" | grep -qi '"net":"ws"' && PREFIX="${PREFIX}WS-"
+                    echo "$config_text" | grep -qi '"net":"ws"' && PREFIX="${PREFIX}ws-"
                     echo "$config_text" | grep -qi '"net":"grpc"' && PREFIX="${PREFIX}gRPC-"
-                    echo "$config_text" | grep -qi '"tls":"tls"' && PREFIX="${PREFIX}TLS-"
+                    echo "$config_text" | grep -qi '"tls":"tls"' && PREFIX="${PREFIX}tls-"
                 else
                     OLD_NAME=$(echo "$link" | sed -n 's/.*#//p')
                     
                     config_text=$(echo "$link" | tr 'A-Z' 'a-z')
-                    echo "$config_text" | grep -qi 'type=ws' && PREFIX="${PREFIX}WS-"
+                    echo "$config_text" | grep -qi 'type=ws' && PREFIX="${PREFIX}ws-"
                     echo "$config_text" | grep -qi 'type=grpc' && PREFIX="${PREFIX}gRPC-"
-                    echo "$config_text" | grep -qi 'security=tls' && PREFIX="${PREFIX}TLS-"
+                    echo "$config_text" | grep -qi 'security=tls' && PREFIX="${PREFIX}tls-"
                     echo "$config_text" | grep -qi 'security=reality' && PREFIX="${PREFIX}Reality-"
                 fi
 
