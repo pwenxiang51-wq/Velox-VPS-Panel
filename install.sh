@@ -1631,118 +1631,115 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
         ;;
         
    25)
-        echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (开源防洪版) ===${plain}"
-        
-        # 0. 自动安装二维码组件
-        if ! command -v qrencode >/dev/null 2>&1; then
-            echo -e "${yellow}正在安装二维码生成模块...${plain}"
-            apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1
-        fi
-
-        # 终极正则 (通杀所有主流协议)
-        REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
-
-        echo -e "${cyan}📡 正在启动全能雷达，跨目录提取底层配置...${plain}"
-
-        # --- 💡 模块一：第三方聚合文件防洪提取 (开源数据清洗层) ---
-        ARGO_DATA=""
-        # 兼容各类面板的导出目录 (无论是 agsbx 还是别人写的 share.txt)
-        for target_file in /root/agsbx/jh.txt /root/*share*.txt /root/*link*.txt; do
-            if ls $target_file 1> /dev/null 2>&1; then
-                # 【开源防洪机制】：很多脚本会追加几十个 CDN 备用 IP。
-                # 为了防止终端二维码刷屏崩溃，统一提取高优先级的前 3 个主节点。
-                TEMP_LINKS=$(grep -oE "$REGEX_PATTERN" $target_file 2>/dev/null | head -n 3)
-                ARGO_DATA=$(echo -e "${ARGO_DATA}\n${TEMP_LINKS}")
+            echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (开源防洪版) ===${plain}"
+            
+            # 0. 自动安装二维码组件
+            if ! command -v qrencode >/dev/null 2>&1; then
+                echo -e "${yellow}正在安装二维码生成模块...${plain}"
+                apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1
             fi
-        done
-        # 清洗去重
-        ARGO_DATA=$(echo "$ARGO_DATA" | sort -u | grep -v '^$' | tr -d '\r')
 
-        # --- 💡 模块二：底层核心标准配置扫描 (开源万能底座) ---
-        # 只扫真实配置目录，坚决不扫 /root/ 下的未知垃圾
-        CORE_DATA=$(grep -rhoE "$REGEX_PATTERN" /etc/x-ui/ /etc/s-box/ /etc/sing-box/ /usr/local/etc/xray/ 2>/dev/null | sort -u)
+            # 终极正则 (通杀所有主流协议)
+            REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
 
-        # --- 💡 模块三：全合流缝合 ---
-        ALL_LINKS=$(echo -e "${ARGO_DATA}\n${CORE_DATA}" | sort -u | grep -v '^$' | tr -d '\r')
-        
-        # ================= 👇 模块 3.5 开始 👇 =================
-        CURRENT_NAME=$(hostname)
-        [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX-Node"
-        PROCESSED_LINKS=""
-        PROCESSED_ARGO=""
+            echo -e "${cyan}📡 正在启动全能雷达，跨目录提取底层配置...${plain}"
 
-        for link in $ALL_LINKS; do
-            if [[ "$link" == vmess://* ]]; then
-                b64_str=${link#vmess://}
-                json_str=$(echo "$b64_str" | base64 -d 2>/dev/null)
-                if echo "$json_str" | grep -q '"ps"'; then
-                    new_json=$(echo "$json_str" | sed -E 's/"ps"[[:space:]]*:[[:space:]]*"[^"]+"/"ps": "'"$CURRENT_NAME"'"/g')
-                    new_b64=$(echo -n "$new_json" | base64 -w 0 2>/dev/null || echo -n "$new_json" | base64 | tr -d '\n')
-                    new_link="vmess://${new_b64}"
-                else
-                    new_link="$link"
+            # --- 💡 模块一：第三方聚合文件防洪提取 (开源数据清洗层) ---
+            ARGO_DATA=""
+            # 兼容各类面板的导出目录 (无论是 agsbx 还是别人写的 share.txt)
+            for target_file in /root/agsbx/jh.txt /root/*share*.txt /root/*link*.txt; do
+                if ls $target_file 1> /dev/null 2>&1; then
+                    # 【开源防洪机制】：很多脚本会追加几十个 CDN 备用 IP。
+                    # 为了防止终端二维码刷屏崩溃，统一提取高优先级的前 3 个主节点。
+                    TEMP_LINKS=$(grep -oE "$REGEX_PATTERN" $target_file 2>/dev/null | head -n 3)
+                    ARGO_DATA=$(echo -e "${ARGO_DATA}\n${TEMP_LINKS}")
                 fi
-            else
-                if [[ "$link" == *#* ]]; then
-                    new_link=$(echo "$link" | sed -E 's/#[^[:space:]]*$/#'"$CURRENT_NAME"'/')
-                else
-                    new_link="${link}#${CURRENT_NAME}"
-                fi
-            fi
-            
-            if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
-                PROCESSED_ARGO=$(echo -e "${PROCESSED_ARGO}\n${new_link}")
-            fi
-            PROCESSED_LINKS=$(echo -e "${PROCESSED_LINKS}\n${new_link}")
-        done
-
-        ALL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
-        ARGO_DATA=$(echo "$PROCESSED_ARGO" | grep -v '^$' | tr -d '\r')
-        # ================= 👆 模块 3.5 结束 👆 =================
-
-        if [ -n "$ALL_LINKS" ]; then
-            # --- 💡 模块四：Base64 聚合编码 ---
-
-        if [ -n "$ALL_LINKS" ]; then
-            # --- 💡 模块四：Base64 聚合编码 ---
-            BASE64_SUB=$(echo -e "$ALL_LINKS" | base64 -w 0)
-
-            echo -e "\n${green}🎉 扫描完毕！成功为您抓取到以下节点：${plain}"
-            echo -e "${yellow}======================================================================${plain}"
-            
-            echo -e "🚀【 全节点聚合订阅 (Base64编码) 】"
-            echo -e "分享链接（可直接粘贴到客户端导入）："
-            echo -e "${cyan}${BASE64_SUB}${plain}\n"
-            
-            echo -e "📦【 纯净明文节点列表 (供一次性批量复制) 】："
-            echo -e "${cyan}${ALL_LINKS}${plain}\n"
-            echo -e "${yellow}======================================================================${plain}"
-
-            echo -e "${cyan}👇 下面逐一展示节点详情与【迷你二维码】：${plain}"
-            
-            for link in $ALL_LINKS; do
-                PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
-                
-                # 智能身份打标：来源聚合文件的，统一打上高级标签
-                TAG="【 $PROTO 直连协议 】"
-                if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
-                    TAG="${red}【 隧道或聚合主节点 】${plain}"
-                fi
-
-                echo -e "${yellow}------------------------------------------------${plain}"
-                echo -e "🚀 $TAG 信息如下："
-                echo -e "${cyan}${link}${plain}"
-                
-                echo -e "\n二维码 (手机扫码即可导入)："
-                qrencode -m 2 -t UTF8 "$link"
             done
-            echo -e "${yellow}------------------------------------------------${plain}"
-        else
-            echo -e "\n${red}❌ 扫描结束：未发现有效节点。${plain}"
-        fi
+            # 清洗去重
+            ARGO_DATA=$(echo "$ARGO_DATA" | sort -u | grep -v '^$' | tr -d '\r')
 
-        read -p "👉 按【回车键】返回主菜单..."
-        ;;
+            # --- 💡 模块二：底层核心标准配置扫描 (开源万能底座) ---
+            # 只扫真实配置目录，坚决不扫 /root/ 下的未知垃圾
+            CORE_DATA=$(grep -rhoE "$REGEX_PATTERN" /etc/x-ui/ /etc/s-box/ /etc/sing-box/ /usr/local/etc/xray/ 2>/dev/null | sort -u)
+
+            # --- 💡 模块三：全合流缝合 ---
+            ALL_LINKS=$(echo -e "${ARGO_DATA}\n${CORE_DATA}" | sort -u | grep -v '^$' | tr -d '\r')
+            
+            # ================= 👇 模块 3.5 开始 👇 =================
+            CURRENT_NAME=$(hostname)
+            [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX-Node"
+            PROCESSED_LINKS=""
+            PROCESSED_ARGO=""
+
+            for link in $ALL_LINKS; do
+                if [[ "$link" == vmess://* ]]; then
+                    b64_str=${link#vmess://}
+                    json_str=$(echo "$b64_str" | base64 -d 2>/dev/null)
+                    if echo "$json_str" | grep -q '"ps"'; then
+                        new_json=$(echo "$json_str" | sed -E 's/"ps"[[:space:]]*:[[:space:]]*"[^"]+"/"ps": "'"$CURRENT_NAME"'"/g')
+                        new_b64=$(echo -n "$new_json" | base64 -w 0 2>/dev/null || echo -n "$new_json" | base64 | tr -d '\n')
+                        new_link="vmess://${new_b64}"
+                    else
+                        new_link="$link"
+                    fi
+                else
+                    if [[ "$link" == *#* ]]; then
+                        new_link=$(echo "$link" | sed -E 's/#[^[:space:]]*$/#'"$CURRENT_NAME"'/')
+                    else
+                        new_link="${link}#${CURRENT_NAME}"
+                    fi
+                fi
+                
+                if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
+                    PROCESSED_ARGO=$(echo -e "${PROCESSED_ARGO}\n${new_link}")
+                fi
+                PROCESSED_LINKS=$(echo -e "${PROCESSED_LINKS}\n${new_link}")
+            done
+
+            ALL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
+            ARGO_DATA=$(echo "$PROCESSED_ARGO" | grep -v '^$' | tr -d '\r')
+            # ================= 👆 模块 3.5 结束 👆 =================
+
+            if [ -n "$ALL_LINKS" ]; then
+                # --- 💡 模块四：Base64 聚合编码 ---
+                BASE64_SUB=$(echo -e "$ALL_LINKS" | base64 -w 0)
+
+                echo -e "\n${green}🎉 扫描完毕！成功为您抓取到以下节点：${plain}"
+                echo -e "${yellow}======================================================================${plain}"
+                
+                echo -e "🚀【 全节点聚合订阅 (Base64编码) 】"
+                echo -e "分享链接（可直接粘贴到客户端导入）："
+                echo -e "${cyan}${BASE64_SUB}${plain}\n"
+                
+                echo -e "📦【 纯净明文节点列表 (供一次性批量复制) 】："
+                echo -e "${cyan}${ALL_LINKS}${plain}\n"
+                echo -e "${yellow}======================================================================${plain}"
+
+                echo -e "${cyan}👇 下面逐一展示节点详情与【迷你二维码】：${plain}"
+                
+                for link in $ALL_LINKS; do
+                    PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
+                    
+                    # 智能身份打标：来源聚合文件的，统一打上高级标签
+                    TAG="【 $PROTO 直连协议 】"
+                    if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
+                        TAG="${red}【 隧道或聚合主节点 】${plain}"
+                    fi
+
+                    echo -e "${yellow}------------------------------------------------${plain}"
+                    echo -e "🚀 $TAG 信息如下："
+                    echo -e "${cyan}${link}${plain}"
+                    
+                    echo -e "\n二维码 (手机扫码即可导入)："
+                    qrencode -m 2 -t UTF8 "$link"
+                done
+                echo -e "${yellow}------------------------------------------------${plain}"
+            else
+                echo -e "\n${red}❌ 扫描结束：未发现有效节点。${plain}"
+            fi
+
+            read -p "👉 按【回车键】返回主菜单..."
+            ;;
     26)
         echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (开源全自动版) ===${plain}"
         
