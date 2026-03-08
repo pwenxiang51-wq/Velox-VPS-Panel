@@ -1709,8 +1709,6 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
         ALL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
         ARGO_DATA=$(echo "$PROCESSED_ARGO" | grep -v '^$' | tr -d '\r')
 
-        # ================= 👆 结束插入 👆 =================
-
         if [ -n "$ALL_LINKS" ]; then
             # --- 💡 模块四：Base64 聚合编码 ---
 
