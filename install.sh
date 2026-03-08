@@ -1208,9 +1208,19 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                         if [ "$new_port" -eq 22 ]; then 
                             echo -e "\n${green}✅ SSH 端口已恢复为默认 ${red}22${plain} 端口！${plain}"
                         else 
-                            # 动态获取本机 IP，加了防超时机制
-                            vps_ip=$(curl -s4m8 https://icanhazip.com 2>/dev/null || wget -qO- -t1 -T2 ipv4.icanhazip.com 2>/dev/null)
-                            [ -z "$vps_ip" ] && vps_ip="你的服务器IP"
+                            # 👇 终极无敌抓 IP 方案（本地直取 + 物理网卡穿透兜底）👇
+                            # 第一招（降维打击）：直接从当前 SSH 会话底层提取你连接的真实服务端 IP
+                            vps_ip=$(echo $SSH_CONNECTION | awk '{print $3}')
+                            
+                            # 第二招（极致兜底）：如果极其罕见地抓不到，才动用物理网卡强行穿透外部查询
+                            if [ -z "$vps_ip" ]; then
+                                real_iface=$(ip -4 route ls | grep default | grep -vE 'wg|warp|tun' | awk '{print $5}' | head -n 1)
+                                vps_ip=$(curl -s4m8 --interface "$real_iface" https://icanhazip.com 2>/dev/null)
+                            fi
+                            
+                            # 终极保底
+                            [ -z "$vps_ip" ] && vps_ip="你的VPS真实IP"
+                            # 👆--------------------------------------------------------👆
 
                             echo -e "\n${yellow}================ 🚨 极客换门指南 & 避坑必读 🚨 =================${plain}"
                             echo -e "${green}✅ SSH 端口已成功切换至: ${new_port}${plain}"
