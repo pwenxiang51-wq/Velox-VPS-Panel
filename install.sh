@@ -1673,13 +1673,14 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 OLD_NAME=""
                 PREFIX=""
                 
-                # 1. 暴力解析底层协议，获取真实的物理特征，不再依赖不靠谱的原备注名！
+                # 1. 暴力解析底层协议
                 if [[ "$link" == vmess://* ]]; then
                     b64_str=${link#vmess://}
                     json_str=$(echo "$b64_str" | base64 -d 2>/dev/null)
                     OLD_NAME=$(echo "$json_str" | grep -o '"ps"[[:space:]]*:[[:space:]]*"[^"]+"' | cut -d'"' -f4)
                     
                     config_text=$(echo "$json_str" | tr 'A-Z' 'a-z' | tr -d ' ')
+                    # 全面采用小写，完美避开 Shadowrocket 的国家代码误杀
                     echo "$config_text" | grep -qi '"net":"ws"' && PREFIX="${PREFIX}ws-"
                     echo "$config_text" | grep -qi '"net":"grpc"' && PREFIX="${PREFIX}gRPC-"
                     echo "$config_text" | grep -qi '"tls":"tls"' && PREFIX="${PREFIX}tls-"
@@ -1693,12 +1694,12 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                     echo "$config_text" | grep -qi 'security=reality' && PREFIX="${PREFIX}Reality-"
                 fi
 
-                # 2. Argo 终极判定逻辑：不漏杀、不误杀
+                # 2. Argo 终极判定逻辑
                 if echo "$OLD_NAME" | grep -qi "argo"; then
                     PREFIX="${PREFIX}Argo-"
                 elif [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
-                    # 核心黑科技：如果是外部聚合文件扫出来的，且底层用了 WS 或 gRPC，那 100% 是走 CDN/Argo 的隧道节点！
-                    if echo "$PREFIX" | grep -qE "WS-|gRPC-"; then
+                    # 【核心修复】：加入了 i 参数 (忽略大小写)，彻底根绝匹配失败问题！
+                    if echo "$PREFIX" | grep -qiE "ws|grpc"; then
                         PREFIX="${PREFIX}Argo-"
                     fi
                 fi
