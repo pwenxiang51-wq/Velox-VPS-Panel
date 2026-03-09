@@ -85,7 +85,7 @@ fi
     echo -e "  ${yellow}24.${plain} 🔄  ${green}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
     echo -e "  ${yellow}25.${plain} 🔗  ${purple}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
     echo -e "  ${yellow}26.${plain} 🔐  ${blue}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
-    echo -e "  ${yellow}27.${plain} 🧳 ${purple}全域资产跨机搬家与星际舰队中心 (多机容灾/指令群发)${plain}"
+    echo -e "  ${yellow}27.${plain} 🧳 ${purple}全域资产跨机搬家与星际舰队中心 (TG 云端灾备 / 万机齐发)${plain}"
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
