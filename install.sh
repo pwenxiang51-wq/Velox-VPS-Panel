@@ -2221,5 +2221,5 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox V4.1 (智能UI细节修缮版) 部署完毕！请输入 velox 欣赏！\033[0m"
+echo -e "\033[1;32m✅ Velox V5.0 (智能UI细节修缮版) 部署完毕！请输入 velox 欣赏！\033[0m"
 velox
