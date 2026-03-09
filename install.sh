@@ -1860,178 +1860,220 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
         read -p "👉 按【回车键】返回主菜单..."
         ;;
    27)
-        while true; do
-            echo -e "\n${blue}=== 🛰️ 星际舰队与跨机容灾中心 ===${plain}"
-            echo -e "  ${green}1.${plain} 📦 全域资产一键打包与跨机搬家 (原版数据克隆终极版)"
-            echo -e "  ${cyan}2.${plain} 🤝 组建舰队: 配置多机免密互信 (打通专属 SSH 桥梁)"
-            echo -e "  ${purple}3.${plain} 🚀 舰队出击: 向所有僚机群发执行指令 (万机齐发)"
-            echo -e "  ${red}4.${plain} 🗑️ 解散舰队: 清除本机群发记录与专属密钥 (安全无痕)"
-            echo -e "  ${yellow}0.${plain} 返回主菜单"
-            echo -e "--------------------------------------------------------"
-            read -p "👉 请选择操作 [0-4]: " fleet_choice
-            
-            case $fleet_choice in
-                1)
-                    echo -e "\n${blue}--- 🧳 全域资产一键打包与跨机搬家 ---${plain}"
-                    echo -e "${yellow}正在启动全频段雷达，扫描系统内的节点配置、面板数据、证书和定时任务...${plain}\n"
+            while true; do
+                echo -e "\n${blue}=== 🛰️ 星际舰队与跨机容灾中心 ===${plain}"
+                echo -e "  ${green}1.${plain} 📦 全域资产一键打包与跨机搬家 (原版数据克隆终极版)"
+                echo -e "  ${cyan}2.${plain} 🤝 组建舰队: 配置多机免密互信 (打通专属 SSH 桥梁)"
+                echo -e "  ${purple}3.${plain} 🚀 舰队出击: 向所有僚机群发执行指令 (万机齐发)"
+                echo -e "  ${red}4.${plain} 🗑️ 解散舰队: 清除本机群发记录与专属密钥 (安全无痕)"
+                echo -e "  ${yellow}0.${plain} 返回主菜单"
+                echo -e "--------------------------------------------------------"
+                read -p "👉 请选择操作 [0-4]: " fleet_choice
+                
+                case $fleet_choice in
+                    1)
+                        echo -e "\n${blue}--- 🧳 全域资产一键打包与跨机搬家 ---${plain}"
+                        echo -e "${yellow}正在启动全频段雷达，扫描系统内的节点配置、面板数据、证书和定时任务...${plain}\n"
 
-                    BACKUP_DIR="/root/velox_backup_$(date +%Y%m%d)"
-                    mkdir -p "$BACKUP_DIR"
-                    has_data=0
+                        BACKUP_DIR="/root/velox_backup_$(date +%Y%m%d)"
+                        mkdir -p "$BACKUP_DIR"
+                        has_data=0
 
-                    # --- 1. 代理脚本与面板全家桶扫描 ---
-                    if [ -d "/root/agsbx" ]; then cp -r /root/agsbx "$BACKUP_DIR/"; echo -e "✅ 成功提取 [小钢炮/AnyTLS] 核心配置"; has_data=1; fi
-                    if [ -d "/etc/s-box" ]; then cp -r /etc/s-box "$BACKUP_DIR/"; echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"; has_data=1;
-                    elif [ -d "/etc/sing-box" ]; then cp -r /etc/sing-box "$BACKUP_DIR/"; echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"; has_data=1; fi
-                    if [ -d "/etc/x-ui" ]; then cp -r /etc/x-ui "$BACKUP_DIR/"; echo -e "✅ 成功提取 [X-UI / 3X-UI 面板] 数据库与配置"; has_data=1; fi
+                        # --- 1. 代理脚本与面板全家桶扫描 ---
+                        if [ -d "/root/agsbx" ]; then cp -r /root/agsbx "$BACKUP_DIR/"; echo -e "✅ 成功提取 [小钢炮/AnyTLS] 核心配置"; has_data=1; fi
+                        if [ -d "/etc/s-box" ]; then cp -r /etc/s-box "$BACKUP_DIR/"; echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"; has_data=1;
+                        elif [ -d "/etc/sing-box" ]; then cp -r /etc/sing-box "$BACKUP_DIR/"; echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"; has_data=1; fi
+                        if [ -d "/etc/x-ui" ]; then cp -r /etc/x-ui "$BACKUP_DIR/"; echo -e "✅ 成功提取 [X-UI / 3X-UI 面板] 数据库与配置"; has_data=1; fi
 
-                    # --- 2. 核心护盾扫描 ---
-                    if [ -d "/root/.acme.sh" ]; then cp -r /root/.acme.sh "$BACKUP_DIR/"; echo -e "✅ 成功提取 [Acme 域名证书资产]"; has_data=1;
-                    elif [ -d "$HOME/.acme.sh" ]; then cp -r "$HOME/.acme.sh" "$BACKUP_DIR/"; echo -e "✅ 成功提取 [Acme 域名证书资产]"; has_data=1; fi
+                        # --- 2. 核心护盾扫描 ---
+                        if [ -d "/root/.acme.sh" ]; then cp -r /root/.acme.sh "$BACKUP_DIR/"; echo -e "✅ 成功提取 [Acme 域名证书资产]"; has_data=1;
+                        elif [ -d "$HOME/.acme.sh" ]; then cp -r "$HOME/.acme.sh" "$BACKUP_DIR/"; echo -e "✅ 成功提取 [Acme 域名证书资产]"; has_data=1; fi
 
-                    # --- 3. 自动化任务扫描 ---
-                    if crontab -l > "$BACKUP_DIR/crontab_backup.txt" 2>/dev/null; then
-                        if [ -s "$BACKUP_DIR/crontab_backup.txt" ]; then echo -e "✅ 成功提取 [系统定时任务 (crontab)]"; has_data=1;
-                        else rm -f "$BACKUP_DIR/crontab_backup.txt"; fi
-                    fi
-
-                    echo -e "${cyan}--------------------------------------------------------${plain}"
-                    
-                    # --- 4. 极客专属：自定义目录打包引擎 ---
-                    echo -e "💡 ${green}除了以上标准资产，您是否还有其他应用需要一起打包搬家？${plain}"
-                    echo -e "${purple}📚 【常见应用路径小抄】 (如需打包，请直接复制下方路径)：${plain}"
-                    echo -e "   - ☁️ Alist 网盘数据:  ${yellow}/opt/alist/data${plain}"
-                    echo -e "   - 🤖 哪吒探针面板:  ${yellow}/opt/nezha${plain}"
-                    echo -e "   - 🐳 Docker 数据卷:  ${yellow}/var/lib/docker/volumes${plain}"
-                    echo -e "   - 🌐 Nginx 网站目录:  ${yellow}/var/www/html${plain}"
-                    read -p "👉 请输入完整路径 (多个用空格隔开，回车跳过): " custom_paths
-
-                    if [ -n "$custom_paths" ]; then
-                        mkdir -p "$BACKUP_DIR/custom_assets"
-                        for path in $custom_paths; do
-                            if [ -d "$path" ] || [ -f "$path" ]; then
-                                cd /
-                                rel_path="${path#/}"
-                                cp --parents -r "$rel_path" "$BACKUP_DIR/custom_assets/" 2>/dev/null
-                                echo -e "📦 成功将自定义路径追加至包裹: ${yellow}$path${plain}"
-                                has_data=1
-                            else
-                                echo -e "⚠️ ${red}找不到指定的文件或目录，已跳过: $path${plain}"
-                            fi
-                        done
-                        cd /root
-                    fi
-
-                    if [ "$has_data" -eq 1 ]; then
-                        echo -e "\n${cyan}⏳ 正在对包裹进行高强度压缩加密，请耐心等待...${plain}"
-                        cd /root
-                        tar -czf "Velox_Assets_Backup.tar.gz" "$(basename "$BACKUP_DIR")" >/dev/null 2>&1
-                        rm -rf "$BACKUP_DIR"
-                        SSH_PORT=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
-                        [ -z "$SSH_PORT" ] && SSH_PORT="22"
-
-                        echo -e "\n${green}🎉 资产克隆打包完毕！您的全域备份文件已生成：${plain}"
-                        echo -e "${cyan}📂 文件绝对路径：/root/Velox_Assets_Backup.tar.gz${plain}"
-                        
-                        # 👇👇👇 把我最经典的保姆级教学加回来了 👇👇👇
-                        echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (全系统平台智能适配版)：${plain}"
-                        echo -e "--------------------------------------------------------"
-                        echo -e "${cyan}👉 方案 A：使用图形化 SSH 软件 (如 FinalShell / Xshell / Termius)${plain}"
-                        echo -e "  1. 在软件的文件管理界面，进入 /root 目录，右键下载备份包到电脑桌面。"
-                        echo -e "  2. 登录【新机器】，直接将该包拖拽上传到新机器的 /root 目录下。\n"
-                        
-                        echo -e "${cyan}👉 方案 B：使用纯命令行工具 (CMD / PowerShell / Mac 终端)${plain}"
-                        echo -e "  📥 【第一步：下载到本地电脑】打开电脑本地新终端，复制执行 (请修改旧IP)："
-                        echo -e "   - [Windows 用户] (存至 D 盘): scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz D:/"
-                        echo -e "   - [Mac/Linux 用户] (存至桌面): scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz ~/Desktop/"
-                        echo -e ""
-                        echo -e "  📤 【第二步：上传至新机器】(请修改新IP及端口)："
-                        echo -e "   - [Windows 用户]: scp -P 22 D:/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
-                        echo -e "   - [Mac/Linux 用户]: scp -P 22 ~/Desktop/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
-                        echo -e ""
-                        # 👆👆👆 教学部分结束 👆👆👆
-
-                        echo -e "${purple}🔥 【第三步：新机器终极恢复长指令】 (在新 VPS 终端执行)：${plain}"
-                        echo -e "  ${cyan}cd /root && tar -xzf Velox_Assets_Backup.tar.gz && BACKUP_NAME=\$(ls -d velox_backup_*) && cp -rf \$BACKUP_NAME/agsbx /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/s-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/sing-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/x-ui /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/.acme.sh /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/custom_assets/* / 2>/dev/null; crontab \$BACKUP_NAME/crontab_backup.txt 2>/dev/null; rm -rf Velox_Assets_Backup.tar.gz \$BACKUP_NAME; echo -e \"\\n✅ 资产覆盖恢复成功！节点与证书已满血复活！\"${plain}"
-                    else
-                        echo -e "\n${red}❌ 未提取到任何资产，打包已取消。${plain}"
-                        rm -rf "$BACKUP_DIR"
-                    fi
-                    ;;
-                2)
-                    echo -e "\n${blue}--- 🤝 组建星际舰队：打通免密互信 ---${plain}"
-                    echo -e "💡 原理：本机将生成 Velox 专属独立密钥，并塞入目标机器。不影响您原有的任何 SSH 配置！"
-                    
-                    # 史诗级修正：使用独立命名的密钥文件，绝不误伤默认的 id_rsa
-                    if [ ! -f ~/.ssh/velox_fleet_rsa ]; then
-                        echo -e "${yellow}正在为母舰生成专属指挥官兵符 (velox_fleet_rsa)...${plain}"
-                        ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/velox_fleet_rsa >/dev/null 2>&1
-                    fi
-                    
-                    read -p "👉 请输入目标僚机 IP 地址: " target_ip
-                    if [ -n "$target_ip" ]; then
-                        read -p "👉 请输入目标机器 SSH 端口 (默认 22): " target_port
-                        [ -z "$target_port" ] && target_port=22
-                        
-                        echo -e "\n${cyan}即将连接目标机器，如果提示 (yes/no) 请手动输入 yes 并回车，随后输入目标机器的 root 密码！${plain}"
-                        # 指定使用我们刚生成的专属公钥进行投递
-                        ssh-copy-id -i ~/.ssh/velox_fleet_rsa.pub -p "$target_port" "root@$target_ip"
-                        
-                        if [ $? -eq 0 ]; then
-                            echo "$target_ip:$target_port" >> /root/.velox_fleet_nodes.txt
-                            sort -u /root/.velox_fleet_nodes.txt -o /root/.velox_fleet_nodes.txt
-                            echo -e "${green}✅ 互信打通成功！节点 [$target_ip] 已编入舰队序列！${plain}"
-                        else
-                            echo -e "${red}❌ 互信失败，请检查 IP、端口或密码是否正确。${plain}"
+                        # --- 3. 自动化任务扫描 ---
+                        if crontab -l > "$BACKUP_DIR/crontab_backup.txt" 2>/dev/null; then
+                            if [ -s "$BACKUP_DIR/crontab_backup.txt" ]; then echo -e "✅ 成功提取 [系统定时任务 (crontab)]"; has_data=1;
+                            else rm -f "$BACKUP_DIR/crontab_backup.txt"; fi
                         fi
-                    fi
-                    ;;
-                3)
-                    if [ ! -s /root/.velox_fleet_nodes.txt ]; then
-                        echo -e "\n${red}⚠️ 舰队空空如也！请先使用 [选项 2] 添加僚机！${plain}"
-                    else
-                        echo -e "\n${blue}--- 🚀 舰队出击：万机齐发 ---${plain}"
-                        echo -e "当前已编入舰队的僚机列表："
-                        cat /root/.velox_fleet_nodes.txt | awk -F: '{print " - 🟢 IP: "$1" (端口: "$2")"}'
+
                         echo -e "${cyan}--------------------------------------------------------${plain}"
-                        echo -e "💡 你可以输入类似 ${yellow}apt update -y${plain} 或者 ${yellow}reboot${plain}"
-                        read -p "👉 请输入要对所有僚机下达的 Linux 指令: " fleet_cmd
                         
-                        if [ -n "$fleet_cmd" ]; then
-                            echo -e "\n${purple}📡 正在向全频段广播指令...${plain}"
-                            for node in $(cat /root/.velox_fleet_nodes.txt); do
-                                ip=$(echo "$node" | cut -d: -f1)
-                                port=$(echo "$node" | cut -d: -f2)
-                                echo -e "\n${yellow}[执行节点 -> $ip] 的回传报告：${plain}"
-                                # 强制使用我们的专属私钥进行连接，无视密码校验
-                                ssh -i ~/.ssh/velox_fleet_rsa -o ConnectTimeout=10 -o StrictHostKeyChecking=no -p "$port" "root@$ip" "$fleet_cmd"
+                        # --- 4. 极客专属：自定义目录打包引擎 ---
+                        echo -e "💡 ${green}除了以上标准资产，您是否还有其他应用需要一起打包搬家？${plain}"
+                        echo -e "${purple}📚 【常见应用路径小抄】 (如需打包，请直接复制下方路径)：${plain}"
+                        echo -e "   - ☁️ Alist 网盘数据:  ${yellow}/opt/alist/data${plain}"
+                        echo -e "   - 🤖 哪吒探针面板:  ${yellow}/opt/nezha${plain}"
+                        echo -e "   - 🐳 Docker 数据卷:  ${yellow}/var/lib/docker/volumes${plain}"
+                        echo -e "   - 🌐 Nginx 网站目录:  ${yellow}/var/www/html${plain}"
+                        read -p "👉 请输入完整路径 (多个用空格隔开，回车跳过): " custom_paths
+
+                        if [ -n "$custom_paths" ]; then
+                            mkdir -p "$BACKUP_DIR/custom_assets"
+                            for path in $custom_paths; do
+                                if [ -d "$path" ] || [ -f "$path" ]; then
+                                    cd /
+                                    rel_path="${path#/}"
+                                    cp --parents -r "$rel_path" "$BACKUP_DIR/custom_assets/" 2>/dev/null
+                                    echo -e "📦 成功将自定义路径追加至包裹: ${yellow}$path${plain}"
+                                    has_data=1
+                                else
+                                    echo -e "⚠️ ${red}找不到指定的文件或目录，已跳过: $path${plain}"
+                                fi
                             done
-                            echo -e "\n${green}🎉 舰队指令群发完毕！${plain}"
+                            cd /root
                         fi
-                    fi
-                    ;;
-                4)
-                    echo -e "\n${blue}--- 🗑️ 解散舰队与痕迹清理 ---${plain}"
-                    read -p "⚠️ 此操作将删除本机的群发名单及 Velox 专属兵符，确认解散？(y/n): " confirm_disband
-                    if [[ "$confirm_disband" == "y" || "$confirm_disband" == "Y" ]]; then
-                        rm -f /root/.velox_fleet_nodes.txt
-                        # 只删咱们自己生成的兵符，绝对不动用户的 id_rsa
-                        rm -f ~/.ssh/velox_fleet_rsa ~/.ssh/velox_fleet_rsa.pub
-                        echo -e "${green}✅ 舰队名单与专属密钥已彻底粉碎，本机已恢复平民身份！${plain}"
-                    else
-                        echo -e "${yellow}操作已取消。${plain}"
-                    fi
-                    ;;
-                0) break ;;
-                *) echo -e "\n${red}❌ 无效输入。${plain}" ;;
-            esac
-            
-            if [[ "$fleet_choice" != "0" ]]; then
-                echo ""
-                read -p "👉 按【回车键】继续..."
-            fi
-        done
-        ;;
+
+                        if [ "$has_data" -eq 1 ]; then
+                            echo -e "\n${cyan}⏳ 正在对包裹进行高强度压缩加密，请耐心等待...${plain}"
+                            cd /root
+                            tar -czf "Velox_Assets_Backup.tar.gz" "$(basename "$BACKUP_DIR")" >/dev/null 2>&1
+                            rm -rf "$BACKUP_DIR"
+                            SSH_PORT=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
+                            [ -z "$SSH_PORT" ] && SSH_PORT="22"
+
+                            echo -e "\n${green}🎉 资产克隆打包完毕！您的全域备份文件已生成：${plain}"
+                            echo -e "${cyan}📂 文件绝对路径：/root/Velox_Assets_Backup.tar.gz${plain}"
+                            
+                            # ================= 👇 新增：TG 云端容灾附加选项 👇 =================
+                            echo -e "\n${purple}☁️ 【可选附加项：TG 云端容灾备份】${plain}"
+                            read -p "👉 是否顺便将此备份包推送至您的 Telegram 机器人保管？(y/n) [直接回车跳过]: " send_tg
+                            if [[ "$send_tg" == "y" || "$send_tg" == "Y" ]]; then
+                                
+                                # 💡 核心联动：完全对齐 16/17 号菜单的全局配置标准
+                                SHARED_TG_CONF="/etc/velox_tg.conf" 
+                                
+                                # 尝试读取公共配置
+                                if [ -f "$SHARED_TG_CONF" ]; then 
+                                    source "$SHARED_TG_CONF" 
+                                fi
+                                
+                                # 如果公共配置里没抓到，才要求手动输入，并保存起来供 16/17/27 共享
+                                if [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ]; then
+                                    echo -e "${yellow}未检测到全局 TG 凭据，首次使用需配置 (将自动写入全局池，全面板共享)：${plain}"
+                                    read -p "请输入 TG Bot Token: " GLOBAL_TG_TOKEN
+                                    read -p "请输入您的 TG Chat ID: " GLOBAL_TG_CHATID
+                                    
+                                    # 按照 16/17 号菜单的格式写入，实现双向互通
+                                    echo "GLOBAL_TG_TOKEN=\"$GLOBAL_TG_TOKEN\"" > "$SHARED_TG_CONF"
+                                    echo "GLOBAL_TG_CHATID=\"$GLOBAL_TG_CHATID\"" >> "$SHARED_TG_CONF"
+                                else
+                                    echo -e "${green}✅ 成功抓取到全局绑定的 TG 凭据！无需重复输入。${plain}"
+                                fi
+                                
+                                if [ -n "$GLOBAL_TG_TOKEN" ] && [ -n "$GLOBAL_TG_CHATID" ]; then
+                                    echo -e "${cyan}🚀 正在将包裹推送到 Telegram... (若文件较大需等待几秒)${plain}"
+                                    TG_RESP=$(curl -s -F "chat_id=$GLOBAL_TG_CHATID" \
+                                        -F "document=@/root/Velox_Assets_Backup.tar.gz" \
+                                        -F "caption=📦 [Velox 灾备中心] 主机: $(hostname) | 时间: $(date +'%Y-%m-%d %H:%M')" \
+                                        "https://api.telegram.org/bot$GLOBAL_TG_TOKEN/sendDocument")
+                                    
+                                    if echo "$TG_RESP" | grep -q '"ok":true'; then
+                                        echo -e "${green}✅ 云端推送成功！请前往 Telegram 您的 Bot 对话框查收。${plain}"
+                                    else
+                                        echo -e "${red}❌ 推送失败！可能是 Token/ID 错误，或网络无法连通 TG API。${plain}"
+                                    fi
+                                fi
+                            fi
+                            # ================= 👆 新增：TG 云端容灾结束 👆 =================
+                            
+                            # 👇👇👇 把我最经典的保姆级教学加回来了 👇👇👇
+                            echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (全系统平台智能适配版)：${plain}"
+                            echo -e "--------------------------------------------------------"
+                            echo -e "${cyan}👉 方案 A：使用图形化 SSH 软件 (如 FinalShell / Xshell / Termius)${plain}"
+                            echo -e "  1. 在软件的文件管理界面，进入 /root 目录，右键下载备份包到电脑桌面。"
+                            echo -e "  2. 登录【新机器】，直接将该包拖拽上传到新机器的 /root 目录下。\n"
+                            
+                            echo -e "${cyan}👉 方案 B：使用纯命令行工具 (CMD / PowerShell / Mac 终端)${plain}"
+                            echo -e "  📥 【第一步：下载到本地电脑】打开电脑本地新终端，复制执行 (请修改旧IP)："
+                            echo -e "   - [Windows 用户] (存至 D 盘): scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz D:/"
+                            echo -e "   - [Mac/Linux 用户] (存至桌面): scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz ~/Desktop/"
+                            echo -e ""
+                            echo -e "  📤 【第二步：上传至新机器】(请修改新IP及端口)："
+                            echo -e "   - [Windows 用户]: scp -P 22 D:/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
+                            echo -e "   - [Mac/Linux 用户]: scp -P 22 ~/Desktop/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
+                            echo -e ""
+                            # 👆👆👆 教学部分结束 👆👆👆
+
+                            echo -e "${purple}🔥 【第三步：新机器终极恢复长指令】 (在新 VPS 终端执行)：${plain}"
+                            echo -e "  ${cyan}cd /root && tar -xzf Velox_Assets_Backup.tar.gz && BACKUP_NAME=\$(ls -d velox_backup_*) && cp -rf \$BACKUP_NAME/agsbx /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/s-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/sing-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/x-ui /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/.acme.sh /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/custom_assets/* / 2>/dev/null; crontab \$BACKUP_NAME/crontab_backup.txt 2>/dev/null; rm -rf Velox_Assets_Backup.tar.gz \$BACKUP_NAME; echo -e \"\\n✅ 资产覆盖恢复成功！节点与证书已满血复活！\"${plain}"
+                        else
+                            echo -e "\n${red}❌ 未提取到任何资产，打包已取消。${plain}"
+                            rm -rf "$BACKUP_DIR"
+                        fi
+                        ;;
+                    2)
+                        echo -e "\n${blue}--- 🤝 组建星际舰队：打通免密互信 ---${plain}"
+                        echo -e "💡 原理：本机将生成 Velox 专属独立密钥，并塞入目标机器。不影响您原有的任何 SSH 配置！"
+                        
+                        # 史诗级修正：使用独立命名的密钥文件，绝不误伤默认的 id_rsa
+                        if [ ! -f ~/.ssh/velox_fleet_rsa ]; then
+                            echo -e "${yellow}正在为母舰生成专属指挥官兵符 (velox_fleet_rsa)...${plain}"
+                            ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/velox_fleet_rsa >/dev/null 2>&1
+                        fi
+                        
+                        read -p "👉 请输入目标僚机 IP 地址: " target_ip
+                        if [ -n "$target_ip" ]; then
+                            read -p "👉 请输入目标机器 SSH 端口 (默认 22): " target_port
+                            [ -z "$target_port" ] && target_port=22
+                            
+                            echo -e "\n${cyan}即将连接目标机器，如果提示 (yes/no) 请手动输入 yes 并回车，随后输入目标机器的 root 密码！${plain}"
+                            # 指定使用我们刚生成的专属公钥进行投递
+                            ssh-copy-id -i ~/.ssh/velox_fleet_rsa.pub -p "$target_port" "root@$target_ip"
+                            
+                            if [ $? -eq 0 ]; then
+                                echo "$target_ip:$target_port" >> /root/.velox_fleet_nodes.txt
+                                sort -u /root/.velox_fleet_nodes.txt -o /root/.velox_fleet_nodes.txt
+                                echo -e "${green}✅ 互信打通成功！节点 [$target_ip] 已编入舰队序列！${plain}"
+                            else
+                                echo -e "${red}❌ 互信失败，请检查 IP、端口或密码是否正确。${plain}"
+                            fi
+                        fi
+                        ;;
+                    3)
+                        if [ ! -s /root/.velox_fleet_nodes.txt ]; then
+                            echo -e "\n${red}⚠️ 舰队空空如也！请先使用 [选项 2] 添加僚机！${plain}"
+                        else
+                            echo -e "\n${blue}--- 🚀 舰队出击：万机齐发 ---${plain}"
+                            echo -e "当前已编入舰队的僚机列表："
+                            cat /root/.velox_fleet_nodes.txt | awk -F: '{print " - 🟢 IP: "$1" (端口: "$2")"}'
+                            echo -e "${cyan}--------------------------------------------------------${plain}"
+                            echo -e "💡 你可以输入类似 ${yellow}apt update -y${plain} 或者 ${yellow}reboot${plain}"
+                            read -p "👉 请输入要对所有僚机下达的 Linux 指令: " fleet_cmd
+                            
+                            if [ -n "$fleet_cmd" ]; then
+                                echo -e "\n${purple}📡 正在向全频段广播指令...${plain}"
+                                for node in $(cat /root/.velox_fleet_nodes.txt); do
+                                    ip=$(echo "$node" | cut -d: -f1)
+                                    port=$(echo "$node" | cut -d: -f2)
+                                    echo -e "\n${yellow}[执行节点 -> $ip] 的回传报告：${plain}"
+                                    # 强制使用我们的专属私钥进行连接，无视密码校验
+                                    ssh -i ~/.ssh/velox_fleet_rsa -o ConnectTimeout=10 -o StrictHostKeyChecking=no -p "$port" "root@$ip" "$fleet_cmd"
+                                done
+                                echo -e "\n${green}🎉 舰队指令群发完毕！${plain}"
+                            fi
+                        fi
+                        ;;
+                    4)
+                        echo -e "\n${blue}--- 🗑️ 解散舰队与痕迹清理 ---${plain}"
+                        read -p "⚠️ 此操作将删除本机的群发名单及 Velox 专属兵符，确认解散？(y/n): " confirm_disband
+                        if [[ "$confirm_disband" == "y" || "$confirm_disband" == "Y" ]]; then
+                            rm -f /root/.velox_fleet_nodes.txt
+                            # 只删咱们自己生成的兵符，绝对不动用户的 id_rsa
+                            rm -f ~/.ssh/velox_fleet_rsa ~/.ssh/velox_fleet_rsa.pub
+                            echo -e "${green}✅ 舰队名单与专属密钥已彻底粉碎，本机已恢复平民身份！${plain}"
+                        else
+                            echo -e "${yellow}操作已取消。${plain}"
+                        fi
+                        ;;
+                    0) break ;;
+                    *) echo -e "\n${red}❌ 无效输入。${plain}" ;;
+                esac
+                
+                if [[ "$fleet_choice" != "0" ]]; then
+                    echo ""
+                    read -p "👉 按【回车键】继续..."
+                fi
+            done
+            ;;
     U|u)
             echo -e "\n${red}=======================================================${plain}"
             echo -e "${red}                ⚠️ 终极卸载与物理粉碎程序                ${plain}"
