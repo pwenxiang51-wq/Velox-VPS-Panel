@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V4.1 作者专属版 - 智能系统嗅探 + TG徽章)
+# 自动生成并运行 Velox 面板 (V5.0 作者专属版 - 智能系统嗅探 + TG徽章)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
