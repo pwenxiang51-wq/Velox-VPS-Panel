@@ -1,4 +1,4 @@
-# 🚀 Velox VPS Panel - 极客专属全能运维终端 (V4.1)
+# 🚀 Velox VPS Panel - 极客专属全能运维终端 (V5.0)
 
 ![License](https://img.shields.io/badge/License-MIT-blue.svg) ![Bash](https://img.shields.io/badge/Language-Bash-green.svg) ![Platform](https://img.shields.io/badge/Platform-Debian%20%7C%20Ubuntu%20%7C%20CentOS-lightgrey.svg)
 
