@@ -41,13 +41,12 @@ else
     traffic_stat=$(echo -e "${yellow}[未设置]${plain}")
 fi
     clear
-  # ================= 专属署名区 =================
-echo -e "${cyan}██╗   ██╗███████╗██╗     ██████╗ ██╗  ██╗${plain}"
-echo -e "${cyan}██║   ██║██╔════╝██║    ██╔═══██╗╚██╗██╔╝${plain}"
-echo -e "${blue}██║   ██║█████╗  ██║    ██║   ██║ ╚███╔╝ ${plain}"
-echo -e "${blue}╚██╗ ██╔╝██╔══╝  ██║    ██║   ██║ ██╔██╗ ${plain}"
-echo -e "${purple} ╚████╔╝ ███████╗███████╗╚██████╔╝██╔╝ ██╗${plain}"
-echo -e "${purple}  ╚═══╝  ╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝${plain}"
+# ================= 专属署名区 =================
+echo -e "${cyan} _    __     __             ${plain}"
+echo -e "${cyan}| |  / /__  / /___  _  __   ${plain}"
+echo -e "${blue}| | / / _ \/ / __ \| |/_/   ${plain}"
+echo -e "${blue}| |/ /  __/ / /_/ />  <     ${plain}"
+echo -e "${purple}|___/\___/_/\____/_/|_|     ${plain}"
 echo -e "${cyan}=======================================================${plain}"
 echo -e "作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
 echo -e "作者Velo.x博客 : ${blue}222382.xyz${plain}"
