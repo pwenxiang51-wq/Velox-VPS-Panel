@@ -9,7 +9,7 @@ green='\033[1;32m'
 yellow='\033[1;33m' 
 cyan='\033[1;36m'
 red='\033[1;31m'
-purple='\033[38;5;207m'
+purple='\033[38;5;207m' 
 plain='\033[0m'
 
 while true; do 
