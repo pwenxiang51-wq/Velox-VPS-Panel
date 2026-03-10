@@ -42,10 +42,12 @@ else
 fi
     clear
 # ================= 专属署名区 =================
-echo -e "${cyan} __   __  ___   _      ___   __  __ ${plain}"
-echo -e "${cyan} \ \ / / | __| | |    / _ \  \ \/ / ${plain}"
-echo -e "${blue}  \ V /  | _|  | |__ | (_) |  >  <  ${plain}"
-echo -e "${purple}   \_/   |___| |____| \___/  /_/\_\ ${plain}"
+echo -e "${cyan}██╗   ██╗███████╗██╗     ██████╗ ██╗  ██╗${plain}"
+echo -e "${cyan}██║   ██║██╔════╝██║    ██╔═══██╗╚██╗██╔╝${plain}"
+echo -e "${blue}██║   ██║█████╗  ██║    ██║   ██║ ╚███╔╝ ${plain}"
+echo -e "${blue}╚██╗ ██╔╝██╔══╝  ██║    ██║   ██║ ██╔██╗ ${plain}"
+echo -e "${purple} ╚████╔╝ ███████╗███████╗╚██████╔╝██╔╝ ██╗${plain}"
+echo -e "${purple}  ╚═══╝  ╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝${plain}"
 echo -e "${cyan}=======================================================${plain}"
 echo -e "作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
 echo -e "作者Velo.x博客 : ${blue}222382.xyz${plain}"
