@@ -15,7 +15,7 @@ plain='\033[0m'
 while true; do
     # === 核心服务动态状态检测 ===
     if systemctl list-unit-files | grep -q "sing-box.service"; then
-        sb_stat=$(systemctl is-active --quiet sing-box && echo -e "${green}[运行中]${plain}" || echo -e "${red}[已停止]${plain}") 
+        sb_stat=$(systemctl is-active --quiet sing-box && echo -e "${green}[运行中]${plain}" || echo -e "${red}[已停止]${plain}")  
     else
         sb_stat=$(echo -e "${yellow}[未安装]${plain}")
     fi
