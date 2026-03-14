@@ -13,9 +13,11 @@ purple='\033[38;5;207m'
 plain='\033[0m'
 
 while true; do 
-    # === 核心服务动态状态检测 ===
-    if systemctl list-unit-files | grep -q "sing-box.service"; then
-        sb_stat=$(systemctl is-active --quiet sing-box && echo -e "${green}[运行中]${plain}" || echo -e "${red}[已停止]${plain}")  
+    # === 🚀 万能核心服务动态状态检测 (穿透查进程) ===
+    if pgrep -x "sing-box" > /dev/null 2>&1 || pgrep -x "xray" > /dev/null 2>&1; then
+        sb_stat=$(echo -e "${green}[运行中]${plain}")
+    elif command -v sing-box >/dev/null 2>&1 || command -v xray >/dev/null 2>&1; then
+        sb_stat=$(echo -e "${red}[已停止]${plain}")
     else
         sb_stat=$(echo -e "${yellow}[未安装]${plain}")
     fi
@@ -105,24 +107,43 @@ echo -e "${cyan}=======================================================${plain}"
         4) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
         5) echo -e "\n${cyan}--- 正在启动任务管理器 ---${plain}"; sleep 1; top ;;
         6) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
-     7)
-        echo -e "\n${blue}=== 📦 代理核心深度体检 (系统底层) ===${plain}"
+    7)
+        echo -e "\n${blue}=== 📦 代理核心深度体检 (全网脚本兼容版) ===${plain}"
         echo -e "${yellow}当前北京时间：${green}$(date +"%Y-%m-%d %H:%M:%S")${plain}\n"
 
         check_detail() {
-            local service=$1
+            local core_name=$1
             local display=$2
-            if systemctl list-unit-files | grep -qw "${service}.service"; then
-                # 自动提取版本号
-                local version=$($service version 2>/dev/null | head -n 1 | awk '{print $2}')
-                [ -z "$version" ] && version=$($service -version 2>/dev/null | head -n 1 | awk '{print $3}')
+            
+            # 1. 底层雷达：全网搜寻核心可执行文件 (兼容所有第三方脚本的奇葩安装路径)
+            local bin_path=$(command -v "$core_name" 2>/dev/null)
+            [ -z "$bin_path" ] && [ -f "/usr/local/bin/$core_name" ] && bin_path="/usr/local/bin/$core_name"
+            [ -z "$bin_path" ] && [ -f "/usr/bin/$core_name" ] && bin_path="/usr/bin/$core_name"
+            [ -z "$bin_path" ] && [ -f "/opt/$core_name/$core_name" ] && bin_path="/opt/$core_name/$core_name"
+
+            # 2. 活体探针：直接问询 Linux 内核该进程是否存活 (绝对精准)
+            local is_running=false
+            if pgrep -x "$core_name" > /dev/null 2>&1 || ps -ef | grep -v grep | grep -wq "$core_name"; then
+                is_running=true
+            elif systemctl is-active --quiet "$core_name" 2>/dev/null; then
+                is_running=true
+            fi
+
+            # 3. 综合判定与数据提取
+            if [ -n "$bin_path" ] || [ "$is_running" = true ]; then
+                # 智能提取版本号 (硬核正则，完美过滤各种杂乱输出)
+                local version="未知"
+                if [ -n "$bin_path" ]; then
+                    version=$($bin_path version 2>/dev/null | head -n 1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n 1)
+                    [ -z "$version" ] && version=$($bin_path -version 2>/dev/null | head -n 1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n 1)
+                fi
                 [ -z "$version" ] && version="未知版本"
 
-                # 提取监听端口
-                local ports=$(ss -tlnp | grep "$service" | awk '{print $4}' | awk -F':' '{print $NF}' | sort -u | tr '\n' ' ')
-                [ -z "$ports" ] && ports="无外部监听"
+                # 提取真实监听端口 (底层抓取，去重展示)
+                local ports=$(ss -tlnp 2>/dev/null | grep -w "$core_name" | awk '{print $4}' | awk -F':' '{print $NF}' | sort -n -u | tr '\n' ' ')
+                [ -z "$ports" ] && ports="无外部监听 (或端口复用)"
 
-                if systemctl is-active --quiet "$service"; then
+                if [ "$is_running" = true ]; then
                     echo -e " ${display} : ${green}运行中 ✅${plain}"
                     echo -e "    └─ 版本: ${cyan}${version}${plain}  端口: ${cyan}${ports}${plain}"
                 else
