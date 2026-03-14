@@ -1630,8 +1630,8 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
         done
         ;;
         
-     25)
-            echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (开源防洪版) ===${plain}"
+    25)
+            echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (智能防洪+完美重编版) ===${plain}"
             
             # 0. 自动安装二维码组件
             if ! command -v qrencode >/dev/null 2>&1; then
@@ -1641,82 +1641,79 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
 
             # 终极正则 (通杀所有主流协议)
             REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
+            echo -e "${cyan}📡 正在启动深空雷达，精准清洗并重新编码有效节点...${plain}"
 
-            echo -e "${cyan}📡 正在启动全能雷达，跨目录提取底层配置...${plain}"
-
-            # --- 💡 模块一：第三方聚合文件防洪提取 (开源数据清洗层) ---
-            ARGO_DATA=""
-            # 兼容各类面板的导出目录 (无论是 agsbx 还是别人写的 share.txt)
-            for target_file in /root/agsbx/jh.txt /root/*share*.txt /root/*link*.txt; do
-                if ls $target_file 1> /dev/null 2>&1; then
-                    # 【开源防洪机制】：提取高优先级的前 3 个主节点。
-                    TEMP_LINKS=$(grep -oE "$REGEX_PATTERN" $target_file 2>/dev/null | head -n 3)
-                    ARGO_DATA=$(echo -e "${ARGO_DATA}\n${TEMP_LINKS}")
-                fi
-            done
-            ARGO_DATA=$(echo "$ARGO_DATA" | sort -u | grep -v '^$' | tr -d '\r')
-
-            # --- 💡 模块二：底层核心标准配置扫描 (开源万能底座) ---
-            CORE_DATA=$(grep -rhoE "$REGEX_PATTERN" /etc/x-ui/ /etc/s-box/ /etc/sing-box/ /usr/local/etc/xray/ 2>/dev/null | sort -u)
-
-            # --- 💡 模块三：全合流缝合 ---
-            ALL_LINKS=$(echo -e "${ARGO_DATA}\n${CORE_DATA}" | sort -u | grep -v '^$' | tr -d '\r')
+            # --- 💡 核心升级一：多目录深度嗅探 (包含 VX 脚本所有潜在路径) ---
+            RAW_LINKS=""
+            SEARCH_PATH="/root /etc/s-box /etc/sing-box /etc/vx /usr/local/etc/vx /etc/vne /etc/x-ui /root/agsbx"
             
-            # ================= 👇 模块 3.5：终极协议底层解析引擎 👇 =================
-            CURRENT_NAME=$(hostname)
-            [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX-Node"
+            # 这里的 find 逻辑增加了对 VX 专属路径的覆盖
+            for f in $(find $SEARCH_PATH -maxdepth 2 -type f \( -name "*.txt" -o -name "*.log" -o -name "share.link" \) 2>/dev/null); do
+                # 【防洪水关键】：每个文件只取最后 3 行，彻底杀灭无效旧 Argo！
+                file_links=$(grep -oE "$REGEX_PATTERN" "$f" 2>/dev/null | tail -n 3)
+                RAW_LINKS=$(echo -e "${RAW_LINKS}\n${file_links}")
+            done
+
+            # 物理去重
+            UNIQUE_LINKS=$(echo "$RAW_LINKS" | awk '!seen[$0]++' | grep -v '^$' | tr -d '\r')
+
+            # ================= 👇 模块 3.5：你的核心解析与【Base64重编码】引擎 👇 =================
             PROCESSED_LINKS=""
             PROCESSED_ARGO=""
+            CURRENT_NAME=$(hostname)
+            [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX"
 
-            for link in $ALL_LINKS; do
+            for link in $UNIQUE_LINKS; do
                 PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
                 OLD_NAME=""
                 PREFIX=""
-                
-                # 1. 暴力解析底层协议
+                IS_ARGO=0
+
+                # 1. 深度解码并提取特征 (继承你最满意的重编逻辑)
                 if [[ "$link" == vmess://* ]]; then
                     b64_str=${link#vmess://}
                     json_str=$(echo "$b64_str" | base64 -d 2>/dev/null)
                     OLD_NAME=$(echo "$json_str" | grep -o '"ps"[[:space:]]*:[[:space:]]*"[^"]+"' | cut -d'"' -f4)
-                    
                     config_text=$(echo "$json_str" | tr 'A-Z' 'a-z' | tr -d ' ')
-                    # 全面采用小写，完美避开 Shadowrocket 的国家代码误杀
+                    
+                    # 嗅探特征
                     echo "$config_text" | grep -qi '"net":"ws"' && PREFIX="${PREFIX}ws-"
                     echo "$config_text" | grep -qi '"net":"grpc"' && PREFIX="${PREFIX}gRPC-"
                     echo "$config_text" | grep -qi '"tls":"tls"' && PREFIX="${PREFIX}tls-"
+                    # Argo 基因判定
+                    if [[ "$config_text" == *"trycloudflare"* ]]; then IS_ARGO=1; fi
                 else
                     OLD_NAME=$(echo "$link" | sed -n 's/.*#//p')
-                    
                     config_text=$(echo "$link" | tr 'A-Z' 'a-z')
+                    
                     echo "$config_text" | grep -qi 'type=ws' && PREFIX="${PREFIX}ws-"
                     echo "$config_text" | grep -qi 'type=grpc' && PREFIX="${PREFIX}gRPC-"
                     echo "$config_text" | grep -qi 'security=tls' && PREFIX="${PREFIX}tls-"
                     echo "$config_text" | grep -qi 'security=reality' && PREFIX="${PREFIX}Reality-"
+                    # Argo 基因判定
+                    if [[ "$config_text" == *"trycloudflare"* ]]; then IS_ARGO=1; fi
                 fi
 
-                # 2. Argo 终极判定逻辑
-                if echo "$OLD_NAME" | grep -qi "argo"; then
+                # 2. Argo 标签强化 (无论临时还是固定隧道，全部红字高亮)
+                if [[ "$IS_ARGO" -eq 1 || "$OLD_NAME" =~ [Aa][Rr][Gg][Oo] ]]; then
                     PREFIX="${PREFIX}Argo-"
-                elif [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
-                    # 【核心修复】：加入了 i 参数 (忽略大小写)，彻底根绝匹配失败问题！
-                    if echo "$PREFIX" | grep -qiE "ws|grpc"; then
-                        PREFIX="${PREFIX}Argo-"
-                    fi
                 fi
 
-                # 3. 组合全新极客风严谨节点名
+                # 3. 命名重组 (这就是你要的统一编码格式)
                 NEW_REMARK="${PROTO}-${PREFIX}${CURRENT_NAME}"
 
-                # 4. 无损替换注入
+                # 4. 【核心重编码动作】：无损注入并生成新链接
                 if [[ "$link" == vmess://* ]]; then
                     if echo "$json_str" | grep -q '"ps"'; then
                         new_json=$(echo "$json_str" | sed -E 's/"ps"[[:space:]]*:[[:space:]]*"[^"]+"/"ps": "'"$NEW_REMARK"'"/g')
-                        new_b64=$(echo -n "$new_json" | base64 -w 0 2>/dev/null || echo -n "$new_json" | base64 | tr -d '\n')
-                        new_link="vmess://${new_b64}"
                     else
-                        new_link="$link"
+                        # 如果没有ps项，手动补齐 (防止部分脚本生成的原始JSON不规范)
+                        new_json=$(echo "$json_str" | sed 's/{/{"ps":"'"$NEW_REMARK"'",/')
                     fi
+                    new_b64=$(echo -n "$new_json" | base64 -w 0 2>/dev/null || echo -n "$new_json" | base64 | tr -d '\n')
+                    new_link="vmess://${new_b64}"
                 else
+                    # 非 Vmess 协议 (Vless/Hy2等) 直接用 sed 替换末尾的 # 备注
                     if [[ "$link" == *#* ]]; then
                         new_link=$(echo "$link" | sed -E 's/#[^[:space:]]*$/#'"$NEW_REMARK"'/')
                     else
@@ -1724,51 +1721,42 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                     fi
                 fi
                 
-                if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
+                # 记录下来
+                PROCESSED_LINKS=$(echo -e "${PROCESSED_LINKS}\n${new_link}")
+                if [[ "$PREFIX" == *"Argo-"* ]]; then
                     PROCESSED_ARGO=$(echo -e "${PROCESSED_ARGO}\n${new_link}")
                 fi
-                PROCESSED_LINKS=$(echo -e "${PROCESSED_LINKS}\n${new_link}")
             done
 
-            ALL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
-            ARGO_DATA=$(echo "$PROCESSED_ARGO" | grep -v '^$' | tr -d '\r')
-            # ================= 👆 模块 3.5 结束 👆 =================
+            FINAL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
+            FINAL_ARGO=$(echo "$PROCESSED_ARGO" | grep -v '^$' | tr -d '\r')
 
-            if [ -n "$ALL_LINKS" ]; then
-                # --- 💡 模块四：Base64 聚合编码 ---
-                BASE64_SUB=$(echo -e "$ALL_LINKS" | base64 -w 0)
+            # ================= 👇 展示模块 👇 =================
+            if [ -n "$FINAL_LINKS" ]; then
+                # 重新计算聚合订阅 Base64
+                BASE64_SUB=$(echo -e "$FINAL_LINKS" | base64 -w 0)
 
-                echo -e "\n${green}🎉 扫描完毕！成功为您抓取到以下节点：${plain}"
+                echo -e "\n${green}🎉 扫描完毕！已为你精准提取并重新编码以下节点：${plain}"
                 echo -e "${yellow}======================================================================${plain}"
-                
                 echo -e "🚀【 全节点聚合订阅 (Base64编码) 】"
-                echo -e "分享链接（可直接粘贴到客户端导入）："
                 echo -e "${cyan}${BASE64_SUB}${plain}\n"
                 
-                echo -e "📦【 纯净明文节点列表 (供一次性批量复制) 】："
-                echo -e "${cyan}${ALL_LINKS}${plain}\n"
-                echo -e "${yellow}======================================================================${plain}"
-
-                echo -e "${cyan}👇 下面逐一展示节点详情与【迷你二维码】：${plain}"
-                
-                for link in $ALL_LINKS; do
-                    PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
-                    
-                    TAG="【 $PROTO 直连协议 】"
-                    if [ -n "$ARGO_DATA" ] && echo "$ARGO_DATA" | grep -qF "$link"; then
-                        TAG="${red}【 隧道或聚合主节点 】${plain}"
+                for link in $FINAL_LINKS; do
+                    PROTO_TAG=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
+                    TAG="【 $PROTO_TAG 直连协议 】"
+                    if echo "$link" | grep -qi "Argo-"; then
+                        TAG="${red}【 🚇 Argo 穿透保护隧道 】${plain}"
                     fi
 
                     echo -e "${yellow}------------------------------------------------${plain}"
-                    echo -e "🚀 $TAG 信息如下："
+                    echo -e "🚀 $TAG"
                     echo -e "${cyan}${link}${plain}"
-                    
-                    echo -e "\n二维码 (手机扫码即可导入)："
                     qrencode -m 2 -t UTF8 "$link"
                 done
                 echo -e "${yellow}------------------------------------------------${plain}"
             else
                 echo -e "\n${red}❌ 扫描结束：未发现有效节点。${plain}"
+                echo -e "${yellow}💡 提示：如果没抓到，请确保你的脚本已将节点导出为 .txt 文件。${plain}"
             fi
 
             read -p "👉 按【回车键】返回主菜单..."
