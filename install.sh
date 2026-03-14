@@ -82,7 +82,7 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "  ${yellow}19.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
     echo -e "  ${yellow}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
     echo -e "  ${yellow}21.${plain} 🚨 ${red}SSH 智能动态防盗门与双核防御中心 (状态感知/免密飞升/改端口/机枪塔)${plain}"
-    echo -e "  ${yellow}22.${plain} 🚀 ${purple}召唤甬哥全家桶 (Sing-box 终端版 / X-UI 网页版)${plain}"
+    echo -e "  ${yellow}22.${plain} 🚀 ${purple}一键搭建代理节点 (进入 VX 独家分流引擎)${plain}"
     # --- 第五板块：核心修复与导出 ---
     echo -e "\n${blue}[ 板块五：⚡ 核心修复与配置提取 ]${plain}"
     echo -e "  ${yellow}23.${plain} ⏱️  ${cyan}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
@@ -1397,64 +1397,39 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
             fi
         done
         ;;
-       22)
-            echo -e "\n${blue}======================================================${plain}"
-            echo -e "${yellow}      🚀 欢迎进入专业代理部署与维稳中心 🚀${plain}"
-            echo -e "${blue}======================================================${plain}"
-            echo -e "  ${cyan}1.${plain} 📦 安装/管理 【Sing-box 核心】 (终端命令行版)"
-            echo -e "  ${cyan}2.${plain} 🖥️  安装/管理 【X-UI 面板】 (网页可视化多用户版)"
-            echo -e "  ${red}3.${plain} 🛑 停止 Sing-box 核心服务 (释放端口与内存)"
-            echo -e "  ${green}4.${plain} ⚡ 启动 Sing-box 核心服务 (恢复节点运行)"
-            echo -e "  ${red}5.${plain} 🛑 停止 X-UI 面板服务 (释放端口与内存)"
-            echo -e "  ${green}6.${plain} ⚡ 启动 X-UI 面板服务 (恢复节点运行)"
-            echo -e "  ${cyan}0.${plain} ↩️  取消操作并返回上一级菜单"
-            echo -e "${blue}------------------------------------------------------${plain}"
-            read -p "👉 请输入对应数字并回车 [0-6]: " yg_choice
-            
-            case $yg_choice in
-                1)
-                    echo -e "\n${green}▶ 正在启动 Sing-box 部署脚本，请稍候...${plain}"
-                    sleep 1
-                    bash <(wget -qO- https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/sb.sh)
-                    ;;
-                2)
-                    echo -e "\n${green}▶ 正在启动 X-UI 部署脚本，请稍候...${plain}"
-                    sleep 1
-                    bash <(wget -qO- https://raw.githubusercontent.com/yonggekkk/x-ui-yg/main/install.sh)
-                    ;;
-                3)
-                    echo -e "\n${yellow}▶ 正在停止 Sing-box 服务...${plain}"
-                    systemctl stop sing-box
-                    echo -e "${red}✅ 已停止！Sing-box 核心已退出，相关端口已释放。${plain}"
-                    sleep 2
-                    ;;
-                4)
-                    echo -e "\n${yellow}▶ 正在启动 Sing-box 服务...${plain}"
-                    systemctl start sing-box
-                    echo -e "${green}✅ 已启动！Sing-box 节点已恢复正常运行。${plain}"
-                    sleep 2
-                    ;;
-                5)
-                    echo -e "\n${yellow}▶ 正在停止 X-UI 服务...${plain}"
-                    systemctl stop x-ui
-                    echo -e "${red}✅ 已停止！X-UI 面板已退出，相关端口已释放。${plain}"
-                    sleep 2
-                    ;;
-                6)
-                    echo -e "\n${yellow}▶ 正在启动 X-UI 服务...${plain}"
-                    systemctl start x-ui
-                    echo -e "${green}✅ 已启动！X-UI 面板及节点已恢复正常运行。${plain}"
-                    sleep 2
-                    ;;
-                0)
-                    echo -e "\n${green}✅ 已取消操作，安全返回主菜单。${plain}"
-                    ;;
-                *)
-                    echo -e "\n${red}❌ 错误：无效的选项，操作取消。${plain}"
-                    ;;
-            esac
-            ;;
-    23)
+         22)
+                clear
+                echo -e "\n${blue}======================================================${plain}"
+                echo -e "${yellow}       🚀 Velox Node Engine (VX) 核心部署枢纽 🚀${plain}"
+                echo -e "${blue}======================================================${plain}"
+                echo -e "  💡 ${cyan}本引擎为 Velox 面板独家底层，专为极客打造：${plain}"
+                echo -e "   ✅ 强制底层流量嗅探 (Sniffing)，100% 杜绝 DNS 泄露"
+                echo -e "   ✅ 独创关键字精准分流，秒级解锁 Gemini / Netflix 等"
+                echo -e "   ✅ 原子级配置重构，告别臃肿残渣，极限压榨机器性能"
+                echo -e "${blue}------------------------------------------------------${plain}"
+                echo -e "  ${green}1.${plain} ⚡ 立即部署 / 唤醒 VX 终极控制面板"
+                echo -e "  ${cyan}0.${plain} ↩️  取消并返回主菜单"
+                echo -e "${blue}======================================================${plain}"
+                read -p "👉 请选择操作 [0-1]: " vx_choice
+                
+                case "$vx_choice" in
+                    1)
+                        echo -e "\n${green}>>> 正在同步并唤醒 VX 核心引擎，请稍候...${plain}"
+                        # 强行拉取你 GitHub 上的最新版 VX 引擎，穿透缓存，并赋予执行权限
+                        curl -sL "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$(date +%s)" -o /usr/local/bin/vx && chmod +x /usr/local/bin/vx
+                        # 唤醒 VX 面板
+                        vx
+                        ;;
+                    0)
+                        echo -e "\n${green}✅ 已取消操作，安全返回主菜单。${plain}"
+                        ;;
+                    *)
+                        echo -e "\n${red}❌ 错误：无效的选项，操作取消。${plain}"
+                        sleep 1
+                        ;;
+                esac
+                ;;
+       23)
         while true; do
             echo -e "\n${blue}=== ⏱️ VPS 高级定时任务管理 ===${plain}"
             echo -e "${yellow}说明：设置后 VPS 会在指定时间自动干活。若已设置，再次设置将自动覆盖旧任务。${plain}"
