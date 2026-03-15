@@ -616,8 +616,8 @@ echo -e "${cyan}=======================================================${plain}"
             echo -ne "🇨🇳 百度 (中国大陆): " && ping -c 3 220.181.38.251 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -e "\n${green}✅ 测速完成！${plain}"
             ;;
-        16)
-            echo -e "\n${blue}--- 🚨 设置/管理 Telegram 智能报警监控 (全能体检版) ---${plain}"
+       16)
+            echo -e "\n${blue}--- 🚨 设置/管理 Telegram 智能报警监控 (全能体检溯源版) ---${plain}"
             
             # 定义全局 TG 配置文件路径 (核心升级项)
             TG_CONF="/etc/velox_tg.conf"
@@ -625,7 +625,9 @@ echo -e "${cyan}=======================================================${plain}"
             # 兼容性环境检查
             if ! command -v curl &> /dev/null; then
                 echo -e "${yellow}正在安装必须的网络组件 curl...${plain}"
-                apt-get update -y && apt-get install curl -y >/dev/null 2>&1 || yum install curl -y >/dev/null 2>&1 || dnf install curl -y >/dev/null 2>&1
+                if command -v apt-get >/dev/null 2>&1; then apt-get update -y >/dev/null 2>&1 && apt-get install curl -y >/dev/null 2>&1;
+                elif command -v dnf >/dev/null 2>&1; then dnf install curl -y >/dev/null 2>&1;
+                elif command -v yum >/dev/null 2>&1; then yum install curl -y >/dev/null 2>&1; fi
             fi
 
             if [ -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
@@ -703,7 +705,7 @@ echo -e "${cyan}=======================================================${plain}"
                     echo -e "${green}✅ TG 凭证已同步至系统全局配置池！${plain}"
 
                     # ==========================================
-                    # 1. 编写 SSH 登录发信脚本 (集成物理网卡绕过 WARP)
+                    # 1. 编写 SSH 登录发信脚本 (🚀 新增：智能黑客溯源 IP 归属地查杀)
                     # ==========================================
                     cat << EOF2 > /usr/local/bin/ssh_tg_alert.sh
 #!/bin/bash
@@ -711,10 +713,16 @@ if [ -z "\$TG_ALERT_TRIGGERED" ]; then
     export TG_ALERT_TRIGGERED=1
     export TZ="Asia/Shanghai"
     USER_IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
+    
     if [ -n "\$USER_IP" ]; then
+        # 🚀 智能溯源：利用底层 API 瞬时查出对方老巢 (国家,城市,ISP运营商)
+        GEO_INFO=\$(curl -s4m3 "http://ip-api.com/line/\$USER_IP?lang=zh-CN&fields=country,city,isp" | tr '\n' ' ' | sed 's/ $//')
+        [ -z "\$GEO_INFO" ] && GEO_INFO="未知归属地或查询超时"
+
         MSG="🚨 [神盾局警告]
 大佬，您的服务器 \$(hostname) 刚刚被登录了！
 👉 来源 IP: \$USER_IP
+🌍 IP 溯源: \$GEO_INFO
 ⏰ 北京时间: \$(date +'%Y-%m-%d %H:%M:%S')"
         
         # --- 核心绝杀：强制绕过 WARP，抓取物理主网卡 ---
@@ -737,43 +745,40 @@ EOF2
                     echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/bash.bashrc
                     
                     # ==========================================
-                    # 3. 编写开机复苏发信脚本 (整合多核智能侦测体检)
+                    # 3. 编写开机复苏发信脚本 (🚀 新增：多核智能兼容体检，通杀所有面板)
                     # ==========================================
                     cat << EOF2 > /usr/local/bin/tg_boot_alert.sh
 #!/bin/bash
 sleep 15
 export TZ="Asia/Shanghai"
 
-# --- 智能多核心状态检查 ---
-sleep 30  # 💡 新增的 30 秒黄金缓冲期，等待网络和所有代理进程满血复活
-# Sing-box
-if systemctl list-unit-files | grep -qw sing-box.service; then
-    systemctl is-active --quiet sing-box && SB_STAT="运行中 ✅" || SB_STAT="异常 ❌"
+# --- 智能多核心兼容状态检查 ---
+sleep 30  # 💡 30 秒黄金缓冲期，等待网络和所有代理进程满血复活
+
+# Sing-box 探针 (进程与系统服务双管齐下)
+if systemctl is-active --quiet sing-box 2>/dev/null || pgrep -x "sing-box" >/dev/null 2>&1; then
+    SB_STAT="运行中 ✅"
 else
-    SB_STAT="未安装 ⚠️"
+    SB_STAT="未运行/未安装 ⚠️"
 fi
 
-# Xray
-if systemctl list-unit-files | grep -qw xray.service; then
-    systemctl is-active --quiet xray && XR_STAT="运行中 ✅" || XR_STAT="异常 ❌"
+# Xray 探针 (兼容纯净版与 X-UI 面板包裹版)
+if systemctl is-active --quiet xray 2>/dev/null || systemctl is-active --quiet x-ui 2>/dev/null || pgrep -x "xray" >/dev/null 2>&1; then
+    XR_STAT="运行中 ✅"
 else
-    XR_STAT="未安装 ⚠️"
+    XR_STAT="未运行/未安装 ⚠️"
 fi
 
-# Argo
-        if command -v cloudflared >/dev/null 2>&1 || systemctl list-unit-files | grep -qw cloudflared.service || pgrep -x "cloudflared" >/dev/null; then
-            if pgrep -x "cloudflared" >/dev/null || systemctl is-active --quiet cloudflared 2>/dev/null; then
-                ARGO_STAT="运行中 ✅"
-            else
-                ARGO_STAT="未运行/无自启 ⚠️"
-            fi
-        else
-            ARGO_STAT="未运行/无自启 ⚠️"
-        fi
+# Argo 探针 (完美兼容官方版和 VX 专属版)
+if pgrep -x "cloudflared" >/dev/null 2>&1 || systemctl is-active --quiet vx-argo 2>/dev/null || systemctl is-active --quiet argo 2>/dev/null; then
+    ARGO_STAT="运行中 ✅"
+else
+    ARGO_STAT="未运行/无自启 ⚠️"
+fi
 
-# WARP
-if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null; then
-    WARP_STAT="已接管 ✅"
+# WARP 探针 (涵盖 wgcf / warp-go / 官方 warp-svc 以及网卡状态)
+if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null || systemctl is-active --quiet warp-svc 2>/dev/null || ip link show wg0 >/dev/null 2>&1 || ip link show warp >/dev/null 2>&1; then
+    WARP_STAT="已就绪 ✅"
 else
     WARP_STAT="未开启/未安装 ⚠️"
 fi
@@ -827,22 +832,21 @@ EOF3
             echo ""
             read -p "👉 按【回车键】返回主菜单..."
             ;;
-   17)
-        # 🚀 智能定位物理网卡/虚拟网卡，彻底免疫 WARP 路由表污染
-        DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
-        # 👇 添加这块防崩溃依赖安装 👇
-
+    17)
+        # 🚀 真·智能定位物理网卡：强制剔除 WARP/WG 虚拟网卡，死死咬住物理出站口，彻底免疫路由表污染！
+        DEFAULT_IF=$(ip -4 route ls | grep default | grep -vE 'tun|warp|wg|tailscale' | awk '{print $5}' | head -n 1)
+        # 极致兜底：如果上面的方法没抓到，再用基础方法
+        [ -z "$DEFAULT_IF" ] && DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
+        
+        # 👇 防崩溃依赖安装 👇
         if ! command -v bc >/dev/null 2>&1; then
-
             echo -e "\n${yellow}正在为您安装底层核心计算组件 (bc)...${plain}"
-
             if command -v apt-get >/dev/null 2>&1; then apt-get update -y >/dev/null 2>&1 && apt-get install bc -y >/dev/null 2>&1; 
-
-            elif command -v yum >/dev/null 2>&1; then yum install bc -y >/dev/null 2>&1; fi
-
+            elif command -v yum >/dev/null 2>&1; then yum install bc -y >/dev/null 2>&1; 
+            elif command -v dnf >/dev/null 2>&1; then dnf install bc -y >/dev/null 2>&1; fi
         fi
-
         # 👆 添加完毕 👆
+        
         # 定义 Velox 全局 TG 配置文件路径
         TG_CONF="/etc/velox_tg.conf"
 
@@ -851,7 +855,7 @@ EOF3
             if [ -f "/usr/local/bin/velox_traffic_alert.sh" ]; then
                 # 从底层脚本里直接把红线数值和模式"抠"出来显示
                 LIMIT_VAL=$(grep "^LIMIT=" /usr/local/bin/velox_traffic_alert.sh | cut -d '=' -f2)
-                if grep -q "出站" /usr/local/bin/velox_traffic_alert.sh; then
+                if grep -q "出站上传" /usr/local/bin/velox_traffic_alert.sh; then
                     MODE_STR="出站"
                 else
                     MODE_STR="双向"
@@ -924,7 +928,7 @@ EOF3
                         fi
                     fi
                     
-                    # 🚀 新增心脏起搏：不管是不是新装的，只要进面板，统统强行拉起守护进程！专治手动瞎卸载导致的服务假死。
+                    # 🚀 新增心脏起搏：强行拉起守护进程！
                     systemctl enable vnstat >/dev/null 2>&1
                     systemctl start vnstat >/dev/null 2>&1
 
@@ -944,10 +948,7 @@ EOF3
                     if echo "$VNSTAT_OUT" | grep -qE "Not enough data|not found|No data"; then
                         ping -c 4 8.8.8.8 >/dev/null 2>&1
                         vnstat -u -i $DEFAULT_IF >/dev/null 2>&1
-                        
-                        # 🚀 新增防冲撞缓冲：给系统硬盘 2 秒钟的时间，把刚刚的流量死死写进数据库！
                         sleep 2 
-                        
                         VNSTAT_OUT=$(vnstat -i $DEFAULT_IF -m 2>&1)
                         
                         if echo "$VNSTAT_OUT" | grep -qE "Not enough data|not found|No data"; then
@@ -996,11 +997,9 @@ EOF3
                     if [ -z "$mode_choice" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
                     
                     if [ "$mode_choice" == "1" ]; then
-                        FIELD=7
                         MODE_NAME="出站上传(TX)"
                         echo -e "✅ 已选择: ${green}单向出站模式 (仅统计上传)${plain}"
                     elif [ "$mode_choice" == "2" ]; then
-                        FIELD=8
                         MODE_NAME="双向总计(Total)"
                         echo -e "✅ 已选择: ${green}双向总计模式 (统计上下行总和)${plain}"
                     else
@@ -1035,8 +1034,17 @@ EOF3
                     fi
                     
                     if [[ "$limit_gb" =~ ^[0-9]+$ ]]; then
-                        # 🚀 测试模块：先抓取当前真实流量，用于下发首封测试信
+                        
+                        # 🚀 智能数据校验与下发首封测试信 (兼容跨版本 Vnstat)
                         DATA=$(vnstat -i $DEFAULT_IF --oneline b 2>/dev/null)
+                        
+                        # 动态字段定点提取
+                        if [[ "$DATA" == 1;* ]]; then
+                            [[ "$MODE_NAME" == "出站上传(TX)" ]] && FIELD=9 || FIELD=10
+                        elif [[ "$DATA" == 2;* ]]; then
+                            [[ "$MODE_NAME" == "出站上传(TX)" ]] && FIELD=10 || FIELD=11
+                        fi
+                        
                         MONTH_BYTES=$(echo "$DATA" | cut -d ';' -f $FIELD)
                         if [[ -z "$MONTH_BYTES" || ! "$MONTH_BYTES" =~ ^[0-9]+$ ]]; then MONTH_BYTES=0; fi
                         CURRENT_GB=$(echo "scale=2; $MONTH_BYTES / 1073741824" | bc)
@@ -1047,6 +1055,7 @@ IFACE="$DEFAULT_IF"
 LIMIT=$limit_gb
 TOKEN="$tg_token"
 CHATID="$tg_chatid"
+MODE_NAME="$MODE_NAME"
 
 # 🚀 计算 80% 黄金预警线，并设置当月专属锁文件 (防轰炸机制)
 LIMIT_80=\$(echo "scale=2; \$LIMIT * 0.8" | bc)
@@ -1055,27 +1064,33 @@ LOCK_80="/tmp/velox_warn_80_\${CURRENT_MONTH}.lock"
 LOCK_100="/tmp/velox_warn_100_\${CURRENT_MONTH}.lock"
 
 DATA=\$(vnstat -i \$IFACE --oneline b 2>/dev/null)
-if [[ "\$DATA" == 1;* ]] || [[ "\$DATA" == 2;* ]]; then
-    MONTH_BYTES=\$(echo "\$DATA" | cut -d ';' -f $FIELD)
+if [[ "\$DATA" == 1;* ]]; then
+    [[ "\$MODE_NAME" == "出站上传(TX)" ]] && FIELD=9 || FIELD=10
+elif [[ "\$DATA" == 2;* ]]; then
+    [[ "\$MODE_NAME" == "出站上传(TX)" ]] && FIELD=10 || FIELD=11
+fi
+
+if [[ -n "\$FIELD" ]]; then
+    MONTH_BYTES=\$(echo "\$DATA" | cut -d ';' -f \$FIELD)
     
     if [[ "\$MONTH_BYTES" =~ ^[0-9]+$ ]]; then
         USAGE_GB=\$(echo "scale=2; \$MONTH_BYTES / 1073741824" | bc)
         
         # 1. 判断是否超过 100% 熔断红线 (最优先)
-        if (( \$(echo "\$USAGE_GB > \$LIMIT" | bc -l) )); then
+        if (( \$(echo "\$USAGE_GB >= \$LIMIT" | bc -l) )); then
             if [ ! -f "\$LOCK_100" ]; then
                 MSG="🚨 [Velox 流量熔断绝杀] 
-velox，系统报告您的机器 \$(hostname) 本月【$MODE_NAME】已飙升至 \${USAGE_GB} GB！
+大佬，系统报告您的机器 \$(hostname) 本月【\$MODE_NAME】已飙升至 \${USAGE_GB} GB！
 已突破设定的 \${LIMIT} GB 终极红线，请立即登入后台处理以防天价账单或被强制停机！"
                 curl -s -X POST "https://api.telegram.org/bot\$TOKEN/sendMessage" -d "chat_id=\$CHATID" -d "text=\$MSG" >/dev/null 2>&1
                 touch "\$LOCK_100"
             fi
             
         # 2. 判断是否超过 80% 预警黄线
-        elif (( \$(echo "\$USAGE_GB > \$LIMIT_80" | bc -l) )); then
+        elif (( \$(echo "\$USAGE_GB >= \$LIMIT_80" | bc -l) )); then
             if [ ! -f "\$LOCK_80" ]; then
                 MSG="⚠️ [Velox 流量超标预警] 
-velox注意！您的机器 \$(hostname) 本月【$MODE_NAME】已达 \${USAGE_GB} GB！
+大佬注意！您的机器 \$(hostname) 本月【\$MODE_NAME】已达 \${USAGE_GB} GB！
 已超过 80% 安全警戒线 (\${LIMIT_80} GB)，请合理安排后续使用节奏！"
                 curl -s -X POST "https://api.telegram.org/bot\$TOKEN/sendMessage" -d "chat_id=\$CHATID" -d "text=\$MSG" >/dev/null 2>&1
                 touch "\$LOCK_80"
@@ -1095,7 +1110,8 @@ EOF2
                         # ==========================================
                         WARN_GB=$(echo "scale=2; $limit_gb * 0.8" | bc)
                         TEST_MSG="🟢 [Velox 流量大管家] 部署成功测试！
-velox，您的服务器 $(hostname) 流量防线已成功激活！
+大佬，您的服务器 $(hostname) 流量防线已成功激活！
+👉 监控网卡: $DEFAULT_IF
 👉 监控模式: $MODE_NAME
 📊 当前已用: ${CURRENT_GB} GB
 ⚠️ 预警黄线: ${WARN_GB} GB (达到80%将自动报警)
@@ -1114,8 +1130,8 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 3)
                     clear
                     echo -e "${cyan}=======================================================${plain}"
-                    echo -e "      📈 Velox 极客视窗 - 实时网络监控仪 (网卡: $DEFAULT_IF)"
-                    echo -e "      💡 ${yellow}直接在键盘按【任意键】即可无缝退出监控模式${plain}"
+                    echo -e "     📈 Velox 极客视窗 - 实时网络监控仪 (网卡: $DEFAULT_IF)"
+                    echo -e "     💡 ${yellow}直接在键盘按【任意键】即可无缝退出监控模式${plain}"
                     echo -e "${cyan}=======================================================${plain}\n\n\n\n"
                     
                     while true; do
@@ -1156,6 +1172,7 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
             esac
         done
         ;;
+        
       18)
             echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
             current_swap=$(free -m | grep Swap | awk '{print $2}')
