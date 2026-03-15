@@ -1444,15 +1444,14 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 echo -e "  ${green}1.${plain} ⚡ 立即部署 / 唤醒 VX 终极控制面板"
                 echo -e "  ${cyan}0.${plain} ↩️  取消并返回主菜单"
                 echo -e "${blue}======================================================${plain}"
-                read -p "👉 请选择操作 [0-1]: " vx_choice
+               read -p "👉 请选择操作 [0-1]: " vx_choice
                 
                 case "$vx_choice" in
-                    case "$vx_choice" in
                     1)
                         echo -e "\n${green}>>> 正在同步并唤醒 VX 核心引擎，请稍候...${plain}"
                         curl -sL "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$(date +%s)" -o /usr/local/bin/vx && chmod +x /usr/local/bin/vx
                         
-                        # 👇 增加这一行，提前给 VX 铺好温床，防爆死 👇
+                        # 增加这一行，提前给 VX 铺好温床，防爆死
                         mkdir -p /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne
                         
                         # 唤醒 VX 面板
@@ -1647,12 +1646,19 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
         done
         ;;
         
-  25)
+    25)
             echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (开源全域穿透+防洪重编版) ===${plain}"
             
+            # 👇 修复：全系统二维码组件安装 👇
             if ! command -v qrencode >/dev/null 2>&1; then
-                echo -e "${yellow}正在安装二维码生成模块...${plain}"
-                apt-get update -y && apt-get install qrencode -y >/dev/null 2>&1
+                echo -e "${yellow}正在为您安装底层二维码生成模块...${plain}"
+                if command -v apt-get >/dev/null 2>&1; then 
+                    apt-get update -y >/dev/null 2>&1 && apt-get install qrencode -y >/dev/null 2>&1
+                elif command -v dnf >/dev/null 2>&1; then 
+                    dnf install qrencode -y >/dev/null 2>&1
+                elif command -v yum >/dev/null 2>&1; then 
+                    yum install qrencode -y >/dev/null 2>&1
+                fi
             fi
 
             # 终极正则 (通杀所有主流开源协议)
@@ -1661,15 +1667,14 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
 
             RAW_LINKS=""
             
-            # --- 💡 核心修复：致敬你的“开源万能底座” ---
-            # 包含市面上 99% 的开源代理脚本配置目录（X-UI, 甬哥, 小钢炮, VX, VNE 等）
-            SEARCH_DIRS="/etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /opt /root/agsbx"
+            # 👇 修复：安全且极其霸道的全域穿透底座 👇
+            # 精准定位市面上 99% 的开源代理脚本配置目录，避免扫描全局引发卡死
+            SEARCH_DIRS="/etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx"
             
-            # 1. 穿透查找：无视任何文件后缀！只要这些目录里的文件包含了节点链接，统统揪出来！
-            # (-a 参数保证了即便有的配置文件被系统误认为是二进制，也强行当文本提取)
+            # 穿透查找：无视任何文件后缀 (-a 强行当文本读取)
             FOUND_FILES=$(grep -rlE -a "$REGEX_PATTERN" $SEARCH_DIRS /root/*share*.txt /root/*link*.txt 2>/dev/null)
             
-            # 2. 防洪清洗：遍历每一个藏有节点的文件
+            # 防洪清洗：遍历每一个藏有节点的文件
             for f in $FOUND_FILES; do
                 if [ -f "$f" ]; then
                     # 【防洪核心】：不管这个文件里堆积了多少历史遗留节点，只抽最底部的 3 条新鲜血液！
