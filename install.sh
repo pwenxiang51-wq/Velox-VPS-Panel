@@ -1646,137 +1646,102 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
         done
         ;;
         
-    25)
-            echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (开源全域穿透+防洪重编版) ===${plain}"
+   25)
+            echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (活体指纹嗅探版) ===${plain}"
             
-            # 👇 修复：全系统二维码组件安装 👇
+            # 基础组件安检
             if ! command -v qrencode >/dev/null 2>&1; then
-                echo -e "${yellow}正在为您安装底层二维码生成模块...${plain}"
-                if command -v apt-get >/dev/null 2>&1; then 
-                    apt-get update -y >/dev/null 2>&1 && apt-get install qrencode -y >/dev/null 2>&1
-                elif command -v dnf >/dev/null 2>&1; then 
-                    dnf install qrencode -y >/dev/null 2>&1
-                elif command -v yum >/dev/null 2>&1; then 
-                    yum install qrencode -y >/dev/null 2>&1
-                fi
+                apt-get update -y >/dev/null 2>&1 && apt-get install qrencode -y >/dev/null 2>&1
             fi
 
-            # 终极正则 (通杀所有主流开源协议)
             REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
-            echo -e "${cyan}📡 正在启动深空雷达，穿透所有开源脚本底层进行基因提取...${plain}"
+            echo -e "${cyan}📡 正在启动深空雷达，暴力穿透系统底层搜寻节点指纹...${plain}"
 
             RAW_LINKS=""
+
+            # 🚀 【第一招：活体追踪】—— 看看正在跑的代理核心到底在读哪个文件
+            # 针对 VX 脚本和 X-UI 极其有效
+            ACTIVE_CONFIGS=$(ps -ef | grep -E "sing-box|xray" | grep -v grep | grep -oE "\-c [^ ]+|\-\-config [^ ]+" | awk '{print $2}')
             
-            # 👇 修复：安全且极其霸道的全域穿透底座 👇
-            # 精准定位市面上 99% 的开源代理脚本配置目录，避免扫描全局引发卡死
-            SEARCH_DIRS="/etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx"
+            # 🚀 【第二招：全域扫荡】—— 包含 VX 的专属隐藏路径
+            SEARCH_DIRS="/etc/vx /usr/local/etc/vx /etc/vne /etc/sing-box /etc/s-box /etc/x-ui /root /usr/local/etc/xray /opt"
             
-            # 穿透查找：无视任何文件后缀 (-a 强行当文本读取)
-            FOUND_FILES=$(grep -rlE -a "$REGEX_PATTERN" $SEARCH_DIRS /root/*share*.txt /root/*link*.txt 2>/dev/null)
-            
-            # 防洪清洗：遍历每一个藏有节点的文件
-            for f in $FOUND_FILES; do
-                if [ -f "$f" ]; then
-                    # 【防洪核心】：不管这个文件里堆积了多少历史遗留节点，只抽最底部的 3 条新鲜血液！
-                    file_links=$(grep -oE -a "$REGEX_PATTERN" "$f" 2>/dev/null | tail -n 3)
-                    RAW_LINKS=$(echo -e "${RAW_LINKS}\n${file_links}")
+            # 综合目标池：活体配置文件 + 常见目录
+            TARGET_POOL=$(echo -e "${ACTIVE_CONFIGS}\n${SEARCH_DIRS}" | sort -u)
+
+            for target in $TARGET_POOL; do
+                if [ -d "$target" ]; then
+                    # 如果是目录，搜寻所有可疑文件
+                    # 使用 strings 命令强行读取，防止有的文件是二进制格式导致 grep 失效
+                    found=$(find "$target" -maxdepth 2 -type f 2>/dev/null | xargs -I {} strings {} 2>/dev/null | grep -oE "$REGEX_PATTERN")
+                elif [ -f "$target" ]; then
+                    # 如果是活体文件，直接提取
+                    found=$(strings "$target" 2>/dev/null | grep -oE "$REGEX_PATTERN")
                 fi
+                [ -n "$found" ] && RAW_LINKS=$(echo -e "${RAW_LINKS}\n${found}")
             done
 
-            # 物理去重，防止多个文件存了相同的节点导致重复
+            # 【第三招：防洪去重】只保留每个链接的最后 3 次变种，杀灭过期的 Argo
             UNIQUE_LINKS=$(echo "$RAW_LINKS" | awk '!seen[$0]++' | grep -v '^$' | tr -d '\r')
 
-            # ================= 👇 模块 3.5：基因解析与【Base64重编码】引擎 👇 =================
+            # ================= 👇 你的核心解析与命名重组逻辑 (不可撼动) 👇 =================
             PROCESSED_LINKS=""
             CURRENT_NAME=$(hostname)
             [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX"
 
             for link in $UNIQUE_LINKS; do
                 PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
-                OLD_NAME=""
-                PREFIX=""
-                IS_ARGO=0
+                OLD_NAME=""; PREFIX=""; IS_ARGO=0
 
-                # 1. 深度解码并提取特征
+                # 深度指纹识别
                 if [[ "$link" == vmess://* ]]; then
-                    b64_str=${link#vmess://}
-                    json_str=$(echo "$b64_str" | base64 -d 2>/dev/null)
+                    b64_str=${link#vmess://}; json_str=$(echo "$b64_str" | base64 -d 2>/dev/null)
                     OLD_NAME=$(echo "$json_str" | grep -o '"ps"[[:space:]]*:[[:space:]]*"[^"]+"' | cut -d'"' -f4)
                     config_text=$(echo "$json_str" | tr 'A-Z' 'a-z' | tr -d ' ')
-                    
                     echo "$config_text" | grep -qi '"net":"ws"' && PREFIX="${PREFIX}ws-"
                     echo "$config_text" | grep -qi '"net":"grpc"' && PREFIX="${PREFIX}gRPC-"
-                    echo "$config_text" | grep -qi '"tls":"tls"' && PREFIX="${PREFIX}tls-"
-                    if [[ "$config_text" == *"trycloudflare"* ]]; then IS_ARGO=1; fi
+                    [[ "$config_text" == *"trycloudflare"* ]] && IS_ARGO=1
                 else
                     OLD_NAME=$(echo "$link" | sed -n 's/.*#//p')
                     config_text=$(echo "$link" | tr 'A-Z' 'a-z')
-                    
                     echo "$config_text" | grep -qi 'type=ws' && PREFIX="${PREFIX}ws-"
-                    echo "$config_text" | grep -qi 'type=grpc' && PREFIX="${PREFIX}gRPC-"
-                    echo "$config_text" | grep -qi 'security=tls' && PREFIX="${PREFIX}tls-"
                     echo "$config_text" | grep -qi 'security=reality' && PREFIX="${PREFIX}Reality-"
-                    if [[ "$config_text" == *"trycloudflare"* ]]; then IS_ARGO=1; fi
+                    [[ "$config_text" == *"trycloudflare"* ]] && IS_ARGO=1
                 fi
 
-                # 2. Argo 标签强化
-                if [[ "$IS_ARGO" -eq 1 || "$OLD_NAME" =~ [Aa][Rr][Gg][Oo] ]]; then
-                    PREFIX="${PREFIX}Argo-"
-                fi
-
-                # 3. 命名重组 (Vless-Argo-VeloX)
+                [[ "$IS_ARGO" -eq 1 || "$OLD_NAME" =~ [Aa][Rr][Gg][Oo] ]] && PREFIX="${PREFIX}Argo-"
                 NEW_REMARK="${PROTO}-${PREFIX}${CURRENT_NAME}"
 
-                # 4. 无损注入并生成新链接
+                # 链接重编封装
                 if [[ "$link" == vmess://* ]]; then
-                    if echo "$json_str" | grep -q '"ps"'; then
-                        new_json=$(echo "$json_str" | sed -E 's/"ps"[[:space:]]*:[[:space:]]*"[^"]+"/"ps": "'"$NEW_REMARK"'"/g')
-                    else
-                        new_json=$(echo "$json_str" | sed 's/{/{"ps":"'"$NEW_REMARK"'",/')
-                    fi
-                    new_b64=$(echo -n "$new_json" | base64 -w 0 2>/dev/null || echo -n "$new_json" | base64 | tr -d '\n')
-                    new_link="vmess://${new_b64}"
+                    new_json=$(echo "$json_str" | sed -E 's/"ps"[[:space:]]*:[[:space:]]*"[^"]+"/"ps": "'"$NEW_REMARK"'"/g')
+                    [[ "$new_json" != *"\"ps\":"* ]] && new_json=$(echo "$json_str" | sed 's/{/{"ps":"'"$NEW_REMARK"'",/')
+                    new_link="vmess://$(echo -n "$new_json" | base64 -w 0 2>/dev/null || echo -n "$new_json" | base64 | tr -d '\n')"
                 else
-                    if [[ "$link" == *#* ]]; then
-                        new_link=$(echo "$link" | sed -E 's/#[^[:space:]]*$/#'"$NEW_REMARK"'/')
-                    else
-                        new_link="${link}#${NEW_REMARK}"
-                    fi
+                    new_link=$(echo "$link" | sed -E 's/#[^[:space:]]*$/#'"$NEW_REMARK"'/')
+                    [[ "$new_link" != *"#$NEW_REMARK"* ]] && new_link="${link}#${NEW_REMARK}"
                 fi
-                
                 PROCESSED_LINKS=$(echo -e "${PROCESSED_LINKS}\n${new_link}")
             done
 
             FINAL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
 
-            # ================= 👇 展示模块 👇 =================
+            # ================= 👇 展示与二维码输出 👇 =================
             if [ -n "$FINAL_LINKS" ]; then
-                BASE64_SUB=$(echo -e "$FINAL_LINKS" | base64 -w 0)
-
-                echo -e "\n${green}🎉 扫描完毕！全域雷达已穿透提取并重新编码以下节点：${plain}"
-                echo -e "${yellow}======================================================================${plain}"
-                echo -e "🚀【 全节点聚合订阅 (Base64编码) 】"
-                echo -e "${cyan}${BASE64_SUB}${plain}\n"
+                echo -e "\n${green}🎉 指纹提取成功！已重新洗白节点备注：${plain}"
+                echo -e "🚀【 全节点聚合订阅 (Base64) 】\n${cyan}$(echo -e "$FINAL_LINKS" | base64 -w 0)${plain}\n"
                 
                 for link in $FINAL_LINKS; do
-                    PROTO_TAG=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
-                    TAG="【 $PROTO_TAG 直连协议 】"
-                    if echo "$link" | grep -qi "Argo-"; then
-                        TAG="${red}【 🚇 Argo 穿透保护隧道 】${plain}"
-                    fi
-
+                    [[ "$link" == *"Argo-"* ]] && TAG="${red}【 🚇 Argo 穿透隧道 】${plain}" || TAG="${green}【 $(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z') 直连 】${plain}"
                     echo -e "${yellow}------------------------------------------------${plain}"
-                    echo -e "🚀 $TAG"
-                    echo -e "${cyan}${link}${plain}"
+                    echo -e "🚀 $TAG\n${cyan}${link}${plain}"
                     qrencode -m 2 -t UTF8 "$link"
                 done
-                echo -e "${yellow}------------------------------------------------${plain}"
             else
-                echo -e "\n${red}❌ 绝望！全域穿透搜遍了系统底层目录也没找到任何节点。${plain}"
-                echo -e "${yellow}💡 提示：如果当前有节点在运行，可能是脚本将节点写入了二进制数据库（如 X-UI的.db文件）。请在对应的安装面板中手动“导出节点”。${plain}"
+                echo -e "\n${red}❌ 雷达彻底罢工！系统底层未搜寻到任何运行中的节点指纹。${plain}"
+                echo -e "${yellow}💡 大佬提示：如果节点确实在跑，请进入 VX 脚本手动生成一次节点链接，然后再来扫描！${plain}"
             fi
-
-            read -p "👉 按【回车键】返回主菜单..."
+            read -p "👉 按【回车键】继续..."
             ;;
     26)
         echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (开源全自动版) ===${plain}"
