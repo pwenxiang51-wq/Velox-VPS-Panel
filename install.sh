@@ -101,7 +101,7 @@ echo -e "${cyan}=======================================================${plain}"
     read choice
     
     case $choice in
-        1) echo -e "\n${blue}--- 系统信息 ---${plain}"; hostnamectl; lsb_release -a 2>/dev/null ;;
+        1) echo -e "\n${blue}--- 系统信息 ---${plain}"; hostnamectl; echo -e "操作系统: ${green}$(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)${plain}" ;;
         2) echo -e "\n${blue}--- 磁盘空间 ---${plain}"; df -h ;;
         3) echo -e "\n${blue}--- 运行状态 ---${plain}"; uptime ;;
         4) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
@@ -534,7 +534,15 @@ echo -e "${cyan}=======================================================${plain}"
             echo -e "${red}❌ 无法获取本机 IP，请检查网络连接。${plain}"
         fi
         ;;
+        
      14)
+        # 💡 防崩依赖：确保 tc 工具存在，用于接管网卡队列
+        if ! command -v tc >/dev/null 2>&1; then
+            if command -v apt-get >/dev/null 2>&1; then apt-get install iproute2 -y >/dev/null 2>&1;
+            elif command -v yum >/dev/null 2>&1; then yum install iproute -y >/dev/null 2>&1;
+            elif command -v dnf >/dev/null 2>&1; then dnf install iproute -y >/dev/null 2>&1; fi
+        fi
+
         echo -e "\n${cyan}请选择网络底层调优方向：${plain}"
         echo -e "  ${green}1.${plain} ⚡ TCP 暴力扩容 (传统大文件下载提速)"
         echo -e "  ${green}2.${plain} 🌪️ UDP 极限压榨 (Hysteria2 / TUIC 专属抗丢包)"
@@ -1194,7 +1202,8 @@ EOF2
                     read -p "请输入需要创建的容量大小 (纯数字，单位:GB，例如输入 2 代表 2GB): " swap_size
                     if [[ "$swap_size" =~ ^[0-9]+$ ]]; then
                         echo "正在创建 ${swap_size}GB 虚拟内存，请稍候..."
-                        sudo fallocate -l ${swap_size}G /swapfile
+                        # 💡 核心升级：增加 dd 暴力写入作为极致兜底，通杀所有奇葩文件系统！
+                        sudo fallocate -l ${swap_size}G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=$((swap_size * 1024)) status=progress
                         sudo chmod 600 /swapfile
                         sudo mkswap /swapfile > /dev/null 2>&1
                         sudo swapon /swapfile
@@ -1934,6 +1943,12 @@ EOF2
             ;;
     26)
         echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (开源全自动版) ===${plain}"
+        # 💡 防崩依赖：确保 fuser 命令存在，否则强行释放 80 端口会失效
+            if ! command -v fuser >/dev/null 2>&1; then
+                if command -v apt-get >/dev/null 2>&1; then apt-get install psmisc -y >/dev/null 2>&1;
+                elif command -v yum >/dev/null 2>&1; then yum install psmisc -y >/dev/null 2>&1;
+                elif command -v dnf >/dev/null 2>&1; then dnf install psmisc -y >/dev/null 2>&1; fi
+            fi
         
         # 智能侦测 Acme.sh 真实路径
         ACME_BIN=""
