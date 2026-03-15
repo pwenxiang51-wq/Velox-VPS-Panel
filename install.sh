@@ -1038,10 +1038,10 @@ EOF3
                         # 🚀 智能数据校验与下发首封测试信 (兼容跨版本 Vnstat)
                         DATA=$(vnstat -i $DEFAULT_IF --oneline b 2>/dev/null)
                         
-                        # 动态字段定点提取
-                        if [[ "$DATA" == 1;* ]]; then
+                        # 💡 致命修复：分号必须加引号，否则触发 Bash syntax error
+                        if [[ "$DATA" == "1;"* ]]; then
                             [[ "$MODE_NAME" == "出站上传(TX)" ]] && FIELD=9 || FIELD=10
-                        elif [[ "$DATA" == 2;* ]]; then
+                        elif [[ "$DATA" == "2;"* ]]; then
                             [[ "$MODE_NAME" == "出站上传(TX)" ]] && FIELD=10 || FIELD=11
                         fi
                         
@@ -1064,9 +1064,11 @@ LOCK_80="/tmp/velox_warn_80_\${CURRENT_MONTH}.lock"
 LOCK_100="/tmp/velox_warn_100_\${CURRENT_MONTH}.lock"
 
 DATA=\$(vnstat -i \$IFACE --oneline b 2>/dev/null)
-if [[ "\$DATA" == 1;* ]]; then
+
+# 💡 致命修复：分号必须加引号
+if [[ "\$DATA" == "1;"* ]]; then
     [[ "\$MODE_NAME" == "出站上传(TX)" ]] && FIELD=9 || FIELD=10
-elif [[ "\$DATA" == 2;* ]]; then
+elif [[ "\$DATA" == "2;"* ]]; then
     [[ "\$MODE_NAME" == "出站上传(TX)" ]] && FIELD=10 || FIELD=11
 fi
 
