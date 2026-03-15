@@ -2353,5 +2353,5 @@ EOF2
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox V5.1 (全域兼容满血终极版) 部署完毕！请输入 velox 欣赏！\033[0m"
+echo -e "\033[1;32m✅ Velox V5.2 (全域兼容满血终极版) 部署完毕！请输入 velox 欣赏！\033[0m"
 velox
