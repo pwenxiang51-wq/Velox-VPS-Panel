@@ -163,52 +163,93 @@ echo -e "${cyan}=======================================================${plain}"
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-  8)
-        echo -e "\n${blue}=== 🌐 WARP 与 Argo 隧道出站详情 (智能兼容探针版) ===${plain}"
+ 8)
+        echo -e "\n${blue}=== 🌐 WARP 与 Argo 隧道出站详情 (全域动态嗅探版) ===${plain}"
         echo -e "${yellow}正在侦测网络出站链路，请稍候...${plain}\n"
         
-        # 1. 侦测 WARP 状态与虚拟 IP
+        # ================= 👇 WARP 智能探测 (绝不写死端口) 👇 =================
         echo -e "${cyan}[ WARP 解锁状态 ]${plain}"
+        warp_status="off"
+        warp_ip=""
+        proxy_mode=""
+
         if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null || systemctl is-active --quiet warp-svc 2>/dev/null; then
-            trace=$(curl -s4m 3 https://www.cloudflare.com/cdn-cgi/trace || echo "error")
+            
+            # 1. 测全局直连
+            trace=$(curl -s4m 3 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null || echo "error")
             if echo "$trace" | grep -q "warp=on"; then
+                warp_status="on"
                 warp_ip=$(echo "$trace" | grep ip= | cut -d= -f2)
-                echo -e " 🛡️  WARP 状态 : ${green}已开启并接管流量 ✅${plain}"
-                echo -e " 🛡️  出口 IP   : ${cyan}${warp_ip}${plain} (Cloudflare 节点)"
+            fi
+
+            # 2. 测虚拟网卡 (兼容各种 WireGuard 衍生版模式)
+            if [[ "$warp_status" == "off" ]]; then
+                for iface in wgcf warp wg0; do
+                    if ip link show "$iface" >/dev/null 2>&1; then
+                        trace=$(curl --interface "$iface" -s4m 3 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null || echo "error")
+                        if echo "$trace" | grep -q "warp=on"; then
+                            warp_status="on"
+                            warp_ip=$(echo "$trace" | grep ip= | cut -d= -f2)
+                            proxy_mode=" ${purple}(虚拟网卡路由: $iface)${plain}"
+                            break
+                        fi
+                    fi
+                done
+            fi
+
+            # 3. 测本地 SOCKS5 代理 (全自动动态抓取，绝不写死任何端口)
+            if [[ "$warp_status" == "off" ]]; then
+                # 向内核发问：抓取 warp-svc 或 warp-go 当前监听的所有本地端口！
+                proxy_ports=$(ss -nltp 2>/dev/null | grep -E 'warp-svc|warp-go' | awk '{print $4}' | grep -E '127\.0\.0\.1|::1' | awk -F':' '{print $NF}' | sort -u)
+                
+                for port in $proxy_ports; do
+                    trace=$(curl -x socks5h://127.0.0.1:$port -s4m 3 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null || echo "error")
+                    if echo "$trace" | grep -q "warp=on"; then
+                        warp_status="on"
+                        warp_ip=$(echo "$trace" | grep ip= | cut -d= -f2)
+                        proxy_mode=" ${purple}(SOCKS5 局部代理 | 自动捕获端口: $port)${plain}"
+                        break
+                    fi
+                done
+            fi
+
+            # 最终状态渲染
+            if [[ "$warp_status" == "on" ]]; then
+                echo -e " 🛡️  WARP 状态 : ${green}已开启并成功接管流量 ✅${plain}"
+                echo -e " 🛡️  出口 IP   : ${cyan}${warp_ip}${plain} (Cloudflare 节点)${proxy_mode}"
             else
-                echo -e " 🛡️  WARP 状态 : ${yellow}服务已启动但未成功接管流量 ⚠️${plain}"
+                echo -e " 🛡️  WARP 状态 : ${yellow}服务已运行但未能成功接管流量 (请检查路由或代理配置) ⚠️${plain}"
             fi
         else
-            echo -e " 🛡️  WARP 状态 : ${red}未开启或未安装 ❌${plain}"
+            echo -e " 🛡️  WARP 状态 : ${red}未开启或未部署 ❌${plain}"
         fi
 
-        # 2. 侦测 Argo 隧道状态 (🚀 核心进化：全域智能嗅探)
+        # ================= 👇 Argo 智能探测 (全系统穿透) 👇 =================
         echo -e "\n${cyan}[ Argo 隧道状态 ]${plain}"
         
-        # 活体进程探针：只要有这个二进制在跑就成立
-        if pgrep -x "cloudflared" >/dev/null 2>&1; then
+        if pgrep -x "cloudflared" >/dev/null 2>&1 || systemctl is-active --quiet vx-argo 2>/dev/null; then
             echo -e " 🚇 Argo 进程 : ${green}运行中 ✅${plain}"
             
             argo_url=""
             argo_token_live=""
 
-            # 💡 神级嗅探 1：从进程参数截获 Token
+            # 神级嗅探 1：抓进程参数
             argo_token_live=$(ps -ef | grep cloudflared | grep -v grep | grep -oE "ey[A-Za-z0-9_-]{50,}" | head -n 1)
             
-            # 💡 神级嗅探 2：如果进程里没抓到，暴力穿透所有 Systemd 服务文件寻找 Token！
+            # 神级嗅探 2：如果进程里没抓到，暴力穿透所有 Systemd 服务文件
             if [[ -z "$argo_token_live" ]]; then
                 argo_token_live=$(grep -rhoE "ey[A-Za-z0-9_-]{50,}" /etc/systemd/system/ 2>/dev/null | head -n 1)
             fi
 
-            # 💡 神级嗅探 3：无视系统服务名，直接调取 cloudflared 程序的内核日志找 URL
+            # 神级嗅探 3：无视系统服务名，直接调取 cloudflared 程序的内核日志找 URL
             argo_url=$(journalctl _COMM=cloudflared --no-pager -n 200 2>/dev/null | grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
-            
-            # 兜底：如果日志被清空，去进程参数里碰碰运气
+            if [[ -z "$argo_url" ]]; then
+                argo_url=$(journalctl -u vx-argo --no-pager -n 200 2>/dev/null | grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
+            fi
             if [[ -z "$argo_url" ]]; then
                 argo_url=$(ps -ef | grep cloudflared | grep -v grep | grep -oE "[a-zA-Z0-9.-]+\.trycloudflare\.com" | head -n 1)
             fi
 
-            # 结果判定与 UI 渲染
             if [[ -n "$argo_token_live" ]]; then
                 masked_token="${argo_token_live:0:6}******[智能隐藏]******${argo_token_live: -6}"
                 echo -e " 🔗 链路模式 : ${purple}Token 守护模式 (固定隧道) ${plain}"
@@ -234,9 +275,7 @@ echo -e "${cyan}=======================================================${plain}"
             read -p "🔑 请右键粘贴您的 Cloudflare Token (ey...开头): " argo_token
             
             if [ -n "$argo_token" ]; then
-                # 去除各种恶心的空格和回车
                 argo_token=$(echo "$argo_token" | tr -d ' ' | tr -d '\n' | tr -d '\r')
-                
                 echo -n "正在为您全自动部署并写入系统底层守护进程... "
                 if ! command -v cloudflared >/dev/null 2>&1; then
                     curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
@@ -249,7 +288,6 @@ echo -e "${cyan}=======================================================${plain}"
                 cloudflared service uninstall >/dev/null 2>&1
                 rm -f /etc/systemd/system/vx-argo.service /etc/systemd/system/argo.service
                 
-                # 写入新 Token
                 cloudflared service install "$argo_token" >/dev/null 2>&1
                 systemctl enable --now cloudflared >/dev/null 2>&1
                 echo -e "[${green}部署成功！已接入 Cloudflare 零信任网络 ✅${plain}]"
@@ -260,7 +298,7 @@ echo -e "${cyan}=======================================================${plain}"
         elif [[ "$argo_action" == "2" ]]; then
             echo -e "\n${blue}=== 🗑️ 彻底卸载 Argo 固定隧道 ===${plain}"
             echo -n "正在停止并焦土化清理系统底层的 Argo 守护进程... "
-            if command -v cloudflared >/dev/null 2>&1 || pgrep -x "cloudflared" >/dev/null 2>&1; then
+            if command -v cloudflared >/dev/null 2>&1 || pgrep -x "cloudflared" >/dev/null 2>&1 || systemctl is-active --quiet vx-argo 2>/dev/null; then
                 # 万能兼容清洗
                 systemctl stop cloudflared vx-argo argo >/dev/null 2>&1
                 systemctl disable cloudflared vx-argo argo >/dev/null 2>&1
