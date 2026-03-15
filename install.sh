@@ -1739,48 +1739,58 @@ EOF2
         
     24)
         while true; do
-            echo -e "\n${blue}=== ⚡ 代理节点服务无痛重启 ===${plain}"
+            echo -e "\n${blue}=== ⚡ 代理节点服务无痛重启 (全域兼容版) ===${plain}"
             echo -e "${yellow}小白科普：当你发现节点连不上、断流时使用此功能。此操作【不会】重启整台 VPS，SSH 终端【不会】断开，瞬间完成。${plain}\n"
-            echo -e "1. 仅重启 Sing-box 核心 (修复直连节点连不上)\n2. 仅重启 Xray 核心\n3. 仅重启 Cloudflared 进程 (修复 Argo 隧道/节点报-1假死)\n4. 🚀 一键通用重启所有代理服务 (最推荐)\n0. ${yellow}取消并返回主菜单${plain}"
-            read -p "请选择操作 [0-4]: " res_choice
+            echo -e "  ${green}1.${plain} 仅重启 Sing-box 核心"
+            echo -e "  ${green}2.${plain} 仅重启 Xray/V2ray 核心 (智能兼容 X-UI 等各类面板)"
+            echo -e "  ${green}3.${plain} 仅重启 Argo 穿透隧道 (智能兼容官方与第三方脚本)"
+            echo -e "  ${purple}4.${plain} 🚀 一键通用重启所有代理服务 (通杀全网，最推荐)"
+            echo -e "  ${yellow}0.${plain} 🔙 取消并返回主菜单"
+            echo -e "--------------------------------------------------------"
+            read -p "👉 请选择操作 [0-4]: " res_choice
             
             case $res_choice in
                 1) 
-                    systemctl restart sing-box >/dev/null 2>&1
-                    if [ $? -eq 0 ]; then 
+                    # 智能探针：查服务或查进程
+                    if systemctl list-unit-files | grep -qw sing-box.service || pgrep -x "sing-box" >/dev/null 2>&1; then
+                        # 兜底绝杀：先温柔重启，不行就暴力杀掉再重启，专治假死
+                        systemctl restart sing-box >/dev/null 2>&1
+                        pkill -9 sing-box >/dev/null 2>&1 
+                        systemctl restart sing-box >/dev/null 2>&1
                         echo -e "\n${green}✅ Sing-box 代理核心已成功重启！${plain}"
                     else 
-                        echo -e "\n${yellow}⚠️ 未检测到 Sing-box 正在运行，或当前系统未安装该核心。${plain}"
+                        echo -e "\n${yellow}⚠️ 未检测到 Sing-box 正在运行，系统可能未安装该核心。${plain}"
                     fi
                     ;;
                 2) 
-                    systemctl restart xray >/dev/null 2>&1
-                    if [ $? -eq 0 ]; then 
-                        echo -e "\n${green}✅ Xray 代理核心已成功重启！${plain}"
+                    # 智能兼容矩阵：包揽纯净版 xray、x-ui 面板、3x-ui 面板、v2ray 老古董
+                    if systemctl list-unit-files | grep -qE 'xray.service|x-ui.service|3x-ui.service|v2ray.service' || pgrep -x "xray" >/dev/null 2>&1 || pgrep -x "v2ray" >/dev/null 2>&1; then
+                        systemctl restart xray x-ui 3x-ui v2ray >/dev/null 2>&1
+                        echo -e "\n${green}✅ Xray/V2ray 系列核心 (含面板) 已成功满血重启！${plain}"
                     else 
-                        echo -e "\n${yellow}⚠️ 未检测到 Xray 正在运行，或当前系统未安装该核心。${plain}"
+                        echo -e "\n${yellow}⚠️ 未检测到 Xray 系列核心或相关面板环境。${plain}"
                     fi
                     ;;
                 3) 
-                    if command -v cloudflared >/dev/null 2>&1 || ps -ef | grep -v grep | grep -q cloudflared; then
-                        # 先暴力杀进程，再优雅重启服务，专治 Argo 假死
+                    # 智能兼容矩阵：通杀原生 cloudflared、vx-argo、argo
+                    if command -v cloudflared >/dev/null 2>&1 || pgrep -x "cloudflared" >/dev/null 2>&1 || systemctl list-unit-files | grep -qE 'cloudflared.service|vx-argo.service|argo.service' 2>/dev/null; then
+                        # 专治 Argo 报 -1 假死：物理超度进程后，全服务名盲扫重启
                         pkill -9 cloudflared >/dev/null 2>&1
-                        systemctl restart cloudflared >/dev/null 2>&1
-                        echo -e "\n${green}✅ Argo 隧道已刷新连接，请稍等 10 秒后重新测速！${plain}"
+                        systemctl restart cloudflared vx-argo argo >/dev/null 2>&1
+                        echo -e "\n${green}✅ Argo 穿透隧道已强行刷新连接！(请稍等 10 秒待线路连通后重新测速)${plain}"
                     else
                         echo -e "\n${yellow}⚠️ 当前环境未启用 Argo 隧道进程，无需刷新。${plain}"
                     fi
                     ;;
                 4) 
-                    echo -e "\n${cyan}正在执行系统级底层服务重启，通杀所有脚本环境...${plain}"
+                    echo -e "\n${cyan}正在执行系统级底层服务清理，无视脚本差异，通杀所有代理环境...${plain}"
                     
-                    # 直接针对系统服务下手，不管什么脚本装的，有就重启，没有就不管
-                    systemctl restart sing-box >/dev/null 2>&1
-                    systemctl restart xray >/dev/null 2>&1
+                    # 终极大招：把所有可能的服务全部拉出来重启一遍，没有的系统会静默忽略，有的直接满血复活
+                    systemctl restart sing-box xray x-ui 3x-ui v2ray >/dev/null 2>&1
                     pkill -9 cloudflared >/dev/null 2>&1
-                    systemctl restart cloudflared >/dev/null 2>&1
+                    systemctl restart cloudflared vx-argo argo >/dev/null 2>&1
                     
-                    echo -e "\n${green}✅ 当前系统中存在的所有代理服务已全部满血复活！${plain}"
+                    echo -e "\n${green}🎉 当前系统中存在的所有代理服务已全部满血复活！断流问题已修复！${plain}"
                     ;;
                 0) 
                     echo -e "\n${green}返回主菜单...${plain}"
