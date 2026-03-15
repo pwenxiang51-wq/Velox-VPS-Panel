@@ -1747,7 +1747,7 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
 
             FINAL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
 
-            # ================= 👇 展示模块 (修复 UI 高亮) 👇 =================
+            # ================= 👇 展示模块 (修复 UI 高亮盲区) 👇 =================
             if [ -n "$FINAL_LINKS" ]; then
                 BASE64_SUB=$(echo -e "$FINAL_LINKS" | base64 -w 0)
 
@@ -1759,8 +1759,14 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 for link in $FINAL_LINKS; do
                     PROTO_TAG=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
                     
-                    # 💡 视觉高亮修复：通过转大写来匹配新重组链接名称里的 ARGO 标签
-                    check_str=$(echo "$link" | tr 'a-z' 'A-Z')
+                    # 💡 致命视觉修复：如果是 VMESS，必须解开 Base64 密码箱才能看到 Argo 标签！
+                    check_str="$link"
+                    if [[ "$PROTO_TAG" == "VMESS" ]]; then
+                        check_str=$(echo "${link#vmess://}" | base64 -d 2>/dev/null)
+                    fi
+                    
+                    # 转大写统一匹配
+                    check_str=$(echo "$check_str" | tr 'a-z' 'A-Z')
                     
                     if [[ "$check_str" == *"ARGO临时"* ]]; then
                         TAG="${purple}【 🚇 $PROTO_TAG - Argo 临时穿透隧道 】${plain}"
@@ -1778,7 +1784,7 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 echo -e "${yellow}------------------------------------------------${plain}"
             else
                 echo -e "\n${red}❌ 绝望！全域穿透搜遍了系统底层目录也没找到任何节点。${plain}"
-                echo -e "${yellow}💡 提示：如果当前有节点在运行，可能是脚本将节点写入了二进制数据库（如 X-UI的.db文件）。请在对应的安装面板中手动“导出节点”。${plain}"
+                echo -e "${yellow}💡 提示：如果当前有节点在运行，可能是脚本将节点写入了二进制数据库。请在对应的安装面板中手动“导出节点”。${plain}"
             fi
 
             read -p "👉 按【回车键】返回主菜单..."
