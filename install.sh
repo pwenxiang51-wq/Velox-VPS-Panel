@@ -706,6 +706,19 @@ EOF3
    17)
         # 🚀 智能定位物理网卡/虚拟网卡，彻底免疫 WARP 路由表污染
         DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
+        # 👇 添加这块防崩溃依赖安装 👇
+
+        if ! command -v bc >/dev/null 2>&1; then
+
+            echo -e "\n${yellow}正在为您安装底层核心计算组件 (bc)...${plain}"
+
+            if command -v apt-get >/dev/null 2>&1; then apt-get update -y >/dev/null 2>&1 && apt-get install bc -y >/dev/null 2>&1; 
+
+            elif command -v yum >/dev/null 2>&1; then yum install bc -y >/dev/null 2>&1; fi
+
+        fi
+
+        # 👆 添加完毕 👆
         # 定义 Velox 全局 TG 配置文件路径
         TG_CONF="/etc/velox_tg.conf"
 
@@ -1434,10 +1447,14 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 read -p "👉 请选择操作 [0-1]: " vx_choice
                 
                 case "$vx_choice" in
+                    case "$vx_choice" in
                     1)
                         echo -e "\n${green}>>> 正在同步并唤醒 VX 核心引擎，请稍候...${plain}"
-                        # 强行拉取你 GitHub 上的最新版 VX 引擎，穿透缓存，并赋予执行权限
                         curl -sL "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$(date +%s)" -o /usr/local/bin/vx && chmod +x /usr/local/bin/vx
+                        
+                        # 👇 增加这一行，提前给 VX 铺好温床，防爆死 👇
+                        mkdir -p /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne
+                        
                         # 唤醒 VX 面板
                         vx
                         ;;
