@@ -70,47 +70,52 @@ echo -e "${cyan}=======================================================${plain}"
     # ==============================================
     # --- 第一板块：系统核心运维 ---
     echo -e "${blue}[ 板块一：🛡️ 系统核心运维 ]${plain}"
-    echo -e "  ${yellow}1.${plain}  📊 ${green}查看系统基础信息${plain}"
-    echo -e "  ${yellow}2.${plain}  💾 ${green}查看磁盘空间占用${plain}"
-    echo -e "  ${yellow}3.${plain}  ⏱️  ${green}查看运行时间与负载${plain}"
-    echo -e "  ${yellow}4.${plain}  📊 ${green}快速查看内存报告 (静态快照)${plain}"
-    echo -e "  ${yellow}5.${plain}  📈 ${green}实时监控 CPU 与内存 (按 q 退出)${plain}"
-    echo -e "  ${yellow}6.${plain}  🔌 ${green}查看系统监听端口${plain}"
+    echo -e "  ${green}1.${plain}  📊 ${green}查看系统基础信息${plain}"
+    echo -e "  ${green}2.${plain}  💾 ${green}查看磁盘空间占用${plain}"
+    echo -e "  ${green}3.${plain}  ⏱️  ${green}查看运行时间与负载${plain}"
+    echo -e "  ${green}4.${plain}  📊 ${green}快速查看内存报告 (静态快照)${plain}"
+    echo -e "  ${green}5.${plain}  📈 ${green}实时监控 CPU 与内存 (按 q 退出)${plain}"
+    echo -e "  ${green}6.${plain}  🔌 ${green}查看系统监听端口${plain}"
+    
     # --- 第二板块：网络高阶调优 ---
     echo -e "\n${blue}[ 板块二：🚀 网络高阶调优 ]${plain}"
-    echo -e "  ${yellow}7.${plain}  📦 ${green}查看代理服务运行状态 (深度体检与 IP 查询) ${sb_stat}${plain}"
-    echo -e "  ${yellow}8.${plain}  🌐  ${cyan}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
-    echo -e "  ${yellow}9.${plain} 🚀 ${cyan}深度验证与管理 BBR 加速 ${bbr_stat}${plain}"
-    echo -e "  ${yellow}10.${plain} 🧹 ${yellow}一键清理系统垃圾与强制释放内存${plain}"
-    echo -e "  ${yellow}11.${plain} 🔄  ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
+    echo -e "  ${green}7.${plain}  📦 ${green}查看代理服务运行状态 (深度体检与 IP 查询)${plain} ${sb_stat}"
+    echo -e "  ${green}8.${plain}  🌐 ${green}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
+    echo -e "  ${green}9.${plain}  🚀 ${green}深度验证与管理 BBR 加速${plain} ${bbr_stat}"
+    echo -e "  ${green}10.${plain} 🧹 ${green}一键清理系统垃圾与强制释放内存${plain}"
+    echo -e "  ${green}11.${plain} 🔄 ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
+    
     # --- 第三板块：代理核心管理 ---
     echo -e "\n${blue}[ 板块三：🔌 代理核心管理 ]${plain}"
-    echo -e "  ${yellow}12.${plain} 🎬 ${blue}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
-    echo -e "  ${yellow}13.${plain} 🛡️ ${green}IP 纯净度与欺诈风险体检 (精准排雷)${plain}"
-    echo -e "  ${yellow}14.${plain} ⚡ ${blue}TCP/UDP 网络底层高阶调优 (极限压榨带宽)${plain}"
-    echo -e "  ${yellow}15.${plain} 🛰️ ${blue}全球主流节点 Ping 延迟测速${plain}"
-    echo -e "  ${yellow}16.${plain} 🚨 ${red}设置/管理 SSH 异地登录 TG 报警 (含开机秒报 & 环境深度兼容) ${tg_stat}${plain}"
+    echo -e "  ${cyan}12.${plain} 🎬 ${cyan}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
+    echo -e "  ${cyan}13.${plain} 🛡️ ${cyan}IP 纯净度与欺诈风险体检 (精准排雷)${plain}"
+    echo -e "  ${cyan}14.${plain} ⚡ ${cyan}TCP/UDP 网络底层高阶调优 (极限压榨带宽)${plain}"
+    echo -e "  ${cyan}15.${plain} 🛰️ ${cyan}全球主流节点 Ping 延迟测速${plain}"
+    echo -e "  ${cyan}16.${plain} 🚨 ${cyan}设置/管理 SSH 异地登录 TG 报警 (含开机秒报)${plain} ${tg_stat}"
+    
     # --- 第四板块：自动化与工具 ---
     echo -e "\n${blue}[ 板块四：🛠️ 自动化与高阶工具 ]${plain}"
-    echo -e "  ${yellow}17.${plain} 📈 ${blue}Velox 流量大管家 (防扣费/防停机/月账单)${plain} ${traffic_stat}"
-    echo -e "  ${yellow}18.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
-    echo -e "  ${yellow}19.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
-    echo -e "  ${yellow}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
-    echo -e "  ${yellow}21.${plain} 🚨 ${red}SSH 智能动态防盗门与双核防御中心 (状态感知/免密飞升/改端口/机枪塔)${plain}"
-    echo -e "  ${yellow}22.${plain} 🚀 ${purple}一键搭建代理节点 (进入 VX 独家分流引擎)${plain}"
-    # --- 第五板块：核心修复与导出 ---
+    echo -e "  ${purple}17.${plain} 📈 ${purple}Velox 流量大管家 (防扣费/防停机/月账单)${plain} ${traffic_stat}"
+    echo -e "  ${purple}18.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
+    echo -e "  ${purple}19.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
+    echo -e "  ${purple}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
+    echo -e "  ${purple}21.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain}"
+    echo -e "  ${purple}22.${plain} 🚀 ${purple}一键搭建代理节点 (进入 VX 独家分流引擎)${plain}"
+    
+    # --- 第五板块：核心修复与配置提取 ---
     echo -e "\n${blue}[ 板块五：⚡ 核心修复与配置提取 ]${plain}"
-    echo -e "  ${yellow}23.${plain} ⏱️  ${cyan}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
-    echo -e "  ${yellow}24.${plain} 🔄  ${green}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
-    echo -e "  ${yellow}25.${plain} 🔗  ${purple}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
-    echo -e "  ${yellow}26.${plain} 🔐  ${blue}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
-    echo -e "  ${yellow}27.${plain} 🧳 ${purple}全域资产跨机搬家与星际舰队中心 (TG 云端灾备 / 万机齐发)${plain}"
+    echo -e "  ${yellow}23.${plain} ⏱️  ${yellow}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
+    echo -e "  ${yellow}24.${plain} 🔄 ${yellow}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
+    echo -e "  ${yellow}25.${plain} 🔗 ${yellow}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
+    echo -e "  ${yellow}26.${plain} 🔐 ${yellow}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
+    echo -e "  ${yellow}27.${plain} 🧳 ${yellow}全域资产跨机搬家与星际舰队中心 (TG 云端灾备)${plain}"
+    
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
-    echo -ne "请选择操作 [${yellow}1-27${plain}]: "
+    echo -ne "请选择操作 [${green}1${plain}-${yellow}27${plain}, ${red}U${plain}, ${red}0${plain}]: "
     read choice
     
     case $choice in
