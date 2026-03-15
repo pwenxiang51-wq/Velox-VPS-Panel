@@ -2021,7 +2021,7 @@ EOF2
    27)
             while true; do
                 echo -e "\n${blue}=== 🛰️ 星际舰队与跨机容灾中心 ===${plain}"
-                echo -e "  ${green}1.${plain} 📦 全域资产一键打包与跨机搬家 (原版数据克隆终极版)"
+                echo -e "  ${green}1.${plain} 📦 全域资产一键打包与跨机搬家 (真·动态路径克隆终极版)"
                 echo -e "  ${cyan}2.${plain} 🤝 组建舰队: 配置多机免密互信 (打通专属 SSH 桥梁)"
                 echo -e "  ${purple}3.${plain} 🚀 舰队出击: 向所有僚机群发执行指令 (万机齐发)"
                 echo -e "  ${red}4.${plain} 🗑️ 解散舰队: 清除本机群发记录与专属密钥 (安全无痕)"
@@ -2032,31 +2032,34 @@ EOF2
                 case $fleet_choice in
                     1)
                         echo -e "\n${blue}--- 🧳 全域资产一键打包与跨机搬家 ---${plain}"
-                        echo -e "${yellow}正在启动全频段雷达，扫描系统内的节点配置、面板数据、证书和定时任务...${plain}\n"
+                        echo -e "${yellow}正在启动全频段雷达，扫描系统内的节点配置、面板数据、证书、定时任务及 TG 凭证...${plain}\n"
 
-                        BACKUP_DIR="/root/velox_backup_$(date +%Y%m%d)"
-                        mkdir -p "$BACKUP_DIR"
                         has_data=0
+                        BACKUP_LIST=""
 
-                        # --- 1. 代理脚本与面板全家桶扫描 ---
-                        if [ -d "/root/agsbx" ]; then cp -r /root/agsbx "$BACKUP_DIR/"; echo -e "✅ 成功提取 [小钢炮/AnyTLS] 核心配置"; has_data=1; fi
-                        if [ -d "/etc/s-box" ]; then cp -r /etc/s-box "$BACKUP_DIR/"; echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"; has_data=1;
-                        elif [ -d "/etc/sing-box" ]; then cp -r /etc/sing-box "$BACKUP_DIR/"; echo -e "✅ 成功提取 [甬哥 sb 脚本] 核心配置"; has_data=1; fi
-                        if [ -d "/etc/x-ui" ]; then cp -r /etc/x-ui "$BACKUP_DIR/"; echo -e "✅ 成功提取 [X-UI / 3X-UI 面板] 数据库与配置"; has_data=1; fi
+                        # 💡 核心升级：动态智能阵列，覆盖全网所有已知脚本目录及咱们的全局 TG 凭证池！
+                        SEARCH_DIRS="/etc/velox_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf"
+                        
+                        for dir in $SEARCH_DIRS; do
+                            if [ -e "$dir" ]; then
+                                BACKUP_LIST="$BACKUP_LIST $dir"
+                                echo -e "✅ 成功提取资产: ${cyan}$dir${plain}"
+                                has_data=1
+                            fi
+                        done
 
-                        # --- 2. 核心护盾扫描 ---
-                        if [ -d "/root/.acme.sh" ]; then cp -r /root/.acme.sh "$BACKUP_DIR/"; echo -e "✅ 成功提取 [Acme 域名证书资产]"; has_data=1;
-                        elif [ -d "$HOME/.acme.sh" ]; then cp -r "$HOME/.acme.sh" "$BACKUP_DIR/"; echo -e "✅ 成功提取 [Acme 域名证书资产]"; has_data=1; fi
-
-                        # --- 3. 自动化任务扫描 ---
-                        if crontab -l > "$BACKUP_DIR/crontab_backup.txt" 2>/dev/null; then
-                            if [ -s "$BACKUP_DIR/crontab_backup.txt" ]; then echo -e "✅ 成功提取 [系统定时任务 (crontab)]"; has_data=1;
-                            else rm -f "$BACKUP_DIR/crontab_backup.txt"; fi
+                        # 自动化任务扫描
+                        if crontab -l > /root/crontab_backup.txt 2>/dev/null && [ -s /root/crontab_backup.txt ]; then
+                            BACKUP_LIST="$BACKUP_LIST /root/crontab_backup.txt"
+                            echo -e "✅ 成功提取资产: ${cyan}系统定时任务 (crontab)${plain}"
+                            has_data=1
+                        else
+                            rm -f /root/crontab_backup.txt
                         fi
 
                         echo -e "${cyan}--------------------------------------------------------${plain}"
                         
-                        # --- 4. 极客专属：自定义目录打包引擎 ---
+                        # --- 极客专属：自定义目录打包引擎 ---
                         echo -e "💡 ${green}除了以上标准资产，您是否还有其他应用需要一起打包搬家？${plain}"
                         echo -e "${purple}📚 【常见应用路径小抄】 (如需打包，请直接复制下方路径)：${plain}"
                         echo -e "   - ☁️ Alist 网盘数据:  ${yellow}/opt/alist/data${plain}"
@@ -2066,52 +2069,44 @@ EOF2
                         read -p "👉 请输入完整路径 (多个用空格隔开，回车跳过): " custom_paths
 
                         if [ -n "$custom_paths" ]; then
-                            mkdir -p "$BACKUP_DIR/custom_assets"
                             for path in $custom_paths; do
-                                if [ -d "$path" ] || [ -f "$path" ]; then
-                                    cd /
-                                    rel_path="${path#/}"
-                                    cp --parents -r "$rel_path" "$BACKUP_DIR/custom_assets/" 2>/dev/null
-                                    echo -e "📦 成功将自定义路径追加至包裹: ${yellow}$path${plain}"
+                                if [ -e "$path" ]; then
+                                    BACKUP_LIST="$BACKUP_LIST $path"
+                                    echo -e "📦 成功追加自定义包裹: ${yellow}$path${plain}"
                                     has_data=1
                                 else
-                                    echo -e "⚠️ ${red}找不到指定的文件或目录，已跳过: $path${plain}"
+                                    echo -e "⚠️ ${red}找不到指定的文件或目录，已智能跳过: $path${plain}"
                                 fi
                             done
-                            cd /root
                         fi
 
                         if [ "$has_data" -eq 1 ]; then
-                            echo -e "\n${cyan}⏳ 正在对包裹进行高强度压缩加密，请耐心等待...${plain}"
-                            cd /root
-                            tar -czf "Velox_Assets_Backup.tar.gz" "$(basename "$BACKUP_DIR")" >/dev/null 2>&1
-                            rm -rf "$BACKUP_DIR"
+                            echo -e "\n${cyan}⏳ 正在对包裹进行高强度压缩加密 (强行保留绝对路径与权限)，请耐心等待...${plain}"
+                            
+                            # 💡 核心升级：使用 -p 保持权限，-P 保持绝对路径，恢复时直接解压即完美覆盖！
+                            tar -czpf /root/Velox_Assets_Backup.tar.gz $BACKUP_LIST >/dev/null 2>&1
+                            
                             SSH_PORT=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
                             [ -z "$SSH_PORT" ] && SSH_PORT="22"
 
                             echo -e "\n${green}🎉 资产克隆打包完毕！您的全域备份文件已生成：${plain}"
                             echo -e "${cyan}📂 文件绝对路径：/root/Velox_Assets_Backup.tar.gz${plain}"
                             
-                            # ================= 👇 新增：TG 云端容灾附加选项 👇 =================
+                            # ================= 👇 TG 云端容灾附加选项 (完美接入共享池) 👇 =================
                             echo -e "\n${purple}☁️ 【可选附加项：TG 云端容灾备份】${plain}"
                             read -p "👉 是否顺便将此备份包推送至您的 Telegram 机器人保管？(y/n) [直接回车跳过]: " send_tg
                             if [[ "$send_tg" == "y" || "$send_tg" == "Y" ]]; then
                                 
-                                # 💡 核心联动：完全对齐 16/17 号菜单的全局配置标准
                                 SHARED_TG_CONF="/etc/velox_tg.conf" 
-                                
-                                # 尝试读取公共配置
                                 if [ -f "$SHARED_TG_CONF" ]; then 
                                     source "$SHARED_TG_CONF" 
                                 fi
                                 
-                                # 如果公共配置里没抓到，才要求手动输入，并保存起来供 16/17/27 共享
                                 if [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ]; then
                                     echo -e "${yellow}未检测到全局 TG 凭据，首次使用需配置 (将自动写入全局池，全面板共享)：${plain}"
                                     read -p "请输入 TG Bot Token: " GLOBAL_TG_TOKEN
                                     read -p "请输入您的 TG Chat ID: " GLOBAL_TG_CHATID
                                     
-                                    # 按照 16/17 号菜单的格式写入，实现双向互通
                                     echo "GLOBAL_TG_TOKEN=\"$GLOBAL_TG_TOKEN\"" > "$SHARED_TG_CONF"
                                     echo "GLOBAL_TG_CHATID=\"$GLOBAL_TG_CHATID\"" >> "$SHARED_TG_CONF"
                                 else
@@ -2132,9 +2127,8 @@ EOF2
                                     fi
                                 fi
                             fi
-                            # ================= 👆 新增：TG 云端容灾结束 👆 =================
+                            # ================= 👆 TG 云端容灾结束 👆 =================
                             
-                            # 👇👇👇 把我最经典的保姆级教学加回来了 👇👇👇
                             echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (全系统平台智能适配版)：${plain}"
                             echo -e "--------------------------------------------------------"
                             echo -e "${cyan}👉 方案 A：使用图形化 SSH 软件 (如 FinalShell / Xshell / Termius)${plain}"
@@ -2150,13 +2144,12 @@ EOF2
                             echo -e "   - [Windows 用户]: scp -P 22 D:/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
                             echo -e "   - [Mac/Linux 用户]: scp -P 22 ~/Desktop/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
                             echo -e ""
-                            # 👆👆👆 教学部分结束 👆👆👆
 
+                            # 💡 核心升级：终极智能恢复指令，一句解压定乾坤，无视任何面板种类差异！
                             echo -e "${purple}🔥 【第三步：新机器终极恢复长指令】 (在新 VPS 终端执行)：${plain}"
-                            echo -e "  ${cyan}cd /root && tar -xzf Velox_Assets_Backup.tar.gz && BACKUP_NAME=\$(ls -d velox_backup_*) && cp -rf \$BACKUP_NAME/agsbx /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/s-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/sing-box /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/x-ui /etc/ 2>/dev/null; cp -rf \$BACKUP_NAME/.acme.sh /root/ 2>/dev/null; cp -rf \$BACKUP_NAME/custom_assets/* / 2>/dev/null; crontab \$BACKUP_NAME/crontab_backup.txt 2>/dev/null; rm -rf Velox_Assets_Backup.tar.gz \$BACKUP_NAME; echo -e \"\\n✅ 资产覆盖恢复成功！节点与证书已满血复活！\"${plain}"
+                            echo -e "  ${cyan}cd / && tar -xzpf /root/Velox_Assets_Backup.tar.gz && crontab /root/crontab_backup.txt 2>/dev/null; systemctl restart vx-core sing-box xray x-ui cloudflared vx-argo 2>/dev/null; echo -e \"\\n✅ 资产覆盖恢复成功！节点、证书与 TG 防线已满血复活！\"${plain}"
                         else
                             echo -e "\n${red}❌ 未提取到任何资产，打包已取消。${plain}"
-                            rm -rf "$BACKUP_DIR"
                         fi
                         ;;
                     2)
