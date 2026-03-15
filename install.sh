@@ -518,20 +518,16 @@ echo -e "${cyan}=======================================================${plain}"
             read -p "👉 测试完毕！按【回车键】返回主菜单..."
             ;;
      13)
-        echo -e "\n${blue}=== 🛡️ 节点 IP 纯净度与欺诈风险体检 ===${plain}"
-        echo -e "${yellow}正在向全球数据库查询当前 VPS 的出站 IP 纯净度，请稍候...${plain}\n"
+        echo -e "\n${blue}=== 🛡️ 节点 IP 纯净度与欺诈风险体检 (国际权威版) ===${plain}"
+        echo -e "${yellow}正在向全球顶级权威数据库查询当前 VPS 的出站 IP 纯净度，请稍候...${plain}\n"
 
         VPS_IP=$(curl -s4m 3 https://api.ipify.org || curl -s4m 3 https://ip.gs)
         
         if [ -n "$VPS_IP" ]; then
             echo -e "🌍 当前出站 IP: ${cyan}${VPS_IP}${plain}\n"
             
-            echo -e "${yellow}--- 📊 核心欺诈数据报告 (来自 Ping0) ---${plain}"
-            # 完整输出 ping0 的报告，加上缩进使其美观
-            curl -sL "https://ping0.cc/geo" 2>/dev/null | sed 's/^/  /'
-            
-            # 补充备用数据库查询（格式化对齐输出 + 智能红绿变色）
-            echo -e "\n${cyan}--- 🌐 IP-API 备用数据库补充信息 ---${plain}"
+            # 使用国际顶级 IP 基因库进行底层剖析
+            echo -e "${cyan}--- 🌐 国际核心数据库 (IP-API) 深度解析 ---${plain}"
             curl -sL "http://ip-api.com/line/$VPS_IP?lang=zh-CN&fields=country,regionName,city,isp,org,as,mobile,proxy,hosting" 2>/dev/null | awk '
             NR==1{printf "  🔹 %-16s : %s\n", "国家/地区", $0} 
             NR==2{printf "  🔹 %-16s : %s\n", "省份/州", $0} 
@@ -543,16 +539,27 @@ echo -e "${cyan}=======================================================${plain}"
             NR==8{printf "  🔹 %-16s : %s\n", "VPN/代理标记", ($0=="true"?"\033[1;31m是 (高风险)\033[0m":"\033[1;32m否 (干净)\033[0m")} 
             NR==9{printf "  🔹 %-16s : %s\n", "机房 IP", ($0=="true"?"\033[1;33m是 (Hosting)\033[0m":"\033[1;32m否 (原生家宽)\033[0m")}'
             
+            echo -e "\n${cyan}--- 🏢 IPinfo 国际 ASN 辅助认证 ---${plain}"
+            IPINFO_ORG=$(curl -s4m 3 https://ipinfo.io/$VPS_IP/org 2>/dev/null)
+            if [ -n "$IPINFO_ORG" ]; then
+                echo -e "  🔹 核心归属       : ${yellow}${IPINFO_ORG}${plain}"
+            else
+                echo -e "  🔹 核心归属       : 获取超时"
+            fi
+
             echo -e "\n${green}💡 极客科普：${plain}"
-            echo -e "🟢 ${green}原生 IP (ISP)${plain}: 极品！流媒体全解锁，免谷歌验证码。"
-            echo -e "🟡 ${yellow}机房 IP (Hosting)${plain}: 普通 VPS 都是这种，偶发验证码。"
-            echo -e "🔴 ${red}风险 IP (Risk/Fraud)${plain}: 欺诈值若飘红，说明 IP 已被玩烂，建议套 WARP！"
-            echo -e ""
-            echo -e "🔗 ${cyan}想要查看更详细的欺诈分数雷达图？${plain}"
-            echo -e "👉 ${green}请按住 Ctrl 点击打开深度体检网页: ${plain}\033[4;34mhttps://ping0.cc/ip/$VPS_IP\033[0m"
+            echo -e "🟢 ${green}原生 IP (家宽/移动)${plain}: 极品！流媒体全解锁，极少跳谷歌验证码。"
+            echo -e "🟡 ${yellow}机房 IP (Hosting)${plain}: 普通 VPS 标配，可能偶发验证码。"
+            echo -e "🔴 ${red}被标记代理 (Proxy)${plain}: 已经被国际数据库拉黑，建议套 WARP 救活！"
+            
+            echo -e "\n🔗 ${cyan}想要查看全球最权威的 Scamalytics 欺诈分数？${plain}"
+            echo -e "👉 ${green}请按住 Ctrl 点击打开深度体检网页: ${plain}\033[4;34mhttps://scamalytics.com/ip/$VPS_IP\033[0m"
         else
             echo -e "${red}❌ 无法获取本机 IP，请检查网络连接。${plain}"
         fi
+        
+        echo -e "\n${yellow}------------------------------------------${plain}"
+        read -p "👉 按【回车键】返回主菜单..."
         ;;
         
   14)
