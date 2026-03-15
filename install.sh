@@ -436,7 +436,67 @@ echo -e "${cyan}=======================================================${plain}"
         read -p "确定要整机重启吗？(y/n): " c
         [[ "$c" == "y" || "$c" == "Y" ]] && sudo reboot 
         ;;
-     12) echo -e "\n${blue}--- 开始流媒体解锁测试 ---${plain}"; bash <(curl -L -s media.ispvps.com) ;;
+      12)
+            echo -e "\n${blue}=== 🎬 流媒体与 AI 解锁智能检测中心 ===${plain}"
+            echo -e "${cyan}📡 正在启动底层网络雷达，侦测代理环境...${plain}"
+            
+            # 智能侦测底层 WARP / 代理状态
+            proxy_port=""
+            warp_iface=""
+            
+            # 1. 动态抓取本地 SOCKS5 端口 (绝不写死 40000)
+            proxy_port=$(ss -nltp 2>/dev/null | grep -E 'warp-svc|warp-go' | awk '{print $4}' | grep -E '127\.0\.0\.1|::1' | awk -F':' '{print $NF}' | head -n 1)
+            
+            # 2. 如果没发现 SOCKS5，抓取 WARP 虚拟网卡
+            if [[ -z "$proxy_port" ]]; then
+                for iface in wgcf warp wg0; do
+                    if ip link show "$iface" >/dev/null 2>&1; then
+                        warp_iface="$iface"
+                        break
+                    fi
+                done
+            fi
+
+            # ================= 👇 智能分支测速逻辑 👇 =================
+            if [[ -n "$proxy_port" ]]; then
+                echo -e "\n${yellow}💡 雷达嗅探到系统正运行 SOCKS5 局部代理 (端口: $proxy_port)${plain}"
+                echo -e "  ${green}1.${plain} 🎯 穿透测试 【WARP 代理 IP】 解锁情况 (极客推荐，测真实解锁能力)"
+                echo -e "  ${cyan}2.${plain} 🌍 常规测试 【VPS 原生 IP】 解锁情况"
+                read -p "👉 请选择测速链路 [1-2, 回车默认1]: " test_choice
+                test_choice=${test_choice:-1}
+                
+                echo -e "\n${cyan}🚀 正在拉取测速组件，请耐心等待 (约需1-2分钟)...${plain}"
+                if [[ "$test_choice" == "1" ]]; then
+                    # 强行注入环境变量，让测速脚本的每一滴流量都走 SOCKS5 代理！
+                    ALL_PROXY="socks5h://127.0.0.1:$proxy_port" bash <(curl -x socks5h://127.0.0.1:$proxy_port -sL media.ispvps.com)
+                else
+                    bash <(curl -sL media.ispvps.com)
+                fi
+
+            elif [[ -n "$warp_iface" ]]; then
+                echo -e "\n${yellow}💡 雷达嗅探到系统部署了 WARP 虚拟网卡 ($warp_iface)${plain}"
+                echo -e "  ${green}1.${plain} 🎯 穿透测试 【WARP 虚拟网卡】 解锁情况"
+                echo -e "  ${cyan}2.${plain} 🌍 常规测试 【VPS 原生 IP】 解锁情况"
+                read -p "👉 请选择测速链路 [1-2, 回车默认1]: " test_choice
+                test_choice=${test_choice:-1}
+                
+                echo -e "\n${cyan}🚀 正在拉取测速组件，请耐心等待 (约需1-2分钟)...${plain}"
+                if [[ "$test_choice" == "1" ]]; then
+                    # 挂载测速脚本特有的 -I 参数，强行指定网卡出口
+                    bash <(curl -sL media.ispvps.com) -I "$warp_iface"
+                else
+                    bash <(curl -sL media.ispvps.com)
+                fi
+
+            else
+                echo -e "\n${green}>>> 未检测到局部代理，正在为您测试当前 VPS 原生 IP 解锁情况...${plain}"
+                echo -e "${cyan}🚀 正在拉取测速组件，请耐心等待 (约需1-2分钟)...${plain}"
+                bash <(curl -sL media.ispvps.com)
+            fi
+            
+            echo -e "\n${yellow}------------------------------------------${plain}"
+            read -p "👉 测试完毕！按【回车键】返回主菜单..."
+            ;;
      13)
         echo -e "\n${blue}=== 🛡️ 节点 IP 纯净度与欺诈风险体检 ===${plain}"
         echo -e "${yellow}正在向全球数据库查询当前 VPS 的出站 IP 纯净度，请稍候...${plain}\n"
