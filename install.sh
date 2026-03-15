@@ -317,10 +317,19 @@ echo -e "${cyan}=======================================================${plain}"
         echo -e "${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】继续..."
         ;;
-    9)
+   9)
         echo -e "\n${blue}=== 🚀 BBR 状态诊断与高级网络内核调优 ===${plain}"
+        # 🚀 核心升级：架构防爆护盾
+        virt_type=$(systemd-detect-virt 2>/dev/null || echo "unknown")
+        if [[ "$virt_type" == "lxc" || "$virt_type" == "openvz" ]]; then
+            echo -e "${red}❌ 致命拦截：检测到当前为 $virt_type 容器架构！${plain}"
+            echo -e "${yellow}此类容器共享母鸡内核，强行修改 BBR 拥塞算法将导致宿主机冲突或直接报错。操作已安全阻断！${plain}"
+            read -p "👉 按【回车键】返回主菜单..."
+            continue
+        fi
         
         # 1. 深度探测系统内核与当前状态
+        kernel_version=$(uname -r | awk -F- '{print $1}')
         kernel_version=$(uname -r | awk -F- '{print $1}')
         kernel_main=$(echo $kernel_version | awk -F. '{print $1"."$2}')
         current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
@@ -535,7 +544,16 @@ echo -e "${cyan}=======================================================${plain}"
         fi
         ;;
         
-     14)
+    14)
+        # 🚀 核心升级：架构防爆护盾
+        virt_type=$(systemd-detect-virt 2>/dev/null || echo "unknown")
+        if [[ "$virt_type" == "lxc" || "$virt_type" == "openvz" ]]; then
+            echo -e "\n${red}❌ 致命拦截：检测到当前为 $virt_type 容器架构！${plain}"
+            echo -e "${yellow}此类容器无权修改底层网络读写缓冲区(rmem/wmem)与队列调度(qdisc)，操作已安全阻断！${plain}"
+            read -p "👉 按【回车键】返回主菜单..."
+            continue
+        fi
+
         # 💡 防崩依赖：确保 tc 工具存在，用于接管网卡队列
         if ! command -v tc >/dev/null 2>&1; then
             if command -v apt-get >/dev/null 2>&1; then apt-get install iproute2 -y >/dev/null 2>&1;
@@ -1104,9 +1122,18 @@ EOF2
         done
         ;;
         
-      18)
-            echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
-            current_swap=$(free -m | grep Swap | awk '{print $2}')
+    18)
+        echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
+        # 🚀 核心升级：架构防爆护盾
+        virt_type=$(systemd-detect-virt 2>/dev/null || echo "unknown")
+        if [[ "$virt_type" == "lxc" || "$virt_type" == "openvz" ]]; then
+            echo -e "${red}❌ 致命拦截：检测到当前为 $virt_type 容器架构！${plain}"
+            echo -e "${yellow}此类容器被严格限制了 Swap 挂载权限，强行分配会导致内核报错 swapon failed: Operation not permitted。操作已安全阻断！${plain}"
+            read -p "👉 按【回车键】返回主菜单..."
+            continue
+        fi
+
+        current_swap=$(free -m | grep Swap | awk '{print $2}')
             if [ "$current_swap" -gt "0" ]; then
                 echo -e "${green}✅ 检测到当前已开启 ${current_swap} MB 虚拟内存。${plain}"
                 read -p "是否需要【彻底关闭并删除】现有的虚拟内存？(y/n): " del_swap
@@ -1509,7 +1536,8 @@ EOF2
             fi
         done
         ;;
-         22)
+    
+           22)
                 clear
                 echo -e "\n${blue}======================================================${plain}"
                 echo -e "${yellow}       🚀 Velox Node Engine (VX) 核心部署枢纽 🚀${plain}"
@@ -1526,15 +1554,23 @@ EOF2
                 
                 case "$vx_choice" in
                     1)
-                        echo -e "\n${green}>>> 正在同步并唤醒 VX 核心引擎，请稍候...${plain}"
-                        curl -sL "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$(date +%s)" -o /usr/local/bin/vx && chmod +x /usr/local/bin/vx
+                    echo -e "\n${green}>>> 正在同步并唤醒 VX 核心引擎，请稍候...${plain}"
+                    # 🚀 核心升级：原子级写入，防下载中断导致文件损坏
+                    curl -sL "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$(date +%s)" -o /tmp/vx_tmp.sh
+                    
+                    if [ -s /tmp/vx_tmp.sh ]; then
+                        mv -f /tmp/vx_tmp.sh /usr/local/bin/vx
+                        chmod +x /usr/local/bin/vx
                         
-                        # 增加这一行，提前给 VX 铺好温床，防爆死
+                        # 提前给 VX 铺好温床，防爆死
                         mkdir -p /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne
                         
                         # 唤醒 VX 面板
                         vx
-                        ;;
+                    else
+                        echo -e "\n${red}❌ 致命错误：网络异常或 GitHub API 被拦截，文件拉取失败！VX 引擎未受损。${plain}"
+                    fi
+                    ;;
                     0)
                         echo -e "\n${green}✅ 已取消操作，安全返回主菜单。${plain}"
                         ;;
@@ -2323,5 +2359,5 @@ EOF2
 done
 EOF
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox V5.0 (智能UI细节修缮版) 部署完毕！请输入 velox 欣赏！\033[0m"
+echo -e "\033[1;32m✅ Velox V5.1 (全域兼容满血终极版) 部署完毕！请输入 velox 欣赏！\033[0m"
 velox
