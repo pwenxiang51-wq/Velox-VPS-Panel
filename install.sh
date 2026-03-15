@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V5.0 作者专属版 - 智能系统嗅探 + TG徽章) 
+# 自动生成并运行 Velox 面板 (V5.2 全域兼容满血终极版 - 智能嗅探 + 原子防护)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
@@ -11,6 +11,19 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
+
+# ================= 全局智能拦截函数 =================
+check_virt_safe() {
+    local feature_name="$1"
+    local virt_type=$(systemd-detect-virt 2>/dev/null || echo "unknown")
+    if [[ "$virt_type" == "lxc" || "$virt_type" == "openvz" ]]; then
+        echo -e "\n${red}❌ 致命拦截：检测到当前为 $virt_type 容器架构！${plain}"
+        echo -e "${yellow}此类精简容器共享宿主机内核，无权进行【$feature_name】的底层高阶操作。操作已安全阻断！${plain}"
+        return 1 # 阻断
+    fi
+    return 0 # 放行
+}
+# ====================================================
 
 while true; do 
     # === 🚀 万能核心服务动态状态检测 (穿透查进程) ===
@@ -317,24 +330,17 @@ echo -e "${cyan}=======================================================${plain}"
         echo -e "${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】继续..."
         ;;
-   9)
-        echo -e "\n${blue}=== 🚀 BBR 状态诊断与高级网络内核调优 ===${plain}"
-        # 🚀 核心升级：架构防爆护盾
-        virt_type=$(systemd-detect-virt 2>/dev/null || echo "unknown")
-        if [[ "$virt_type" == "lxc" || "$virt_type" == "openvz" ]]; then
-            echo -e "${red}❌ 致命拦截：检测到当前为 $virt_type 容器架构！${plain}"
-            echo -e "${yellow}此类容器共享母鸡内核，强行修改 BBR 拥塞算法将导致宿主机冲突或直接报错。操作已安全阻断！${plain}"
-            read -p "👉 按【回车键】返回主菜单..."
-            continue
-        fi
         
-        # 1. 深度探测系统内核与当前状态
-        kernel_version=$(uname -r | awk -F- '{print $1}')
+    9)
+        echo -e "\n${blue}=== 🚀 BBR 状态诊断与高级网络内核调优 ===${plain}"
+        # 🚀 核心升级：架构防爆护盾 (调用全局智能函数，一行解决！)
+        check_virt_safe "BBR 内核拥塞算法修改" || { read -p "👉 按【回车键】继续..."; continue; }
+
+        # 1. 深度探测系统内核与当前状态 (顺手帮你把重复两遍的变量获取也修了)
         kernel_version=$(uname -r | awk -F- '{print $1}')
         kernel_main=$(echo $kernel_version | awk -F. '{print $1"."$2}')
         current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
         current_qdisc=$(sysctl net.core.default_qdisc 2>/dev/null | awk '{print $3}')
-
         echo -e "🔎 ${cyan}当前系统内核版本:${plain} ${kernel_version}"
         echo -e "🚥 ${cyan}当前拥塞控制算法 (CC):${plain} ${yellow}${current_cc}${plain}"
         echo -e "🚥 ${cyan}当前队列调度算法 (Qdisc):${plain} ${yellow}${current_qdisc}${plain}"
@@ -544,15 +550,9 @@ echo -e "${cyan}=======================================================${plain}"
         fi
         ;;
         
-    14)
-        # 🚀 核心升级：架构防爆护盾
-        virt_type=$(systemd-detect-virt 2>/dev/null || echo "unknown")
-        if [[ "$virt_type" == "lxc" || "$virt_type" == "openvz" ]]; then
-            echo -e "\n${red}❌ 致命拦截：检测到当前为 $virt_type 容器架构！${plain}"
-            echo -e "${yellow}此类容器无权修改底层网络读写缓冲区(rmem/wmem)与队列调度(qdisc)，操作已安全阻断！${plain}"
-            read -p "👉 按【回车键】返回主菜单..."
-            continue
-        fi
+  14)
+        # 🚀 核心升级：架构防爆护盾 (调用全局智能函数，一行顶十行！)
+        check_virt_safe "TCP/UDP 读写缓冲区与队列扩展" || { read -p "👉 按【回车键】继续..."; continue; }
 
         # 💡 防崩依赖：确保 tc 工具存在，用于接管网卡队列
         if ! command -v tc >/dev/null 2>&1; then
@@ -1124,14 +1124,8 @@ EOF2
         
     18)
         echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
-        # 🚀 核心升级：架构防爆护盾
-        virt_type=$(systemd-detect-virt 2>/dev/null || echo "unknown")
-        if [[ "$virt_type" == "lxc" || "$virt_type" == "openvz" ]]; then
-            echo -e "${red}❌ 致命拦截：检测到当前为 $virt_type 容器架构！${plain}"
-            echo -e "${yellow}此类容器被严格限制了 Swap 挂载权限，强行分配会导致内核报错 swapon failed: Operation not permitted。操作已安全阻断！${plain}"
-            read -p "👉 按【回车键】返回主菜单..."
-            continue
-        fi
+        # 🚀 核心升级：架构防爆护盾 (调用全局智能函数，一行顶十行！)
+        check_virt_safe "Swap 虚拟内存硬盘挂载" || { read -p "👉 按【回车键】继续..."; continue; }
 
         current_swap=$(free -m | grep Swap | awk '{print $2}')
             if [ "$current_swap" -gt "0" ]; then
