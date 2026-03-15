@@ -1647,7 +1647,7 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
         ;;
         
    25)
-            echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (真·全域穿透+防洪版) ===${plain}"
+            echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (真·全域穿透+智能Argo版) ===${plain}"
             
             if ! command -v qrencode >/dev/null 2>&1; then
                 echo -e "${yellow}正在安装二维码生成模块...${plain}"
@@ -1656,74 +1656,58 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 elif command -v yum >/dev/null 2>&1; then yum install qrencode -y >/dev/null 2>&1; fi
             fi
 
-            # 终极正则 (通杀所有主流开源协议)
             REGEX_PATTERN="(anytls|vless|vmess|trojan|hysteria2|hy2|tuic|ss|ssr)://[a-zA-Z0-9_=+/%@:?&.\#-]+"
-            echo -e "${cyan}📡 正在启动深空雷达，穿透所有开源脚本底层进行基因提取...${plain}"
+            echo -e "${cyan}📡 正在启动深空雷达，穿透系统底层进行精准基因提取...${plain}"
 
             RAW_LINKS=""
             
-            # 💡 致命破案：将 VX 脚本的真实存放路径 /etc/velox_vne 加入最高优先级搜索池！
-            SEARCH_DIRS=("/etc/velox_vne" "/etc/x-ui" "/etc/s-box" "/etc/sing-box" "/usr/local/etc/xray" "/etc/vx" "/usr/local/etc/vx" "/etc/vne" "/root/agsbx" "/root")
+            # 💡 将 VX/VNE 及市面上所有主流脚本的专门目录加入扫描
+            SEARCH_DIRS="/etc/velox_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx"
             
-            for dir in "${SEARCH_DIRS[@]}"; do
-                if [ -d "$dir" ]; then
-                    # 遍历目录下的所有文件 (无视后缀，限制 2 层深度防卡死)
-                    for f in $(find "$dir" -maxdepth 2 -type f 2>/dev/null); do
-                        # 使用 -a 强行将所有文件当做文本读取，抽取最底部的 4 条防洪
-                        links=$(grep -oE -a "$REGEX_PATTERN" "$f" 2>/dev/null | tail -n 4)
-                        if [ -n "$links" ]; then
-                            RAW_LINKS=$(echo -e "${RAW_LINKS}\n${links}")
-                        fi
-                    done
+            FOUND_FILES=$(grep -rlE -a "$REGEX_PATTERN" $SEARCH_DIRS /root/*share*.txt /root/*link*.txt 2>/dev/null)
+            
+            for f in $FOUND_FILES; do
+                if [ -f "$f" ]; then
+                    # 💡 致命修复：针对咱们面板自带的配置目录，绝对不截断，全量提取 6 个大满贯！
+                    # 对外部未知历史残留文件，提取最新 15 条防洪。
+                    if [[ "$f" == *"/links.txt"* || "$f" == *"/velox_vne"* || "$f" == *"/vx"* || "$f" == *"/vne"* || "$f" == *"/x-ui"* ]]; then
+                        file_links=$(grep -oE -a "$REGEX_PATTERN" "$f" 2>/dev/null)
+                    else
+                        file_links=$(grep -oE -a "$REGEX_PATTERN" "$f" 2>/dev/null | tail -n 15)
+                    fi
+                    [ -n "$file_links" ] && RAW_LINKS=$(echo -e "${RAW_LINKS}\n${file_links}")
                 fi
             done
 
-            # 物理去重，防止相同节点被重复抓取
             UNIQUE_LINKS=$(echo "$RAW_LINKS" | awk '!seen[$0]++' | grep -v '^$' | tr -d '\r')
 
-            # ================= 👇 解析与【Base64重编码】引擎 👇 =================
             PROCESSED_LINKS=""
             CURRENT_NAME=$(hostname)
             [ -z "$CURRENT_NAME" ] && CURRENT_NAME="VeloX"
 
             for link in $UNIQUE_LINKS; do
                 PROTO=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
-                OLD_NAME=""
                 PREFIX=""
-                IS_ARGO=0
+                ARGO_TYPE=""
 
-                # 1. 深度解码并提取特征
                 if [[ "$link" == vmess://* ]]; then
                     b64_str=${link#vmess://}
                     json_str=$(echo "$b64_str" | base64 -d 2>/dev/null)
-                    OLD_NAME=$(echo "$json_str" | grep -o '"ps"[[:space:]]*:[[:space:]]*"[^"]+"' | cut -d'"' -f4)
                     config_text=$(echo "$json_str" | tr 'A-Z' 'a-z' | tr -d ' ')
                     
                     echo "$config_text" | grep -qi '"net":"ws"' && PREFIX="${PREFIX}ws-"
                     echo "$config_text" | grep -qi '"net":"grpc"' && PREFIX="${PREFIX}gRPC-"
                     echo "$config_text" | grep -qi '"tls":"tls"' && PREFIX="${PREFIX}tls-"
-                    if [[ "$config_text" == *"trycloudflare"* ]]; then IS_ARGO=1; fi
-                else
-                    OLD_NAME=$(echo "$link" | sed -n 's/.*#//p')
-                    config_text=$(echo "$link" | tr 'A-Z' 'a-z')
                     
-                    echo "$config_text" | grep -qi 'type=ws' && PREFIX="${PREFIX}ws-"
-                    echo "$config_text" | grep -qi 'type=grpc' && PREFIX="${PREFIX}gRPC-"
-                    echo "$config_text" | grep -qi 'security=tls' && PREFIX="${PREFIX}tls-"
-                    echo "$config_text" | grep -qi 'security=reality' && PREFIX="${PREFIX}Reality-"
-                    if [[ "$config_text" == *"trycloudflare"* ]]; then IS_ARGO=1; fi
-                fi
-
-                # 2. Argo 标签强化 (检测旧名字中是否带 argo/ARGO)
-                if [[ "$IS_ARGO" -eq 1 || "$OLD_NAME" =~ [Aa][Rr][Gg][Oo] ]]; then
-                    PREFIX="${PREFIX}Argo-"
-                fi
-
-                # 3. 命名重组
-                NEW_REMARK="${PROTO}-${PREFIX}${CURRENT_NAME}"
-
-                # 4. 无损注入并生成新链接
-                if [[ "$link" == vmess://* ]]; then
+                    # 🚀 强力 Argo 基因判定 (识别临时、固定、及高通透免流IP)
+                    if [[ "$config_text" == *"trycloudflare"* ]]; then
+                        ARGO_TYPE="Argo临时-"
+                    elif [[ "$config_text" == *"argo"* || "$config_text" == *"visa.com"* || "$config_text" == *"icook.hk"* ]]; then
+                        ARGO_TYPE="Argo固定-"
+                    fi
+                    
+                    NEW_REMARK="${PROTO}-${PREFIX}${ARGO_TYPE}${CURRENT_NAME}"
+                    
                     if echo "$json_str" | grep -q '"ps"'; then
                         new_json=$(echo "$json_str" | sed -E 's/"ps"[[:space:]]*:[[:space:]]*"[^"]+"/"ps": "'"$NEW_REMARK"'"/g')
                     else
@@ -1732,6 +1716,22 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                     new_b64=$(echo -n "$new_json" | base64 -w 0 2>/dev/null || echo -n "$new_json" | base64 | tr -d '\n')
                     new_link="vmess://${new_b64}"
                 else
+                    config_text=$(echo "$link" | tr 'A-Z' 'a-z')
+                    
+                    echo "$config_text" | grep -qi 'type=ws' && PREFIX="${PREFIX}ws-"
+                    echo "$config_text" | grep -qi 'type=grpc' && PREFIX="${PREFIX}gRPC-"
+                    echo "$config_text" | grep -qi 'security=tls' && PREFIX="${PREFIX}tls-"
+                    echo "$config_text" | grep -qi 'security=reality' && PREFIX="${PREFIX}Reality-"
+                    
+                    # 🚀 非 VMess 协议的 Argo 判定
+                    if [[ "$config_text" == *"trycloudflare"* ]]; then
+                        ARGO_TYPE="Argo临时-"
+                    elif [[ "$config_text" == *"argo"* || "$config_text" == *"visa.com"* || "$config_text" == *"icook.hk"* ]]; then
+                        ARGO_TYPE="Argo固定-"
+                    fi
+                    
+                    NEW_REMARK="${PROTO}-${PREFIX}${ARGO_TYPE}${CURRENT_NAME}"
+                    
                     if [[ "$link" == *#* ]]; then
                         new_link=$(echo "$link" | sed -E 's/#[^[:space:]]*$/#'"$NEW_REMARK"'/')
                     else
@@ -1744,20 +1744,24 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
 
             FINAL_LINKS=$(echo "$PROCESSED_LINKS" | grep -v '^$' | tr -d '\r')
 
-            # ================= 👇 展示模块 👇 =================
             if [ -n "$FINAL_LINKS" ]; then
                 BASE64_SUB=$(echo -e "$FINAL_LINKS" | base64 -w 0)
 
-                echo -e "\n${green}🎉 扫描完毕！全域雷达已穿透提取并重新编码以下节点：${plain}"
+                echo -e "\n${green}🎉 扫描完毕！全域雷达已精准抓取并洗白重编以下节点：${plain}"
                 echo -e "${yellow}======================================================================${plain}"
                 echo -e "🚀【 全节点聚合订阅 (Base64编码) 】"
                 echo -e "${cyan}${BASE64_SUB}${plain}\n"
                 
                 for link in $FINAL_LINKS; do
                     PROTO_TAG=$(echo "$link" | awk -F'://' '{print $1}' | tr 'a-z' 'A-Z')
-                    TAG="【 $PROTO_TAG 直连协议 】"
-                    if echo "$link" | grep -qi "Argo-"; then
-                        TAG="${red}【 🚇 Argo 穿透保护隧道 】${plain}"
+                    
+                    # 🚀 极致 UI：智能辨别并高亮 Argo 类型
+                    if [[ "$link" == *"Argo临时"* ]]; then
+                        TAG="${red}【 🚇 Argo 临时穿透隧道 】${plain}"
+                    elif [[ "$link" == *"Argo固定"* ]]; then
+                        TAG="${purple}【 🚇 Argo 固定零信任隧道 】${plain}"
+                    else
+                        TAG="${green}【 $PROTO_TAG 直连协议 】${plain}"
                     fi
 
                     echo -e "${yellow}------------------------------------------------${plain}"
@@ -1767,8 +1771,8 @@ velox，您的服务器 $(hostname) 流量防线已成功激活！
                 done
                 echo -e "${yellow}------------------------------------------------${plain}"
             else
-                echo -e "\n${red}❌ 绝望！全域穿透搜遍了系统底层目录也没找到任何节点。${plain}"
-                echo -e "${yellow}💡 提示：如果当前有节点在运行，可能是脚本将节点写入了二进制数据库（如 X-UI的.db文件）。请在对应的安装面板中手动“导出节点”。${plain}"
+                echo -e "\n${red}❌ 绝望！系统底层未搜寻到任何有效节点。${plain}"
+                echo -e "${yellow}💡 提示：如果当前有节点在运行，请在面板中手动生成一次或导出。${plain}"
             fi
 
             read -p "👉 按【回车键】返回主菜单..."
