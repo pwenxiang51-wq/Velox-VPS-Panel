@@ -624,13 +624,10 @@ echo -e "${cyan}=======================================================${plain}"
             echo -ne "🇨🇳 百度 (中国大陆): " && ping -c 3 220.181.38.251 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -e "\n${green}✅ 测速完成！${plain}"
             ;;
-       16)
+      16)
             echo -e "\n${blue}--- 🚨 设置/管理 Telegram 智能报警监控 (全能体检溯源版) ---${plain}"
-            
-            # 定义全局 TG 配置文件路径 (核心升级项)
             TG_CONF="/etc/velox_tg.conf"
             
-            # 兼容性环境检查
             if ! command -v curl &> /dev/null; then
                 echo -e "${yellow}正在安装必须的网络组件 curl...${plain}"
                 if command -v apt-get >/dev/null 2>&1; then apt-get update -y >/dev/null 2>&1 && apt-get install curl -y >/dev/null 2>&1;
@@ -642,100 +639,65 @@ echo -e "${cyan}=======================================================${plain}"
                 echo -e "${green}✅ 检测到当前已开启 TG 报警防线！${plain}"
                 read -p "请选择操作 (r:重新配置 / d:彻底卸载删除 / n:取消): " tg_choice
                 if [[ "$tg_choice" == "d" ]]; then
-                    sudo rm -f /usr/local/bin/ssh_tg_alert.sh
-                    sudo rm -f /usr/local/bin/tg_boot_alert.sh
-                    sudo sed -i '/ssh_tg_alert.sh/d' /etc/profile
-                    sudo sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
+                    sudo rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh /etc/systemd/system/tg_boot_alert.service
+                    sudo sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
                     sudo systemctl disable --now tg_boot_alert.service 2>/dev/null
-                    sudo rm -f /etc/systemd/system/tg_boot_alert.service
                     sudo systemctl daemon-reload
                     
-                    # --- 智能排雷与预览逻辑 ---
-                    echo -e "\n${yellow}正在扫描系统定时任务 (crontab) 中的旧版残余报警指令...${plain}"
+                    echo -e "\n${yellow}正在扫描定时任务旧版残余...${plain}"
                     if crontab -l 2>/dev/null | grep -q "api.telegram.org"; then
-                        echo -e "${red}发现以下残留的旧版发信指令（即将被清理，其余任务将保留）：${plain}"
-                        crontab -l 2>/dev/null | grep "api.telegram.org"
-                        echo -e "${cyan}---------------------------------------------------${plain}"
-                        echo -e "${yellow}清理后，您的系统定时任务将变为以下状态（请预览确认）：${plain}"
-                        crontab -l 2>/dev/null | grep -v "api.telegram.org"
-                        echo -e "${cyan}---------------------------------------------------${plain}"
-                        read -p "是否确认执行清理？(y/n): " confirm_clean
-                        if [[ "$confirm_clean" == "y" || "$confirm_clean" == "Y" ]]; then
-                            crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -
-                            echo -e "${green}✅ 旧版定时报警指令已彻底清理干净！${plain}"
-                        else
-                            echo -e "${yellow}已取消清理残留。${plain}"
-                        fi
-                    else
-                        echo -e "${green}未发现旧版定时报警残留，您的系统很干净！${plain}"
+                        crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -
+                        echo -e "${green}✅ 旧版定时报警指令已清理！${plain}"
                     fi
-                    # -------------------------
-                    
-                    echo -e "${green}✅ TG 报警防线已彻底无痕卸载！(注: 已为您智能保留全局 TG 配置，以免影响流量大管家)${plain}"
-                    echo -e "您可以回到主菜单查看状态。"
+                    echo -e "${green}✅ TG 报警防线已彻底无痕卸载！${plain}"
                 elif [[ "$tg_choice" == "r" || "$tg_choice" == "R" ]]; then
                     tg_setup_flag=1
                 else
-                    echo -e "${cyan}操作已取消。${plain}"
-                    tg_setup_flag=0
+                    echo -e "${cyan}操作已取消。${plain}"; tg_setup_flag=0
                 fi
             else
-                echo -e "💡 本脚本开源安全，Token 仅保存在本机，不会上传网络！"
-                tg_setup_flag=1
+                echo -e "💡 本脚本开源安全，Token 仅保存在本机！"; tg_setup_flag=1
             fi
 
             if [[ "$tg_setup_flag" == "1" ]]; then
-                echo -e "\n💡 准备配置，Token 仅保存在本机，绝对安全！"
-                
-                # ======== 🚀 核心升级：全局 TG 配置智能嗅探与复用 ========
-                if [ -f "$TG_CONF" ]; then
-                    source "$TG_CONF"
-                fi
-
+                if [ -f "$TG_CONF" ]; then source "$TG_CONF"; fi
                 if [ -n "$GLOBAL_TG_TOKEN" ] && [ -n "$GLOBAL_TG_CHATID" ]; then
                     echo -e "${green}✅ 检测到系统全局公共池已存在 TG 凭证！${plain}"
-                    read -p "👉 请输入新的 TG Bot Token [直接回车复用现有配置]: " input_token
+                    read -p "👉 输入新 TG Bot Token [直接回车复用]: " input_token
                     tg_token="${input_token:-$GLOBAL_TG_TOKEN}"
-                    
-                    read -p "👉 请输入新的 TG Chat ID [直接回车复用现有配置]: " input_chatid
+                    read -p "👉 输入新 TG Chat ID [直接回车复用]: " input_chatid
                     tg_chatid="${input_chatid:-$GLOBAL_TG_CHATID}"
                 else
                     read -p "👉 请输入你的 TG Bot Token: " tg_token
                     read -p "👉 请输入你的 TG Chat ID: " tg_chatid
                 fi
-                # =======================================================
 
                 if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
-                    
-                    # 🚀 将确认的凭证写入全局配置池，供 17号等所有组件无缝共享
-                    echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
-                    echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
-                    echo -e "${green}✅ TG 凭证已同步至系统全局配置池！${plain}"
+                    # 🚀 核心升级：强行注入活体校验
+                    echo -e "\n${cyan}正在向 Telegram 司令部验证凭证连通性...${plain}"
+                    tg_check=$(curl -s4m5 "https://api.telegram.org/bot${tg_token}/getMe" || echo "failed")
+                    if ! echo "$tg_check" | grep -q '"ok":true'; then
+                        echo -e "${red}❌ 验证失败！Token 错误或本机无法连通 TG API。操作已拦截！${plain}"
+                    else
+                        echo -e "${green}✅ 验证通过！司令部已确认身份。${plain}"
+                        echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
+                        echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
 
-                    # ==========================================
-                    # 1. 编写 SSH 登录发信脚本 (🚀 新增：智能黑客溯源 IP 归属地查杀)
-                    # ==========================================
-                    cat << EOF2 > /usr/local/bin/ssh_tg_alert.sh
+                        cat << EOF2 > /usr/local/bin/ssh_tg_alert.sh
 #!/bin/bash
 if [ -z "\$TG_ALERT_TRIGGERED" ]; then
     export TG_ALERT_TRIGGERED=1
     export TZ="Asia/Shanghai"
     USER_IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
-    
     if [ -n "\$USER_IP" ]; then
-        # 🚀 智能溯源：利用底层 API 瞬时查出对方老巢 (国家,城市,ISP运营商)
         GEO_INFO=\$(curl -s4m3 "http://ip-api.com/line/\$USER_IP?lang=zh-CN&fields=country,city,isp" | tr '\n' ' ' | sed 's/ $//')
         [ -z "\$GEO_INFO" ] && GEO_INFO="未知归属地或查询超时"
-
         MSG="🚨 [神盾局警告]
 大佬，您的服务器 \$(hostname) 刚刚被登录了！
 👉 来源 IP: \$USER_IP
 🌍 IP 溯源: \$GEO_INFO
 ⏰ 北京时间: \$(date +'%Y-%m-%d %H:%M:%S')"
-        
-        # --- 核心绝杀：强制绕过 WARP，抓取物理主网卡 ---
         MAIN_IF=\$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print \$5}' | head -n 1)
-        
         if [ -n "\$MAIN_IF" ]; then
             curl --interface "\$MAIN_IF" -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1 &
         else
@@ -744,118 +706,72 @@ if [ -z "\$TG_ALERT_TRIGGERED" ]; then
     fi
 fi
 EOF2
-                    chmod +x /usr/local/bin/ssh_tg_alert.sh
-                    
-                    # 2. 双重注入环境变量
-                    sed -i '/ssh_tg_alert.sh/d' /etc/profile
-                    sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
-                    echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/profile
-                    echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/bash.bashrc
-                    
-                    # ==========================================
-                    # 3. 编写开机复苏发信脚本 (🚀 新增：多核智能兼容体检，通杀所有面板)
-                    # ==========================================
-                    cat << EOF2 > /usr/local/bin/tg_boot_alert.sh
+                        chmod +x /usr/local/bin/ssh_tg_alert.sh
+                        sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
+                        echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/profile
+                        echo "source /usr/local/bin/ssh_tg_alert.sh" >> /etc/bash.bashrc
+                        
+                        cat << EOF2 > /usr/local/bin/tg_boot_alert.sh
 #!/bin/bash
 sleep 15
 export TZ="Asia/Shanghai"
-
-# --- 智能多核心兼容状态检查 ---
-sleep 30  # 💡 30 秒黄金缓冲期，等待网络和所有代理进程满血复活
-
-# Sing-box 探针 (进程与系统服务双管齐下)
-if systemctl is-active --quiet sing-box 2>/dev/null || pgrep -x "sing-box" >/dev/null 2>&1; then
-    SB_STAT="运行中 ✅"
-else
-    SB_STAT="未运行/未安装 ⚠️"
-fi
-
-# Xray 探针 (兼容纯净版与 X-UI 面板包裹版)
-if systemctl is-active --quiet xray 2>/dev/null || systemctl is-active --quiet x-ui 2>/dev/null || pgrep -x "xray" >/dev/null 2>&1; then
-    XR_STAT="运行中 ✅"
-else
-    XR_STAT="未运行/未安装 ⚠️"
-fi
-
-# Argo 探针 (完美兼容官方版和 VX 专属版)
-if pgrep -x "cloudflared" >/dev/null 2>&1 || systemctl is-active --quiet vx-argo 2>/dev/null || systemctl is-active --quiet argo 2>/dev/null; then
-    ARGO_STAT="运行中 ✅"
-else
-    ARGO_STAT="未运行/无自启 ⚠️"
-fi
-
-# WARP 探针 (涵盖 wgcf / warp-go / 官方 warp-svc 以及网卡状态)
-if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null || systemctl is-active --quiet warp-svc 2>/dev/null || ip link show wg0 >/dev/null 2>&1 || ip link show warp >/dev/null 2>&1; then
-    WARP_STAT="已就绪 ✅"
-else
-    WARP_STAT="未开启/未安装 ⚠️"
-fi
-
-# 构建带有多行排版的精美报告
+sleep 30  
+if systemctl is-active --quiet sing-box 2>/dev/null || pgrep -x "sing-box" >/dev/null 2>&1; then SB_STAT="运行中 ✅"; else SB_STAT="未运行/未安装 ⚠️"; fi
+if systemctl is-active --quiet xray 2>/dev/null || systemctl is-active --quiet x-ui 2>/dev/null || pgrep -x "xray" >/dev/null 2>&1; then XR_STAT="运行中 ✅"; else XR_STAT="未运行/未安装 ⚠️"; fi
+if pgrep -x "cloudflared" >/dev/null 2>&1 || systemctl is-active --quiet vx-argo 2>/dev/null || systemctl is-active --quiet argo 2>/dev/null; then ARGO_STAT="运行中 ✅"; else ARGO_STAT="未运行/无自启 ⚠️"; fi
+if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null || systemctl is-active --quiet warp-svc 2>/dev/null || ip link show wg0 >/dev/null 2>&1 || ip link show warp >/dev/null 2>&1; then WARP_STAT="已就绪 ✅"; else WARP_STAT="未开启/未安装 ⚠️"; fi
 MSG="🟢 [Velox 系统复苏通知]
 大佬，您的服务器 \$(hostname) 已完成重启并成功连网！
-
 📊 【核心体检报告】
 🚀 Sing-box : \$SB_STAT
 🛸 Xray 核心: \$XR_STAT
 🚇 Argo 隧道: \$ARGO_STAT
 🛡️ WARP 出站: \$WARP_STAT
-
 ⏰ 北京时间: \$(date +'%Y-%m-%d %H:%M:%S')"
-
-# --- 核心绝杀：强制绕过 WARP，抓取物理主网卡 ---
 MAIN_IF=\$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print \$5}' | head -n 1)
-
-if [ -n "\$MAIN_IF" ]; then
-    curl --interface "\$MAIN_IF" -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1
-else
-    curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1
-fi
+if [ -n "\$MAIN_IF" ]; then curl --interface "\$MAIN_IF" -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1
+else curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1; fi
 EOF2
-                    chmod +x /usr/local/bin/tg_boot_alert.sh
-                    
-                    # 4. 部署工业级 Systemd 守护进程
-                    cat << EOF3 > /etc/systemd/system/tg_boot_alert.service
+                        chmod +x /usr/local/bin/tg_boot_alert.sh
+                        cat << EOF3 > /etc/systemd/system/tg_boot_alert.service
 [Unit]
 Description=Telegram Boot Alert
 After=network-online.target
 Wants=network-online.target
-
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/tg_boot_alert.sh
-
 [Install]
 WantedBy=multi-user.target
 EOF3
-                    systemctl daemon-reload
-                    systemctl enable tg_boot_alert.service > /dev/null 2>&1
-                    
-                    echo -e "\n${green}✅ TG 全能体检报警防线部署成功！主菜单已点亮 [已部署] 徽章！${plain}"
+                        systemctl daemon-reload; systemctl enable tg_boot_alert.service > /dev/null 2>&1
+                        echo -e "\n${green}✅ TG 全能体检报警防线部署成功！主菜单已点亮 [已部署] 徽章！${plain}"
+                    fi
                 else
                     echo -e "\n${red}❌ 输入不完整，已取消设置。${plain}"
                 fi
             fi
-            
-            echo ""
             read -p "👉 按【回车键】返回主菜单..."
             ;;
-    17)
-        # 🚀 真·智能定位物理网卡：强制剔除 WARP/WG 虚拟网卡，死死咬住物理出站口，彻底免疫路由表污染！
+   17)
         DEFAULT_IF=$(ip -4 route ls | grep default | grep -vE 'tun|warp|wg|tailscale' | awk '{print $5}' | head -n 1)
-        # 极致兜底：如果上面的方法没抓到，再用基础方法
         [ -z "$DEFAULT_IF" ] && DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
         
-        # 👇 防崩溃依赖安装 👇
+        # 🚀 核心升级：LXC 架构预警
+        virt_type=$(systemd-detect-virt 2>/dev/null || echo "unknown")
+        if [[ "$virt_type" == "lxc" || "$virt_type" == "openvz" ]]; then
+            echo -e "\n${yellow}⚠️ 架构预警：检测到当前为 $virt_type 容器环境！${plain}"
+            echo -e "部分重度阉割的容器可能无法运行底层的 vnstat 守护进程，如果后续无法统计数据，请联系主机商。${plain}"
+            sleep 2
+        fi
+
         if ! command -v bc >/dev/null 2>&1; then
             echo -e "\n${yellow}正在为您安装底层核心计算组件 (bc)...${plain}"
             if command -v apt-get >/dev/null 2>&1; then apt-get update -y >/dev/null 2>&1 && apt-get install bc -y >/dev/null 2>&1; 
             elif command -v yum >/dev/null 2>&1; then yum install bc -y >/dev/null 2>&1; 
             elif command -v dnf >/dev/null 2>&1; then dnf install bc -y >/dev/null 2>&1; fi
         fi
-        # 👆 添加完毕 👆
         
-        # 定义 Velox 全局 TG 配置文件路径
         TG_CONF="/etc/velox_tg.conf"
 
         while true; do
@@ -1031,14 +947,19 @@ EOF3
 
                     if [ -z "$tg_token" ] || [ -z "$tg_chatid" ]; then
                         read -p "👉 请输入你的 TG Bot Token [直接回车取消]: " tg_token
-                        if [ -z "$tg_token" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
-                        
+                        [ -z "$tg_token" ] && { echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; }
                         read -p "👉 请输入你的 TG Chat ID [直接回车取消]: " tg_chatid
-                        if [ -z "$tg_chatid" ]; then echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; fi
+                        [ -z "$tg_chatid" ] && { echo -e "${yellow}已取消。${plain}"; read -p "按回车键继续..."; continue; }
                         
+                        echo -e "\n${cyan}正在向 Telegram 司令部验证凭证连通性...${plain}"
+                        tg_check=$(curl -s4m5 "https://api.telegram.org/bot${tg_token}/getMe" || echo "failed")
+                        if ! echo "$tg_check" | grep -q '"ok":true'; then
+                            echo -e "${red}❌ 验证失败！Token 错误或网络无法连通。操作已拦截！${plain}"
+                            read -p "按回车键继续..."; continue
+                        fi
                         echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
                         echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
-                        echo -e "${green}✅ TG 凭证已保存为全局变量。${plain}"
+                        echo -e "${green}✅ 验证通过，TG 凭证已保存为全局变量。${plain}"
                     fi
                     
                     if [[ "$limit_gb" =~ ^[0-9]+$ ]]; then
@@ -1486,7 +1407,7 @@ EOF2
                         echo -e "\n${red}❌ 格式识别失败！请确保粘贴的是以 ssh- 开头的【公钥】。${plain}"
                     fi
                     ;;
-                6)
+               6)
                     echo -e "\n${blue}--- 🚀 Velox 双核安全防御武器库 ---${plain}"
                     echo -e "  ${cyan}1.${plain} 🟢 [极简特种兵] 部署纯 Bash 底层机枪塔 (0 内存消耗，专防 SSH)"
                     echo -e "  ${cyan}2.${plain} 🗑️ ${red}[极简特种兵] 拆除并物理粉碎 Bash 机枪塔${plain}"
@@ -1497,12 +1418,10 @@ EOF2
                     
                     if [ "$def_choice" == "1" ]; then
                         echo -e "\n${yellow}正在手搓 Bash 底层守护进程并注入 Systemd...${plain}"
-                        
-                        # 采用极其硬核的纯 echo 写入法，彻底粉碎任何编辑器的 EOF 缩进天坑！
                         echo '#!/bin/bash' > /usr/local/bin/velox-defender.sh
-                        echo 'LOG_FILE="/var/log/auth.log"' >> /usr/local/bin/velox-defender.sh
-                        echo '[ -f /var/log/secure ] && LOG_FILE="/var/log/secure"' >> /usr/local/bin/velox-defender.sh
-                        echo 'tail -Fn0 "$LOG_FILE" | awk '\''/Failed password/ {print $(NF-3)}'\'' | while read IP; do' >> /usr/local/bin/velox-defender.sh
+                        # 🚀 核心升级：Debian 12 动态日志瞎眼修复，智能回退 journalctl！
+                        echo 'if [ -f /var/log/auth.log ]; then LOG_CMD="tail -Fn0 /var/log/auth.log"; elif [ -f /var/log/secure ]; then LOG_CMD="tail -Fn0 /var/log/secure"; else LOG_CMD="journalctl -u ssh -u sshd -fn0"; fi' >> /usr/local/bin/velox-defender.sh
+                        echo 'eval "$LOG_CMD" | awk '\''/Failed password/ {print $(NF-3)}'\'' | while read IP; do' >> /usr/local/bin/velox-defender.sh
                         echo '    if [ -n "$IP" ]; then' >> /usr/local/bin/velox-defender.sh
                         echo '        COUNT=$(grep -c "^$IP$" /tmp/velox_ip_counts.txt 2>/dev/null || echo 0)' >> /usr/local/bin/velox-defender.sh
                         echo '        if [ "$COUNT" -ge 4 ]; then' >> /usr/local/bin/velox-defender.sh
@@ -1511,7 +1430,6 @@ EOF2
                         echo '        else echo "$IP" >> /tmp/velox_ip_counts.txt; fi' >> /usr/local/bin/velox-defender.sh
                         echo '    fi' >> /usr/local/bin/velox-defender.sh
                         echo 'done' >> /usr/local/bin/velox-defender.sh
-                        
                         chmod +x /usr/local/bin/velox-defender.sh
                         
                         echo '[Unit]' > /etc/systemd/system/velox-defender.service
@@ -1529,28 +1447,36 @@ EOF2
                         
                     elif [ "$def_choice" == "2" ]; then
                         systemctl stop velox-defender >/dev/null 2>&1; systemctl disable velox-defender >/dev/null 2>&1
-                        rm -f /usr/local/bin/velox-defender.sh; rm -f /etc/systemd/system/velox-defender.service; rm -f /tmp/velox_ip_counts.txt
+                        rm -f /usr/local/bin/velox-defender.sh /etc/systemd/system/velox-defender.service /tmp/velox_ip_counts.txt /var/log/velox-defender.log
                         systemctl daemon-reload
                         echo -e "${green}✅ Bash 机枪塔已彻底拆除并粉碎，不留一丝痕迹！${plain}"
                         
                     elif [ "$def_choice" == "3" ]; then
-                        echo -e "\n${yellow}正在全网拉取 Fail2Ban 工业装甲...${plain}"
-                        if command -v apt-get >/dev/null; then apt-get update >/dev/null 2>&1; apt-get install fail2ban -y >/dev/null 2>&1; fi
-                        if command -v yum >/dev/null; then yum install epel-release -y >/dev/null 2>&1; yum install fail2ban -y >/dev/null 2>&1; fi
-                        if command -v dnf >/dev/null; then dnf install epel-release -y >/dev/null 2>&1; dnf install fail2ban -y >/dev/null 2>&1; fi
-                        
-                        # 智能识别日志路径
-                        LOGPATH="/var/log/auth.log"; [ -f /var/log/secure ] && LOGPATH="/var/log/secure"
-                        echo '[sshd]' > /etc/fail2ban/jail.local
-                        echo 'enabled = true' >> /etc/fail2ban/jail.local
-                        echo 'port = ssh' >> /etc/fail2ban/jail.local
-                        echo 'filter = sshd' >> /etc/fail2ban/jail.local
-                        echo "logpath = $LOGPATH" >> /etc/fail2ban/jail.local
-                        echo 'maxretry = 5' >> /etc/fail2ban/jail.local
-                        echo 'bantime = 86400' >> /etc/fail2ban/jail.local
-                        
-                        systemctl enable fail2ban >/dev/null 2>&1; systemctl restart fail2ban >/dev/null 2>&1
-                        echo -e "${green}✅ Fail2Ban 顶级装甲已部署完毕！(拉黑时间默认 24 小时)${plain}"
+                        # 🚀 核心升级：LXC/OpenVZ 强装 Fail2Ban 防失联硬阻断
+                        virt_type=$(systemd-detect-virt 2>/dev/null || echo "unknown")
+                        if [[ "$virt_type" == "lxc" || "$virt_type" == "openvz" ]]; then
+                            echo -e "\n${red}❌ 致命拦截：当前 VPS 架构为 $virt_type 容器！${plain}"
+                            echo -e "${yellow}此类精简容器缺少底层 iptables 模块权限，强装 Fail2Ban 100% 会导致网络瘫痪失联！${plain}"
+                            echo -e "${green}💡 请使用 [选项 1] 部署纯 Bash 机枪塔，0 依赖免底层内核，完美防御！${plain}"
+                        else
+                            echo -e "\n${yellow}正在全网拉取 Fail2Ban 工业装甲...${plain}"
+                            if command -v apt-get >/dev/null; then apt-get update >/dev/null 2>&1; apt-get install fail2ban -y >/dev/null 2>&1; fi
+                            if command -v yum >/dev/null; then yum install epel-release -y >/dev/null 2>&1; yum install fail2ban -y >/dev/null 2>&1; fi
+                            if command -v dnf >/dev/null; then dnf install epel-release -y >/dev/null 2>&1; dnf install fail2ban -y >/dev/null 2>&1; fi
+                            
+                            LOGPATH="/var/log/auth.log"; [ -f /var/log/secure ] && LOGPATH="/var/log/secure"
+                            echo '[sshd]' > /etc/fail2ban/jail.local
+                            echo 'enabled = true' >> /etc/fail2ban/jail.local
+                            echo 'port = ssh' >> /etc/fail2ban/jail.local
+                            echo 'filter = sshd' >> /etc/fail2ban/jail.local
+                            echo "logpath = $LOGPATH" >> /etc/fail2ban/jail.local
+                            echo 'maxretry = 5' >> /etc/fail2ban/jail.local
+                            echo 'bantime = 86400' >> /etc/fail2ban/jail.local
+                            
+                            systemctl enable fail2ban >/dev/null 2>&1; systemctl restart fail2ban >/dev/null 2>&1
+                            echo -e "${green}✅ Fail2Ban 顶级装甲已部署完毕！(拉黑时间默认 24 小时)${plain}"
+                        fi
+                       
                         
                     elif [ "$def_choice" == "4" ]; then
                         echo -e "\n${yellow}正在暴力拆除 Fail2Ban...${plain}"
@@ -1825,7 +1751,7 @@ EOF2
             RAW_LINKS=""
             
             # 💡 通用底座：覆盖市面上 99% 脚本的节点存储路径
-            SEARCH_DIRS="/etc/velox_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root"
+          SEARCH_DIRS="/etc/velox_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf /etc/hysteria /etc/hysteria2 /etc/tuic /opt/alist/data /opt/nezha /root"
             
             # 强制提取：无视二进制，直接暴力抠出所有包含节点链接的文本块
             for f in $(find $SEARCH_DIRS -maxdepth 2 -type f 2>/dev/null); do
@@ -2063,8 +1989,7 @@ EOF2
                         BACKUP_LIST=""
 
                         # 💡 核心升级：动态智能阵列，覆盖全网所有已知脚本目录及咱们的全局 TG 凭证池！
-                        SEARCH_DIRS="/etc/velox_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf"
-                        
+                    SEARCH_DIRS="/etc/velox_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf /etc/hysteria /etc/hysteria2 /etc/tuic /opt/alist/data /opt/nezha /root"                        
                         for dir in $SEARCH_DIRS; do
                             if [ -e "$dir" ]; then
                                 BACKUP_LIST="$BACKUP_LIST $dir"
