@@ -654,65 +654,74 @@ echo -e "${cyan}=======================================================${plain}"
             echo -ne "🇨🇳 百度 (中国大陆): " && ping -c 3 220.181.38.251 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -e "\n${green}✅ 测速完成！${plain}"
             ;;
-      16)
-            echo -e "\n${blue}--- 🚨 设置/管理 Telegram 智能报警监控 (全能体检溯源版) ---${plain}"
-            TG_CONF="/etc/velox_tg.conf"
-            
-            if ! command -v curl &> /dev/null; then
-                echo -e "${yellow}正在安装必须的网络组件 curl...${plain}"
-                if command -v apt-get >/dev/null 2>&1; then apt-get update -y >/dev/null 2>&1 && apt-get install curl -y >/dev/null 2>&1;
-                elif command -v dnf >/dev/null 2>&1; then dnf install curl -y >/dev/null 2>&1;
-                elif command -v yum >/dev/null 2>&1; then yum install curl -y >/dev/null 2>&1; fi
-            fi
+     16)
+            while true; do
+                echo -e "\n${blue}=== 🚨 Telegram 全局防线与智能报警监控中枢 ===${plain}"
+                TG_CONF="/etc/velox_tg.conf"
 
-            if [ -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
-                echo -e "${green}✅ 检测到当前已开启 TG 报警防线！${plain}"
-                read -p "请选择操作 (r:重新配置 / d:彻底卸载删除 / n:取消): " tg_choice
-                if [[ "$tg_choice" == "d" ]]; then
-                    sudo rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh /etc/systemd/system/tg_boot_alert.service
-                    sudo sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
-                    sudo systemctl disable --now tg_boot_alert.service 2>/dev/null
-                    sudo systemctl daemon-reload
-                    
-                    echo -e "\n${yellow}正在扫描定时任务旧版残余...${plain}"
-                    if crontab -l 2>/dev/null | grep -q "api.telegram.org"; then
-                        crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -
-                        echo -e "${green}✅ 旧版定时报警指令已清理！${plain}"
-                    fi
-                    echo -e "${green}✅ TG 报警防线已彻底无痕卸载！${plain}"
-                elif [[ "$tg_choice" == "r" || "$tg_choice" == "R" ]]; then
-                    tg_setup_flag=1
+                # 动态侦测全局凭证状态
+                if [ -f "$TG_CONF" ] && grep -q "GLOBAL_TG_TOKEN" "$TG_CONF"; then
+                    source "$TG_CONF"
+                    TG_CRED_STAT="${green}已配置 ✅${plain}"
                 else
-                    echo -e "${cyan}操作已取消。${plain}"; tg_setup_flag=0
-                fi
-            else
-                echo -e "💡 本脚本开源安全，Token 仅保存在本机！"; tg_setup_flag=1
-            fi
-
-            if [[ "$tg_setup_flag" == "1" ]]; then
-                if [ -f "$TG_CONF" ]; then source "$TG_CONF"; fi
-                if [ -n "$GLOBAL_TG_TOKEN" ] && [ -n "$GLOBAL_TG_CHATID" ]; then
-                    echo -e "${green}✅ 检测到系统全局公共池已存在 TG 凭证！${plain}"
-                    read -p "👉 输入新 TG Bot Token [直接回车复用]: " input_token
-                    tg_token="${input_token:-$GLOBAL_TG_TOKEN}"
-                    read -p "👉 输入新 TG Chat ID [直接回车复用]: " input_chatid
-                    tg_chatid="${input_chatid:-$GLOBAL_TG_CHATID}"
-                else
-                    read -p "👉 请输入你的 TG Bot Token: " tg_token
-                    read -p "👉 请输入你的 TG Chat ID: " tg_chatid
+                    TG_CRED_STAT="${yellow}未配置 ⚠️${plain}"
                 fi
 
-                if [[ -n "$tg_token" && -n "$tg_chatid" ]]; then
-                    # 🚀 核心升级：强行注入活体校验
-                    echo -e "\n${cyan}正在向 Telegram 司令部验证凭证连通性...${plain}"
-                    tg_check=$(curl -s4m5 "https://api.telegram.org/bot${tg_token}/getMe" || echo "failed")
-                    if ! echo "$tg_check" | grep -q '"ok":true'; then
-                        echo -e "${red}❌ 验证失败！Token 错误或本机无法连通 TG API。操作已拦截！${plain}"
-                    else
-                        echo -e "${green}✅ 验证通过！司令部已确认身份。${plain}"
-                        echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
-                        echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
+                # 动态侦测本机 SSH 报警脚本状态
+                if [ -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
+                    ALERT_STAT="${green}运行中 ✅${plain}"
+                else
+                    ALERT_STAT="${yellow}未部署 ⚠️${plain}"
+                fi
 
+                echo -e "  ${green}1.${plain} 🚀 部署/重置 [SSH 异地登录 + 开机自启] 报警防线 (当前: $ALERT_STAT)"
+                echo -e "  ${red}2.${plain} 🗑️ 彻底卸载 SSH 与开机报警防线"
+                echo -e "  ${purple}3.${plain} ⚙️ 全局 TG 机器人凭证管理 (当前: $TG_CRED_STAT)"
+                echo -e "      ${yellow}└─ 更改/删除 Token 与 ChatID (修改后 VX 和 Velox 的雷达自动生效)${plain}"
+                echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
+                echo -e "${cyan}----------------------------------------------------------------------${plain}"
+                read -p "👉 请选择操作 [0-3]: " tg_main_choice
+
+                case "$tg_main_choice" in
+                    1)
+                        if ! command -v curl &> /dev/null; then
+                            echo -e "${yellow}正在安装必须的网络组件 curl...${plain}"
+                            if command -v apt-get >/dev/null 2>&1; then apt-get update -y >/dev/null 2>&1 && apt-get install curl -y >/dev/null 2>&1;
+                            elif command -v dnf >/dev/null 2>&1; then dnf install curl -y >/dev/null 2>&1;
+                            elif command -v yum >/dev/null 2>&1; then yum install curl -y >/dev/null 2>&1; fi
+                        fi
+
+                        if [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ]; then
+                            echo -e "\n${yellow}⚠️ 未检测到系统全局公共池有 TG 凭证！${plain}"
+                            read -p "👉 请输入你的 TG Bot Token: " tg_token
+                            read -p "👉 请输入你的 TG Chat ID: " tg_chatid
+                            
+                            if [[ -z "$tg_token" || -z "$tg_chatid" ]]; then
+                                echo -e "${red}❌ 输入为空，已取消部署。${plain}"
+                                read -p "👉 按【回车键】继续..."; continue
+                            fi
+
+                            echo -e "\n${cyan}正在向 Telegram 司令部验证凭证连通性...${plain}"
+                            tg_check=$(curl -s4m5 "https://api.telegram.org/bot${tg_token}/getMe" || echo "failed")
+                            if ! echo "$tg_check" | grep -q '"ok":true'; then
+                                echo -e "${red}❌ 验证失败！Token 错误或本机无法连通 TG API。操作已拦截！${plain}"
+                                read -p "👉 按【回车键】继续..."; continue
+                            fi
+                            
+                            echo -e "${green}✅ 验证通过！司令部已确认身份。${plain}"
+                            echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
+                            echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
+                            GLOBAL_TG_TOKEN="$tg_token"
+                            GLOBAL_TG_CHATID="$tg_chatid"
+                        else
+                            echo -e "\n${green}✅ 检测到系统全局公共池已存在 TG 凭证，已自动复用！${plain}"
+                            tg_token="$GLOBAL_TG_TOKEN"
+                            tg_chatid="$GLOBAL_TG_CHATID"
+                        fi
+
+                        echo -e "${cyan}正在向系统底层注入 SSH 探针与开机自启防线...${plain}"
+                        
+                        # --- 下方保留你原版一模一样的 Payload 代码 ---
                         cat << EOF2 > /usr/local/bin/ssh_tg_alert.sh
 #!/bin/bash
 if [ -z "\$TG_ALERT_TRIGGERED" ]; then
@@ -762,6 +771,8 @@ MAIN_IF=\$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v 
 if [ -n "\$MAIN_IF" ]; then curl --interface "\$MAIN_IF" -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1
 else curl -s -X POST "https://api.telegram.org/bot${tg_token}/sendMessage" --data-urlencode chat_id="${tg_chatid}" --data-urlencode text="\$MSG" > /dev/null 2>&1; fi
 EOF2
+                        # --- 原版 Payload 代码结束 ---
+
                         chmod +x /usr/local/bin/tg_boot_alert.sh
                         cat << EOF3 > /etc/systemd/system/tg_boot_alert.service
 [Unit]
@@ -775,13 +786,92 @@ ExecStart=/usr/local/bin/tg_boot_alert.sh
 WantedBy=multi-user.target
 EOF3
                         systemctl daemon-reload; systemctl enable tg_boot_alert.service > /dev/null 2>&1
-                        echo -e "\n${green}✅ TG 全能体检报警防线部署成功！主菜单已点亮 [已部署] 徽章！${plain}"
-                    fi
-                else
-                    echo -e "\n${red}❌ 输入不完整，已取消设置。${plain}"
-                fi
-            fi
-            read -p "👉 按【回车键】返回主菜单..."
+                        echo -e "\n${green}✅ TG 报警防线部署成功！${plain}"
+                        read -p "👉 按【回车键】继续..."
+                        ;;
+                    2)
+                        if [ ! -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
+                            echo -e "\n${yellow}⚠️ 当前未部署 SSH 报警防线，无需卸载。${plain}"
+                        else
+                            echo -e "\n${yellow}正在进行焦土化清除...${plain}"
+                            sudo rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh /etc/systemd/system/tg_boot_alert.service
+                            sudo sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
+                            sudo systemctl disable --now tg_boot_alert.service 2>/dev/null
+                            sudo systemctl daemon-reload
+                            
+                            echo -e "${yellow}正在扫描定时任务旧版残余...${plain}"
+                            if crontab -l 2>/dev/null | grep -q "api.telegram.org"; then
+                                crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -
+                                echo -e "${green}✅ 旧版定时报警指令已清理！${plain}"
+                            fi
+                            echo -e "${green}✅ SSH 与开机报警防线已彻底无痕卸载！(注：全局凭证仍保留)${plain}"
+                        fi
+                        read -p "👉 按【回车键】继续..."
+                        ;;
+                    3)
+                        echo -e "\n${cyan}=== ⚙️ 全局 TG 机器人凭证管理 ===${plain}"
+                        if [[ -n "$GLOBAL_TG_TOKEN" ]]; then
+                            echo -e "当前绑定的 Token: ${green}${GLOBAL_TG_TOKEN}${plain}"
+                            echo -e "当前绑定的 Chat ID: ${green}${GLOBAL_TG_CHATID}${plain}"
+                        else
+                            echo -e "${yellow}⚠️ 当前全局池为空。${plain}"
+                        fi
+                        echo -e "\n请选择操作："
+                        echo -e "  ${green}1.${plain} 重新输入并物理覆盖配置"
+                        echo -e "  ${red}2.${plain} 彻底删除全局凭证 (💥 将同时强拆 VX 与 Velox 的所有报警进程)"
+                        echo -e "  ${yellow}0.${plain} 取消并返回"
+                        read -p "👉 请选择 [0-2]: " cred_choice
+                        case "$cred_choice" in
+                            1)
+                                read -p "🔑 请输入新的 TG Bot Token: " new_token
+                                read -p "💬 请输入新的 TG Chat ID: " new_chatid
+                                if [[ -n "$new_token" && -n "$new_chatid" ]]; then
+                                    echo "GLOBAL_TG_TOKEN=\"$new_token\"" > /etc/velox_tg.conf
+                                    echo "GLOBAL_TG_CHATID=\"$new_chatid\"" >> /etc/velox_tg.conf
+                                    source "$TG_CONF"
+                                    echo -e "${green}✅ 全局凭证已物理覆写！${plain}"
+                                    
+                                    # 跨脚本联动热重载 VX 哨兵
+                                    if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null; then
+                                        systemctl restart vx-tg-sentinel
+                                        echo -e "${green}🔄 侦测到 VX 节点哨兵正在运行，已联动热重载！${plain}"
+                                    fi
+                                    echo -e "${green}🔄 Velox 的报警也将在下次触发时自动使用新机器人！${plain}"
+                                else
+                                    echo -e "${red}❌ 输入无效，操作已取消。${plain}"
+                                fi
+                                ;;
+                            2)
+                                rm -f /etc/velox_tg.conf
+                                unset GLOBAL_TG_TOKEN
+                                unset GLOBAL_TG_CHATID
+                                echo -e "${green}🗑️ 全局 TG 配置文件已被物理蒸发！${plain}"
+                                
+                                # 跨脚本联动拆除 VX 哨兵
+                                if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null || [ -f "/usr/local/bin/vx-tg-sentinel.sh" ]; then
+                                    systemctl stop vx-tg-sentinel >/dev/null 2>&1
+                                    systemctl disable vx-tg-sentinel >/dev/null 2>&1
+                                    rm -f /etc/systemd/system/vx-tg-sentinel.service /usr/local/bin/vx-tg-sentinel.sh
+                                    echo -e "${yellow}⚠️ 已联动物理拆除 VX 节点哨兵进程！${plain}"
+                                fi
+                                
+                                # 联动拆除 Velox 本身的报警
+                                if [ -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
+                                    sudo rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh /etc/systemd/system/tg_boot_alert.service
+                                    sudo sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
+                                    sudo systemctl disable --now tg_boot_alert.service >/dev/null 2>&1
+                                    if crontab -l 2>/dev/null | grep -q "api.telegram.org"; then crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -; fi
+                                    echo -e "${yellow}⚠️ 已联动彻底卸载 Velox 的 SSH 与开机报警防线！${plain}"
+                                fi
+                                systemctl daemon-reload
+                                ;;
+                        esac
+                        read -p "👉 按【回车键】继续..."
+                        ;;
+                    0) break ;;
+                    *) echo -e "${red}❌ 无效选择！${plain}"; sleep 1 ;;
+                esac
+            done
             ;;
    17)
         DEFAULT_IF=$(ip -4 route ls | grep default | grep -vE 'tun|warp|wg|tailscale' | awk '{print $5}' | head -n 1)
