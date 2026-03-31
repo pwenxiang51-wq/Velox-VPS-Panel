@@ -866,8 +866,11 @@ EOF_P
                     4)
                         echo -e "\n${cyan}=== ⚙️ 全局 TG 机器人凭证管理 ===${plain}"
                         if [[ -n "$GLOBAL_TG_TOKEN" ]]; then
-                            echo -e "当前绑定的 Token: ${green}${GLOBAL_TG_TOKEN}${plain}"
-                            echo -e "当前绑定的 Chat ID: ${green}${GLOBAL_TG_CHATID}${plain}"
+                            # 🚀 开启军用级数据脱敏装甲 (保留前8位和后5位，中间物理打码)
+                            MASKED_TOKEN="${GLOBAL_TG_TOKEN:0:8}********${GLOBAL_TG_TOKEN: -5}"
+                            MASKED_CHATID="${GLOBAL_TG_CHATID:0:3}****${GLOBAL_TG_CHATID: -2}"
+                            echo -e "当前绑定的 Token: ${green}${MASKED_TOKEN}${plain}"
+                            echo -e "当前绑定的 Chat ID: ${green}${MASKED_CHATID}${plain}"
                         else
                             echo -e "${yellow}⚠️ 当前全局池为空。${plain}"
                         fi
