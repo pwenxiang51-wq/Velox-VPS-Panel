@@ -683,14 +683,27 @@ echo -e "${cyan}=======================================================${plain}"
                     PULSE_STAT="${yellow}未部署 ⚠️${plain}"
                 fi
 
+                # --- 嵌入 1：动态侦测秒级哨兵状态 ---
+                W_CRON=$(crontab -l 2>/dev/null | grep "velox_watchdog.sh")
+                if [ -n "$W_CRON" ]; then
+                    WATCHDOG_STAT="${green}运行中 ✅${plain}"
+                else
+                    WATCHDOG_STAT="${yellow}未部署 ⚠️${plain}"
+                fi
+                # -----------------------------------
+
                 echo -e "  ${green}1.${plain} 🚀 部署/重置 [SSH 异地登录 + 开机自启] 报警防线 (当前: $ALERT_STAT)"
                 echo -e "  ${cyan}2.${plain} 📊 部署/重置 [每日节点存活体检晨报] 打卡推送 (当前: $PULSE_STAT)"
-                echo -e "  ${red}3.${plain} 🗑️ 彻底卸载 SSH、开机及晨报报警防线"
-                echo -e "  ${purple}4.${plain} ⚙️ 全局 TG 机器人凭证管理 (当前: $TG_CRED_STAT)"
+                # --- 嵌入 2：在菜单中新增选项 3 ---
+                echo -e "  ${yellow}3.${plain} ⚡ 部署/重置 [核心防猝死秒级哨兵] 实时盯防 (当前: $WATCHDOG_STAT)"
+                echo -e "  ${red}4.${plain} 🗑️ 彻底卸载 SSH、开机、晨报及哨兵防线"
+                echo -e "  ${purple}5.${plain} ⚙️ 全局 TG 机器人凭证管理 (当前: $TG_CRED_STAT)"
+                # -----------------------------------
                 echo -e "      ${yellow}└─ 更改/删除 Token 与 ChatID (修改后 VX 和 Velox 的雷达自动生效)${plain}"
                 echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
                 echo -e "${cyan}----------------------------------------------------------------------${plain}"
-                read -p "👉 请选择操作 [0-4]: " tg_main_choice
+                # --- 嵌入 3：修改选择范围 [0-5] ---
+                read -p "👉 请选择操作 [0-5]: " tg_main_choice
 
                 case "$tg_main_choice" in
                     1)
@@ -799,7 +812,8 @@ EOF3
 
                     2)
                         if [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ]; then
-                            echo -e "\n${red}❌ 致命拦截：请先选择 [选项 4] 或 [选项 1] 配置 TG 机器人凭证！${plain}"
+                            # --- 嵌入 4：同步修改致命拦截提示 ---
+                            echo -e "\n${red}❌ 致命拦截：请先选择 [选项 5] 或 [选项 1] 配置 TG 机器人凭证！${plain}"
                             read -p "👉 按【回车键】继续..."; continue
                         fi
                         
@@ -844,26 +858,78 @@ EOF_P
                         read -p "👉 按【回车键】继续..."
                         ;;
 
+                    # --- 嵌入 5：新增完整的选项 3 (秒级哨兵) ---
                     3)
-                        if [ ! -f "/usr/local/bin/ssh_tg_alert.sh" ] && ! crontab -l 2>/dev/null | grep -q "velox_pulse_alert.sh"; then
-                            echo -e "\n${yellow}⚠️ 当前未部署 SSH 报警防线或晨报任务，无需卸载。${plain}"
+                        if [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ]; then
+                            echo -e "\n${red}❌ 致命拦截：请先选择 [选项 5] 或 [选项 1] 配置 TG 机器人凭证！${plain}"
+                            read -p "👉 按【回车键】继续..."; continue
+                        fi
+                        
+                        echo -e "\n${cyan}正在向系统底层注入防猝死秒级监控探针...${plain}"
+                        cat << 'EOF_WATCH' > /usr/local/bin/velox_watchdog.sh
+#!/bin/bash
+source /etc/velox_tg.conf
+PROCESS_NAME="sing-box"
+FLAG_FILE="/tmp/${PROCESS_NAME}_dead.flag"
+
+if ! pgrep -x "$PROCESS_NAME" > /dev/null; then
+    if [ ! -f "$FLAG_FILE" ]; then
+        MSG="🚨 <b>[核心阵地失守警告]</b>
+--------------------------------------
+🖥️ <b>阵地:</b> <code>$(hostname)</code>
+⚠️ <b>状态:</b> <code>${PROCESS_NAME}</code> 核心已阵亡！
+⏰ <b>时间:</b> $(date +'%Y-%m-%d %H:%M:%S')
+--------------------------------------
+<i>大佬，节点核心物理掉线，请火速上线紧急抢救！</i>"
+        curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+        touch "$FLAG_FILE"
+    fi
+else
+    if [ -f "$FLAG_FILE" ]; then
+        MSG="🟢 <b>[核心阵地满血复活]</b>
+--------------------------------------
+🖥️ <b>阵地:</b> <code>$(hostname)</code>
+✅ <b>状态:</b> <code>${PROCESS_NAME}</code> 核心已重新归队！
+⏰ <b>时间:</b> $(date +'%Y-%m-%d %H:%M:%S')
+--------------------------------------
+<i>(雷达侦测：系统已恢复正常运作)</i>"
+        curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+        rm -f "$FLAG_FILE"
+    fi
+fi
+EOF_WATCH
+                        chmod +x /usr/local/bin/velox_watchdog.sh
+                        crontab -l 2>/dev/null | grep -v "velox_watchdog.sh" | crontab -
+                        (crontab -l 2>/dev/null; echo "* * * * * /usr/local/bin/velox_watchdog.sh") | crontab -
+                        echo -e "\n${green}✅ 部署成功！秒级哨兵已潜入后台，Sing-box 敢死秒报警，复活秒通知！${plain}"
+                        read -p "👉 按【回车键】继续..."
+                        ;;
+                    # -------------------------------------------
+
+                    # --- 嵌入 6：修改选项 4 (包含哨兵清理逻辑) ---
+                    4)
+                        if [ ! -f "/usr/local/bin/ssh_tg_alert.sh" ] && ! crontab -l 2>/dev/null | grep -qE "velox_pulse_alert.sh|velox_watchdog.sh"; then
+                            echo -e "\n${yellow}⚠️ 当前未部署任何防线，无需卸载。${plain}"
                         else
                             echo -e "\n${yellow}正在进行焦土化清除...${plain}"
-                            sudo rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh /etc/systemd/system/tg_boot_alert.service /usr/local/bin/velox_pulse_alert.sh
+                            sudo rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh /etc/systemd/system/tg_boot_alert.service /usr/local/bin/velox_pulse_alert.sh /usr/local/bin/velox_watchdog.sh /tmp/sing-box_dead.flag
                             sudo sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
                             sudo systemctl disable --now tg_boot_alert.service 2>/dev/null
                             sudo systemctl daemon-reload
                             
                             echo -e "${yellow}正在扫描定时任务旧版残余...${plain}"
-                            if crontab -l 2>/dev/null | grep -qE "api.telegram.org|velox_pulse_alert.sh"; then
-                                crontab -l 2>/dev/null | grep -vE "api.telegram.org|velox_pulse_alert.sh" | crontab -
-                                echo -e "${green}✅ 定时报警指令及晨报已彻底清理！${plain}"
+                            if crontab -l 2>/dev/null | grep -qE "api.telegram.org|velox_pulse_alert.sh|velox_watchdog.sh"; then
+                                crontab -l 2>/dev/null | grep -vE "api.telegram.org|velox_pulse_alert.sh|velox_watchdog.sh" | crontab -
+                                echo -e "${green}✅ 定时报警指令、晨报及秒级哨兵已彻底清理！${plain}"
                             fi
-                            echo -e "${green}✅ SSH 与开机报警防线、晨报已彻底无痕卸载！(注：全局凭证仍保留)${plain}"
+                            echo -e "${green}✅ 所有本地安全防线已彻底无痕卸载！(注：全局凭证仍保留)${plain}"
                         fi
                         read -p "👉 按【回车键】继续..."
                         ;;
-                    4)
+                    # -------------------------------------------
+
+                    # --- 嵌入 7：原版选项 4 顺延为 5 (包含哨兵清理联动) ---
+                    5)
                         echo -e "\n${cyan}=== ⚙️ 全局 TG 机器人凭证管理 ===${plain}"
                         if [[ -n "$GLOBAL_TG_TOKEN" ]]; then
                             # 🚀 开启军用级数据脱敏装甲 (保留前8位和后5位，中间物理打码)
@@ -913,21 +979,22 @@ EOF_P
                                     echo -e "${yellow}⚠️ 已联动物理拆除 VX 节点哨兵进程！${plain}"
                                 fi
                                 
-                                # 联动拆除 Velox 本身的报警
-                                if [ -f "/usr/local/bin/ssh_tg_alert.sh" ] || crontab -l 2>/dev/null | grep -q "velox_pulse_alert.sh"; then
-                                    sudo rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh /etc/systemd/system/tg_boot_alert.service /usr/local/bin/velox_pulse_alert.sh
+                                # 联动拆除 Velox 本身的报警 (含晨报与哨兵)
+                                if [ -f "/usr/local/bin/ssh_tg_alert.sh" ] || crontab -l 2>/dev/null | grep -qE "velox_pulse_alert.sh|velox_watchdog.sh"; then
+                                    sudo rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh /etc/systemd/system/tg_boot_alert.service /usr/local/bin/velox_pulse_alert.sh /usr/local/bin/velox_watchdog.sh /tmp/sing-box_dead.flag
                                     sudo sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
                                     sudo systemctl disable --now tg_boot_alert.service >/dev/null 2>&1
-                                    if crontab -l 2>/dev/null | grep -qE "api.telegram.org|velox_pulse_alert.sh"; then
-                                        crontab -l 2>/dev/null | grep -vE "api.telegram.org|velox_pulse_alert.sh" | crontab -
+                                    if crontab -l 2>/dev/null | grep -qE "api.telegram.org|velox_pulse_alert.sh|velox_watchdog.sh"; then
+                                        crontab -l 2>/dev/null | grep -vE "api.telegram.org|velox_pulse_alert.sh|velox_watchdog.sh" | crontab -
                                     fi
-                                    echo -e "${yellow}⚠️ 已联动彻底卸载 Velox 的 SSH 与开机报警防线及晨报！${plain}"
+                                    echo -e "${yellow}⚠️ 已联动彻底卸载 Velox 的所有本地报警防线！${plain}"
                                 fi
                                 systemctl daemon-reload
                                 ;;
                         esac
                         read -p "👉 按【回车键】继续..."
                         ;;
+                    # -------------------------------------------
                     0) break ;;
                     *) echo -e "\n${red}❌ 无效选择！${plain}"; sleep 1 ;;
                 esac
