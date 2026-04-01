@@ -812,7 +812,6 @@ EOF3
 
                     2)
                         if [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ]; then
-                            # --- 嵌入 4：同步修改致命拦截提示 ---
                             echo -e "\n${red}❌ 致命拦截：请先选择 [选项 5] 或 [选项 1] 配置 TG 机器人凭证！${plain}"
                             read -p "👉 按【回车键】继续..."; continue
                         fi
@@ -830,19 +829,45 @@ EOF3
                         cat << 'EOF_P' > /usr/local/bin/velox_pulse_alert.sh
 #!/bin/bash
 source /etc/velox_tg.conf
-SB_LIVE=$(pgrep -x "sing-box" >/dev/null && echo "🟢 满血" || echo "🔴 阵亡")
-XR_LIVE=$(pgrep -x "xray" >/dev/null && echo "🟢 满血" || echo "🔴 阵亡")
-MEM_PCT=$(free -m | awk '/Mem:/ {printf "%.0f", $3/$2*100}')
+
+# 🧠 智能雷达：探测核心存活 (防误报机制)
+if command -v sing-box >/dev/null 2>&1 || [ -f "/usr/local/bin/sing-box" ] || [ -f "/usr/bin/sing-box" ]; then
+    pgrep -x "sing-box" >/dev/null && SB_LIVE="🟢 满血" || SB_LIVE="🔴 阵亡"
+else
+    SB_LIVE="⚪ 未安装"
+fi
+
+if command -v xray >/dev/null 2>&1 || [ -f "/usr/local/bin/xray" ] || [ -f "/usr/bin/xray" ]; then
+    pgrep -x "xray" >/dev/null && XR_LIVE="🟢 满血" || XR_LIVE="🔴 阵亡"
+else
+    XR_LIVE="⚪ 未安装"
+fi
+
+# 📊 智能抓取：网络与系统参数
 IP_ADDR=$(curl -s4m3 icanhazip.com || echo "未知")
+UP_TIME=$(uptime -p | sed 's/up //')
+LOAD_AVG=$(cat /proc/loadavg | awk '{print $1" "$2" "$3}')
+
+# 📦 智能计算：内存 (总量/已用/百分比，剔除冗余字母)
+MEM_TOTAL=$(free -h | awk '/Mem:/ {print $2}' | sed 's/i//g')
+MEM_USED=$(free -h | awk '/Mem:/ {print $3}' | sed 's/i//g')
+MEM_PCT=$(free -m | awk '/Mem:/ {printf "%.0f", $3/$2*100}')
+
+# 💽 智能计算：磁盘 (根目录 总量/已用/百分比)
+DISK_TOTAL=$(df -h / | awk '/\// {print $2}' | sed 's/i//g')
+DISK_USED=$(df -h / | awk '/\// {print $3}' | sed 's/i//g')
+DISK_PCT=$(df -h / | awk '/\// {print $5}')
 
 MSG="📊 <b>[Velox 每日体检晨报]</b>
 --------------------------------------
 🖥️ <b>阵地:</b> <code>$(hostname)</code>
 🌍 <b>IP:</b> <code>${IP_ADDR}</code>
-⏱️ <b>存活:</b> $(uptime -p | sed 's/up //')
-⚙️ <b>负载:</b> <code>$(cat /proc/loadavg | awk '{print $1" "$2" "$3}')</code>
-📦 <b>内存:</b> <code>${MEM_PCT}%</code>
-💽 <b>磁盘:</b> <code>$(df -h / | awk '/\// {print $5}')</code>
+⏱️ <b>存活:</b> ${UP_TIME}
+
+🔥 <b>[系统硬件开销]</b>
+⚙️ <b>负载:</b> <code>${LOAD_AVG}</code> (排队指数)
+📦 <b>内存:</b> <code>${MEM_USED} / ${MEM_TOTAL} (已用 ${MEM_PCT}%)</code>
+💽 <b>磁盘:</b> <code>${DISK_USED} / ${DISK_TOTAL} (已用 ${DISK_PCT})</code>
 
 🛡️ <b>[节点核心存活状态]</b>
 🚀 Sing-box : ${SB_LIVE}
