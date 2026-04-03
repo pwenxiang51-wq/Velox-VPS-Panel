@@ -2471,24 +2471,22 @@ EOF2
             if [[ "$confirm_uninstall" == "y" || "$confirm_uninstall" == "Y" ]]; then
                 echo -e "\n${cyan}🚀 正在启动全功率焦土卸载引擎...${plain}"
 
-                # 1. 拆除核心面板与旧版报警组件
-                echo -n "1. 正在清理面板本体与关联报警脚本... "
-                rm -f /usr/local/bin/velox
-                rm -f /root/velox.sh 2>/dev/null
-                rm -f /usr/local/bin/ssh_tg_alert.sh
-                rm -f /usr/local/bin/tg_boot_alert.sh
-                sed -i '/ssh_tg_alert.sh/d' /etc/profile
-                sed -i '/ssh_tg_alert.sh/d' /etc/bash.bashrc
+                # 1. 拆除核心面板与所有关联报警组件 (补枪 1：清剿幽灵脚本)
+                echo -n "1. 正在清理面板本体与所有监控/报警脚本... "
+                rm -f /usr/local/bin/velox /root/velox.sh 2>/dev/null
+                rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh
+                rm -f /usr/local/bin/velox_pulse_alert.sh /usr/local/bin/velox_watchdog.sh /tmp/sing-box_dead.flag
+                sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
                 systemctl disable --now tg_boot_alert.service >/dev/null 2>&1
                 rm -f /etc/systemd/system/tg_boot_alert.service
                 systemctl daemon-reload 
                 echo -e "[${green}已彻底抹除${plain}]"
 
-                # 1.5 拆除全局 TG 凭证与流量大管家防线
-                echo -n "1.5 正在清洗全局 TG 凭证与流量防线脚本... "
-                rm -f /etc/velox_tg.conf
-                rm -f /usr/local/bin/velox_traffic_alert.sh
-                crontab -l 2>/dev/null | grep -v "velox_traffic_alert.sh" | crontab -
+                # 1.5 拆除全局 TG 凭证与血洗所有定时任务 (补枪 2：核平 Crontab)
+                echo -n "1.5 正在清洗全局 TG 凭证与所有相关定时任务... "
+                rm -f /etc/velox_tg.conf /usr/local/bin/velox_traffic_alert.sh
+                # 暴力剔除：流量报警、晨报、哨兵、WARP刷新、自动重启，一个不留！
+                crontab -l 2>/dev/null | grep -vE "velox_traffic_alert.sh|velox_pulse_alert.sh|velox_watchdog.sh|warp|reboot" | crontab -
                 echo -e "[${green}已彻底清洗${plain}]"
 
                 # 1.6 彻底拔除 vnstat 底层监控与历史流量数据库
@@ -2502,18 +2500,15 @@ EOF2
                 elif command -v dnf >/dev/null 2>&1; then
                     dnf remove vnstat -y >/dev/null 2>&1
                 fi
-                rm -rf /var/lib/vnstat
-                rm -rf /etc/vnstat.conf
+                rm -rf /var/lib/vnstat /etc/vnstat.conf
                 echo -e "[${green}已彻底连根拔起${plain}]"
 
                 # 2. 拆除 Bash 机枪塔
                 echo -n "2. 正在物理粉碎 Bash 防爆破机枪塔与击毙日志... "
                 systemctl stop velox-defender >/dev/null 2>&1
                 systemctl disable velox-defender >/dev/null 2>&1
-                rm -f /usr/local/bin/velox-defender.sh
-                rm -f /etc/systemd/system/velox-defender.service
-                rm -f /tmp/velox_ip_counts.txt
-                rm -f /var/log/velox-defender.log
+                rm -f /usr/local/bin/velox-defender.sh /etc/systemd/system/velox-defender.service
+                rm -f /tmp/velox_ip_counts.txt /var/log/velox-defender.log
                 systemctl daemon-reload
                 echo -e "[${green}已彻底抹除${plain}]"
 
@@ -2531,13 +2526,10 @@ EOF2
                 sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
                 sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
                 sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
-                
                 sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
                 sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
-                
                 sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
                 sysctl -p > /dev/null 2>&1
-                
                 DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
                 [ -n "$DEFAULT_IF" ] && tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
                 echo -e "[${green}已彻底抹除${plain}]"
@@ -2558,14 +2550,25 @@ EOF2
                 hostnamectl set-hostname "localhost" >/dev/null 2>&1
                 echo -e "[${green}已恢复为 localhost${plain}]"
 
-                # 7. 🛡️ 绝对保护：跳过所有 WARP 相关的配置与任务
-                echo -n "7. 正在排查 WARP 底层配置... "
-                echo -e "[${green}🛡️ 遵循最高指令，WARP 所有配置、IP 与相关任务已绝对保留，不予触碰！${plain}]"
+                # 7. 彻底核平 WARP (补枪 3)
+                echo -n "7. 正在执行降维打击，彻底粉碎 WARP 虚拟网卡与守护进程... "
+                systemctl stop warp-go warp-svc wg-quick@wgcf >/dev/null 2>&1
+                systemctl disable warp-go warp-svc wg-quick@wgcf >/dev/null 2>&1
+                pkill -9 warp >/dev/null 2>&1
+                echo -e "[${green}已焦土化抹除${plain}]"
 
-                # 8. 🛡️ 绝对保护：跳过 Argo 与 Token
-                echo -n "8. 正在排查 Argo 隧道与 Token... "
-                echo -e "[${green}🛡️ 遵循最高指令，Argo 进程及您的专属 Token 已被智能隔离保护，绝对安全！${plain}]"
-
+                # 8. 彻底核平 代理核心与穿透隧道 (补枪 3)
+                echo -n "8. 正在强拆所有代理核心 (Sing-box/Xray) 与 Argo 隧道，不留残渣... "
+                systemctl stop sing-box xray x-ui 3x-ui v2ray cloudflared vx-argo argo >/dev/null 2>&1
+                systemctl disable sing-box xray x-ui 3x-ui v2ray cloudflared vx-argo argo >/dev/null 2>&1
+                pkill -9 sing-box xray v2ray cloudflared >/dev/null 2>&1
+                rm -rf /etc/sing-box /usr/local/bin/sing-box
+                rm -rf /usr/local/etc/xray /usr/local/bin/xray /etc/x-ui /usr/local/x-ui
+                rm -rf /etc/cloudflared /usr/local/bin/cloudflared
+                rm -f /etc/systemd/system/sing-box.service /etc/systemd/system/xray.service /etc/systemd/system/vx-argo.service
+                systemctl daemon-reload
+                echo -e "[${green}已连根拔起，灰飞烟灭${plain}]"
+                
                 # 9. Fail2Ban 强拆询问
                 if command -v fail2ban-client >/dev/null 2>&1; then
                     echo -e "\n${yellow}⚠️ 检测到系统中安装了 Fail2Ban 工业级防御装甲。${plain}"
