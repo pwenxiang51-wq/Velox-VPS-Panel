@@ -2464,8 +2464,8 @@ EOF2
             echo -e "\n${red}=======================================================${plain}"
             echo -e "${red}                ⚠️ 终极卸载与物理粉碎程序                ${plain}"
             echo -e "${red}=======================================================${plain}"
-            echo -e "${yellow}💡 提示：此操作将彻底拔除 Velox 面板本身及其底层监控。${plain}"
-            echo -e "${green}🛡️  绝对安全承诺：您的 WARP、Argo 隧道 (含Token) 及所有代理节点将原封不动！${plain}\n"
+            echo -e "${yellow}💡 提示：此操作为【焦土化卸载】，将彻底拔除 Velox 面板、底层监控及所有定时任务。${plain}"
+            echo -e "${red}⚠️  核平警告：您的代理核心(Sing-box/Xray)、穿透隧道(Argo)以及 WARP 将被连根拔起，物理蒸发！${plain}\n"
             
             read -p "👉 确定要彻底卸载本面板并【焦土化抹除】监控数据吗？(y/n): " confirm_uninstall
             if [[ "$confirm_uninstall" == "y" || "$confirm_uninstall" == "Y" ]]; then
