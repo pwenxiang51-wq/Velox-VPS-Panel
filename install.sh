@@ -1157,6 +1157,7 @@ EOF_WATCH
                         echo -e "${cyan}$VNSTAT_OUT${plain}"
                     fi
 
+                    echo -e "\n${yellow}💡 极客提示：Velox 统计基于自然月，若与主机商后台(如RN/GCP)账单存在微小偏差，属于正常的物理时间差现象。${plain}"
                     echo ""
                     read -p "👉 按【回车键】继续..."
                     ;;
