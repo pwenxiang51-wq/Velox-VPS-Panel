@@ -100,22 +100,21 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "  ${purple}19.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
     echo -e "  ${purple}20.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
     echo -e "  ${purple}21.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain}"
-    echo -e "  ${purple}22.${plain} 🚀 ${purple}一键搭建代理节点 (进入 VX 独家分流引擎)${plain}"
-    
+   
     # --- 第五板块：核心修复与配置提取 ---
     echo -e "\n${blue}[ 板块五：⚡ 核心修复与配置提取 ]${plain}"
-    echo -e "  ${yellow}23.${plain} ⏱️  ${yellow}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
-    echo -e "  ${yellow}24.${plain} 🔄 ${yellow}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
-    echo -e "  ${yellow}25.${plain} 🔗 ${yellow}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
-    echo -e "  ${yellow}26.${plain} 🔐 ${yellow}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
-    echo -e "  ${yellow}27.${plain} 🧳 ${yellow}全域资产跨机搬家与星际舰队中心 (TG 云端灾备)${plain}"
+    echo -e "  ${yellow}22.${plain} ⏱️  ${yellow}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
+    echo -e "  ${yellow}23.${plain} 🔄 ${yellow}一键修复/重启所有代理服务 (解决掉线/假死/断流)${plain}"
+    echo -e "  ${yellow}24.${plain} 🔗 ${yellow}一键提取节点链接配置 (提取 vless/vmess/hy2)${plain}"
+    echo -e "  ${yellow}25.${plain} 🔐 ${yellow}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
+    echo -e "  ${yellow}26.${plain} 🧳 ${yellow}全域资产跨机搬家与星际舰队中心 (TG 云端灾备)${plain}"
     
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
-    echo -ne "请选择操作 [${green}1${plain}-${yellow}27${plain}, ${red}U${plain}, ${red}0${plain}]: "
+    echo -ne "请选择操作 [${green}1${plain}-${yellow}26${plain}, ${red}U${plain}, ${red}0${plain}]: "
     read choice
     
     case $choice in
@@ -1786,50 +1785,8 @@ EOF2
         done
         ;;
     
-           22)
-                clear
-                echo -e "\n${blue}======================================================${plain}"
-                echo -e "${yellow}       🚀 Velox Node Engine (VX) 核心部署枢纽 🚀${plain}"
-                echo -e "${blue}======================================================${plain}"
-                echo -e "  💡 ${cyan}本引擎为 Velox 面板独家底层，专为极客打造：${plain}"
-                echo -e "   ✅ 强制底层流量嗅探 (Sniffing)，100% 杜绝 DNS 泄露"
-                echo -e "   ✅ 独创关键字精准分流，秒级解锁 Gemini / Netflix 等"
-                echo -e "   ✅ 原子级配置重构，告别臃肿残渣，极限压榨机器性能"
-                echo -e "${blue}------------------------------------------------------${plain}"
-                echo -e "  ${green}1.${plain} ⚡ 立即部署 / 唤醒 VX 终极控制面板"
-                echo -e "  ${cyan}0.${plain} ↩️  取消并返回主菜单"
-                echo -e "${blue}======================================================${plain}"
-               read -p "👉 请选择操作 [0-1]: " vx_choice
-                
-                case "$vx_choice" in
-                    1)
-                    echo -e "\n${green}>>> 正在同步并唤醒 VX 核心引擎，请稍候...${plain}"
-                    # 🚀 核心升级：原子级写入，防下载中断导致文件损坏
-                    curl -sL "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$(date +%s)" -o /tmp/vx_tmp.sh
-                    
-                    if [ -s /tmp/vx_tmp.sh ]; then
-                        mv -f /tmp/vx_tmp.sh /usr/local/bin/vx
-                        chmod +x /usr/local/bin/vx
-                        
-                        # 提前给 VX 铺好温床，防爆死
-                        mkdir -p /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne
-                        
-                        # 唤醒 VX 面板
-                        vx
-                    else
-                        echo -e "\n${red}❌ 致命错误：网络异常或 GitHub API 被拦截，文件拉取失败！VX 引擎未受损。${plain}"
-                    fi
-                    ;;
-                    0)
-                        echo -e "\n${green}✅ 已取消操作，安全返回主菜单。${plain}"
-                        ;;
-                    *)
-                        echo -e "\n${red}❌ 错误：无效的选项，操作取消。${plain}"
-                        sleep 1
-                        ;;
-                esac
-                ;;
-       23)
+          
+       22)
         while true; do
             echo -e "\n${blue}=== ⏱️ VPS 高级定时任务管理 ===${plain}"
             echo -e "${yellow}说明：设置后 VPS 会在指定时间自动干活。若已设置，再次设置将自动覆盖旧任务。${plain}"
@@ -1948,7 +1905,7 @@ EOF2
         done
         ;;
         
-    24)
+    23)
         while true; do
             echo -e "\n${blue}=== ⚡ 代理节点服务无痛重启 (全域兼容版) ===${plain}"
             echo -e "${yellow}小白科普：当你发现节点连不上、断流时使用此功能。此操作【不会】重启整台 VPS，SSH 终端【不会】断开，瞬间完成。${plain}\n"
@@ -2019,7 +1976,7 @@ EOF2
         done
         ;;
         
-  25)
+       24)
             echo -e "\n${blue}=== 🔗 节点全能雷达扫描与二维码提取 (真·人工智能全网兼容版) ===${plain}"
             
             if ! command -v qrencode >/dev/null 2>&1; then
@@ -2162,7 +2119,7 @@ EOF2
 
             read -p "👉 按【回车键】返回主菜单..."
             ;;
-    26)
+    25)
         echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (开源全自动版) ===${plain}"
         # 💡 防崩依赖：确保 fuser 命令存在，否则强行释放 80 端口会失效
             if ! command -v fuser >/dev/null 2>&1; then
@@ -2254,7 +2211,7 @@ EOF2
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-   27)
+      26)
             while true; do
                 echo -e "\n${blue}=== 🛰️ 星际舰队与跨机容灾中心 ===${plain}"
                 echo -e "  ${green}1.${plain} 📦 全域资产一键打包与跨机搬家 (真·动态路径克隆终极版)"
