@@ -64,8 +64,8 @@ echo -e "${blue}╚██╗ ██╔╝██╔══╝  ██║    ██
 echo -e "${purple} ╚████╔╝ ███████╗███████╗╚██████╔╝██╔╝ ██╗${plain}"
 echo -e "${purple}  ╚═══╝  ╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝${plain}"
 echo -e "${cyan}=======================================================${plain}"
-echo -e "作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
-echo -e "作者Velo.x博客 : ${blue}222382.xyz${plain}"
+echo -e "   👨‍💻 作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
+echo -e "   📝 作者Velo.x博客 : ${blue}222382.xyz${plain}"
 echo -e "   ✈️ 作者Telegram   : ${blue}@Velox95${plain}"
 echo -e "${cyan}=======================================================${plain}"
     # ==============================================
