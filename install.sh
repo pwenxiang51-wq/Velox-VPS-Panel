@@ -11,7 +11,7 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
-
+CONF_DIR="/etc/vx_vne"
 # ================= 全局智能拦截函数 =================
 check_virt_safe() {
     local feature_name="$1"
@@ -1994,7 +1994,7 @@ EOF2
             RAW_LINKS=""
             
             # 💡 通用底座：覆盖市面上 99% 脚本的节点存储路径
-          SEARCH_DIRS="/etc/velox_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf /etc/hysteria /etc/hysteria2 /etc/tuic /opt/alist/data /opt/nezha /root"
+          SEARCH_DIRS="/etc/vx_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf /etc/hysteria /etc/hysteria2 /etc/tuic /opt/alist/data /opt/nezha /root"
             
             # 强制提取：无视二进制，直接暴力抠出所有包含节点链接的文本块
             for f in $(find $SEARCH_DIRS -maxdepth 2 -type f 2>/dev/null); do
@@ -2232,7 +2232,7 @@ EOF2
                         BACKUP_LIST=""
 
                         # 💡 核心升级：动态智能阵列，覆盖全网所有已知脚本目录及咱们的全局 TG 凭证池！
-                    SEARCH_DIRS="/etc/velox_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf /etc/hysteria /etc/hysteria2 /etc/tuic /opt/alist/data /opt/nezha /root"                        
+                    SEARCH_DIRS="/etc/vx_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf /etc/hysteria /etc/hysteria2 /etc/tuic /opt/alist/data /opt/nezha /root"                        
                         for dir in $SEARCH_DIRS; do
                             if [ -e "$dir" ]; then
                                 BACKUP_LIST="$BACKUP_LIST $dir"
