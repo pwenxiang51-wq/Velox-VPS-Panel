@@ -128,7 +128,7 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "  ${purple}17.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
     echo -e "  ${purple}18.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
     echo -e "  ${purple}19.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
-    echo -e "  ${purple}20.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain}" ${f2b_stat}"
+    echo -e "  ${purple}20.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain} ${f2b_stat}"
    
     # --- 第五板块：全域高维容灾与资产审计 ---
     echo -e "\n${blue}[ 板块五：📡 全域高维容灾与资产审计 ]${plain}"
