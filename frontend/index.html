@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Velox Web Panel</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+    <script src="https://unpkg.com/element-plus"></script>
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: monospace; padding: 40px; }
+        .card { background: #161b22; border: 1px solid #30363d; padding: 30px; border-radius: 8px; max-width: 800px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        h1 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 15px; margin-bottom: 25px; }
+        .status-box { background: #010409; padding: 15px; border-left: 4px solid #2ea043; border-radius: 4px; margin-bottom: 25px; }
+    </style>
+</head>
+<body>
+    <div id="app" class="card">
+        <h1>🚀 Velox 全能运维终端 (V6.0 满血版)</h1>
+        
+        <div class="status-box">
+            <p><strong>🖥️ 服务器底层雷达:</strong></p>
+            <p style="color: #3fb950;">{{ status }}</p>
+        </div>
+
+        <el-button type="primary" @click="fetchStatus" :loading="loading">📡 刷新雷达</el-button>
+        <el-button type="danger" @click="rebootCore">⚡ 焦土化重启代理核心</el-button>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue
+        const app = createApp({
+            setup() {
+                const status = ref('等待侦测...')
+                const loading = ref(false)
+
+                const fetchStatus = () => {
+                    loading.value = true
+                    fetch('/api/status')
+                        .then(res => res.json())
+                        .then(data => { status.value = data.data; loading.value = false })
+                        .catch(() => { status.value = '❌ 致命错误：与底层守护进程失联！'; loading.value = false })
+                }
+
+                const rebootCore = () => {
+                    if(confirm('警告：即将向底层发送指令重启代理核心，确定执行？')) {
+                        fetch('/api/core/restart', { method: 'POST' })
+                            .then(res => res.json())
+                            .then(data => alert(data.message))
+                    }
+                }
+
+                onMounted(() => fetchStatus())
+                return { status, loading, fetchStatus, rebootCore }
+            }
+        })
+        app.use(ElementPlus)
+        app.mount('#app')
+    </script>
+</body>
+</html>
