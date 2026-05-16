@@ -130,18 +130,19 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "  ${purple}19.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
     echo -e "  ${purple}20.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain}"
    
-    # --- 第五板块：核心修复与配置提取 ---
-    echo -e "\n${blue}[ 板块五：⚡ 核心修复与配置提取 ]${plain}"
-    echo -e "  ${yellow}21.${plain} ⏱️  ${yellow}设置定时任务 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
-    echo -e "  ${yellow}22.${plain} 🔐 ${yellow}Acme 域名证书深度管理 (查询到期 / 强制续签)${plain}"
-    echo -e "  ${yellow}23.${plain} 🧳 ${yellow}全域资产跨机搬家与星际舰队中心 (TG 云端灾备)${plain}"
+    # --- 第五板块：全域高维容灾与资产审计 ---
+    echo -e "\n${blue}[ 板块五：📡 全域高维容灾与资产审计 ]${plain}"
+    echo -e "  ${yellow}21.${plain} ⏱️  ${yellow}时空调度中心 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
+    echo -e "  ${yellow}22.${plain} 🔐 ${yellow}Acme 证书管理 (硬核全自动避让 / 到期查询 / 强制续签)${plain}"
+    echo -e "  ${yellow}23.${plain} 🧳 ${yellow}模块化资产备份 (精准按需克隆 / 星际舰队 / TG 云端容灾)${plain}"
+    echo -e "  ${yellow}24.${plain} 🔍 ${yellow}全域资产雷达 (多维内核级 Socket 嗅探 / 隐藏进程爆破)${plain}"
     
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
-    echo -ne "请选择操作 [${green}1${plain}-${yellow}23${plain}, ${red}U${plain}, ${red}0${plain}]: "
+    echo -ne "请选择操作 [${green}1${plain}-${yellow}24${plain}, ${red}U${plain}, ${red}0${plain}]: "
     read choice
     
     case $choice in
@@ -1809,7 +1810,7 @@ EOF_F2B
         read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-        23)
+       23)
         while true; do
             echo -e "\n${blue}=== 🛰️ 星际舰队与跨机容灾中心 ===${plain}"
             echo -e "  ${green}1.${plain} 📦 全域资产一键打包与跨机搬家 (真·动态路径克隆版)"
@@ -1822,40 +1823,97 @@ EOF_F2B
             
             case $fleet_choice in
                 1)
-                    echo -e "\n${blue}--- 🧳 全域资产一键打包与跨机搬家 ---${plain}"
-                    echo -e "${yellow}正在启动全频段雷达，扫描系统内的节点配置、面板数据、证书、定时任务及 TG 凭证...${plain}\n"
+                    echo -e "\n${blue}--- 🧳 模块化资产精准打包与跨机搬家 ---${plain}"
+                    echo -e "${yellow}正在启动模块化高维雷达，精准嗅探高价值战略资产...${plain}\n"
 
                     has_data=0
                     BACKUP_LIST=""
 
-                    # 覆盖全网所有已知脚本目录及全局 TG 凭证池
-                    SEARCH_DIRS="/etc/velox_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/velox /usr/local/etc/velox /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf /etc/hysteria /etc/hysteria2 /etc/tuic /opt/alist/data /opt/nezha /root"                        
-                    for dir in $SEARCH_DIRS; do
-                        if [ -e "$dir" ]; then
-                            BACKUP_LIST="$BACKUP_LIST $dir"
-                            echo -e "✅ 成功提取资产: ${cyan}$dir${plain}"
+                    # ================= 1. Nginx 幽灵分发中枢 =================
+                    if [ -d "/var/www/stealth_8x9q2z" ] || [ -f "/etc/nginx/conf.d/stealth.conf" ]; then
+                        echo -e "📡 雷达锁定: ${purple}发现 [Nginx 私有分发地堡与同步引擎]${plain}"
+                        read -p "👉 是否打包此模块？(y/n) [回车默认 y]: " pack_nginx
+                        if [[ "${pack_nginx,,}" != "n" ]]; then
+                            [ -d "/var/www/stealth_8x9q2z" ] && BACKUP_LIST="$BACKUP_LIST /var/www/stealth_8x9q2z"
+                            [ -f "/etc/nginx/conf.d/stealth.conf" ] && BACKUP_LIST="$BACKUP_LIST /etc/nginx/conf.d/stealth.conf"
+                            [ -f "/root/sync_github.sh" ] && BACKUP_LIST="$BACKUP_LIST /root/sync_github.sh"
+                            [ -f "/root/.github_token" ] && BACKUP_LIST="$BACKUP_LIST /root/.github_token"
+                            echo -e "✅ [Nginx 分发中枢] 已装载入克隆舱！\n"
                             has_data=1
+                        else
+                            echo -e "⏭️  已跳过 [Nginx 分发中枢]。\n"
                         fi
-                    done
+                    fi
 
-                    # 自动化任务扫描
+                    # ================= 2. 代理核心与面板数据 =================
+                    CORE_DIRS="/etc/velox_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/velox /usr/local/etc/velox /etc/vne /usr/local/etc/vne /root/agsbx"
+                    CORE_FOUND=""
+                    for dir in $CORE_DIRS; do [ -e "$dir" ] && CORE_FOUND="$CORE_FOUND $dir"; done
+                    
+                    if [ -n "$CORE_FOUND" ]; then
+                        echo -e "📡 雷达锁定: ${cyan}发现 [代理节点核心配置与面板数据库]${plain}"
+                        read -p "👉 是否打包此模块？(y/n) [回车默认 y]: " pack_core
+                        if [[ "${pack_core,,}" != "n" ]]; then
+                            BACKUP_LIST="$BACKUP_LIST $CORE_FOUND"
+                            echo -e "✅ [代理核心数据] 已装载入克隆舱！\n"
+                            has_data=1
+                        else
+                            echo -e "⏭️  已跳过 [代理核心数据]。\n"
+                        fi
+                    fi
+
+                    # ================= 3. Acme.sh 域名证书 =================
+                    ACME_FOUND=""
+                    [ -d "/root/.acme.sh" ] && ACME_FOUND="/root/.acme.sh"
+                    [ -d "$HOME/.acme.sh" ] && ACME_FOUND="$HOME/.acme.sh"
+                    
+                    if [ -n "$ACME_FOUND" ]; then
+                        echo -e "📡 雷达锁定: ${green}发现 [Acme.sh 域名 SSL 证书库]${plain}"
+                        read -p "👉 是否打包此模块？(y/n) [回车默认 y]: " pack_acme
+                        if [[ "${pack_acme,,}" != "n" ]]; then
+                            BACKUP_LIST="$BACKUP_LIST $ACME_FOUND"
+                            echo -e "✅ [SSL 证书库] 已装载入克隆舱！\n"
+                            has_data=1
+                        else
+                            echo -e "⏭️  已跳过 [SSL 证书库]。\n"
+                        fi
+                    fi
+
+                    # ================= 4. 全局 TG 报警配置 =================
+                    if [ -f "/etc/velox_tg.conf" ]; then
+                        echo -e "📡 雷达锁定: ${yellow}发现 [全局 Telegram 机器人凭证]${plain}"
+                        read -p "👉 是否打包此凭证？(y/n) [回车默认 y]: " pack_tg
+                        if [[ "${pack_tg,,}" != "n" ]]; then
+                            BACKUP_LIST="$BACKUP_LIST /etc/velox_tg.conf"
+                            echo -e "✅ [TG 报警凭证] 已装载入克隆舱！\n"
+                            has_data=1
+                        else
+                            echo -e "⏭️  已跳过 [TG 报警凭证]。\n"
+                        fi
+                    fi
+
+                    # ================= 5. 定时任务 (Cron) =================
                     if crontab -l > /root/crontab_backup.txt 2>/dev/null && [ -s /root/crontab_backup.txt ]; then
-                        BACKUP_LIST="$BACKUP_LIST /root/crontab_backup.txt"
-                        echo -e "✅ 成功提取资产: ${cyan}系统定时任务 (crontab)${plain}"
-                        has_data=1
+                        echo -e "📡 雷达锁定: ${blue}发现 [系统自动化定时任务 (Crontab)]${plain}"
+                        read -p "👉 是否打包系统定时任务？(y/n) [回车默认 y]: " pack_cron
+                        if [[ "${pack_cron,,}" != "n" ]]; then
+                            BACKUP_LIST="$BACKUP_LIST /root/crontab_backup.txt"
+                            echo -e "✅ [自动化定时任务] 已装载入克隆舱！\n"
+                            has_data=1
+                        else
+                            rm -f /root/crontab_backup.txt
+                            echo -e "⏭️  已跳过 [自动化定时任务]。\n"
+                        fi
                     else
                         rm -f /root/crontab_backup.txt
                     fi
 
                     echo -e "${cyan}--------------------------------------------------------${plain}"
                     
-                    echo -e "💡 ${green}除了以上标准资产，您是否还有其他应用需要一起打包搬家？${plain}"
-                    echo -e "${purple}📚 【常见应用路径小抄】 (如需打包，请直接复制下方路径)：${plain}"
-                    echo -e "   - ☁️ Alist 网盘数据:  ${yellow}/opt/alist/data${plain}"
-                    echo -e "   - 🤖 哪吒探针面板:  ${yellow}/opt/nezha${plain}"
-                    echo -e "   - 🐳 Docker 数据卷:  ${yellow}/var/lib/docker/volumes${plain}"
-                    echo -e "   - 🌐 Nginx 网站目录:  ${yellow}/var/www/html${plain}"
-                    read -p "👉 请输入完整路径 (多个用空格隔开，回车跳过): " custom_paths
+                    # ================= 6. 自定义游离目录 (联动 24 号雷达) =================
+                    echo -e "💡 ${green}除了已选的资产，您是否还有其他自建的神秘应用需要一起打包搬家？${plain}"
+                    echo -e "${yellow}🔔 极客提示：您可以根据 24 号资产雷达盘出的路径，在下方直接盲敲注入。${plain}"
+                    read -p "👉 请输入完整路径 (多个用空格隔开，直接回车跳过): " custom_paths
 
                     if [ -n "$custom_paths" ]; then
                         for path in $custom_paths; do
@@ -1869,23 +1927,22 @@ EOF_F2B
                         done
                     fi
 
+                    # ================= 最终执行物理打包 =================
                     if [ "$has_data" -eq 1 ]; then
-                        echo -e "\n${cyan}⏳ 正在对包裹进行高强度压缩加密 (强行保留绝对路径与权限)...${plain}"
+                        echo -e "\n${cyan}⏳ 正在对所选模块进行高强度压缩加密 (强行保留绝对路径与权限)...${plain}"
                         
-                        # 🚀 降维打击 1：强行排除压缩包自身，防止递归打包报错！
                         tar --exclude=/root/Velox_Assets_Backup.tar.gz -czpPf /root/Velox_Assets_Backup.tar.gz $BACKUP_LIST >/dev/null 2>&1
                         
                         SSH_PORT=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
                         [ -z "$SSH_PORT" ] && SSH_PORT="22"
 
-                        echo -e "\n${green}🎉 资产克隆打包完毕！您的全域备份文件已生成：${plain}"
+                        echo -e "\n${green}🎉 模块化资产克隆打包完毕！您的定制备份文件已生成：${plain}"
                         echo -e "${cyan}📂 文件绝对路径：/root/Velox_Assets_Backup.tar.gz${plain}"
                         
                         # ================= 👇 TG 云端容灾附加选项 👇 =================
                         echo -e "\n${purple}☁️ 【可选附加项：TG 云端容灾备份】${plain}"
                         read -p "👉 是否顺便将此备份包推送至您的 Telegram 机器人保管？(y/n) [直接回车跳过]: " send_tg
                         if [[ "${send_tg,,}" == "y" ]]; then
-                            # 🚀 降维打击 2：使用子 Shell 进行隔离，防止凭据污染主进程
                             (
                                 SHARED_TG_CONF="/etc/velox_tg.conf" 
                                 if [ -f "$SHARED_TG_CONF" ]; then source "$SHARED_TG_CONF"; fi
@@ -1935,7 +1992,7 @@ EOF_F2B
                         echo -e ""
 
                         echo -e "${purple}🔥 【第三步：新机器终极恢复长指令】 (在新 VPS 终端执行)：${plain}"
-                        echo -e "  ${cyan}cd / && tar -xzpPf /root/Velox_Assets_Backup.tar.gz && crontab /root/crontab_backup.txt 2>/dev/null; systemctl restart vx-core sing-box xray x-ui cloudflared velox-argo 2>/dev/null; echo -e \"\\n✅ 资产覆盖恢复成功！节点、证书与 TG 防线已满血复活！\"${plain}"
+                        echo -e "  ${cyan}cd / && tar -xzpPf /root/Velox_Assets_Backup.tar.gz && crontab /root/crontab_backup.txt 2>/dev/null; systemctl restart nginx vx-core sing-box xray x-ui cloudflared velox-argo 2>/dev/null; echo -e \"\\n✅ 资产覆盖恢复成功！节点、证书与 TG 防线已满血复活！\"${plain}"
                     else
                         echo -e "\n${red}❌ 未提取到任何资产，打包已取消。${plain}"
                     fi
@@ -2009,6 +2066,58 @@ EOF_F2B
             fi
         done
         ;;
+
+    24)
+        clear
+        echo -e "\n${blue}=== 🔍 VeloX 全域高维资产雷达与进程透视镜 ===${plain}"
+        echo -e "${yellow}正在启动内核级深空雷达，强行爆破系统进程与高价值数据藏匿点...${plain}\n"
+
+        # ----------------- 第一维度：端口雷达 -----------------
+        echo -e "${cyan}📡 第一维度：内核级 Socket 端口监听表 (无法伪装)${plain}"
+        echo -e "--------------------------------------------------------"
+        # 利用 ss 底层命令，精准提取端口和进程名
+        ss -tulnp | grep LISTEN | while read -r line; do
+            port=$(echo "$line" | awk '{print $5}' | awk -F':' '{print $NF}')
+            proc=$(echo "$line" | grep -oP 'users:\(\("\K[^"]+')
+            [ -n "$proc" ] && printf "  🔌 监听端口: \033[1;36m%-6s\033[0m | 👾 活跃进程: \033[1;33m%s\033[0m\n" "$port" "$proc"
+        done | sort -u -k4,4n
+        
+        # ----------------- 第二维度：守护进程透视 -----------------
+        echo -e "\n${cyan}🧬 第二维度：第三方常驻服务 (已反向过滤 Ubuntu 底层冗余)${plain}"
+        echo -e "--------------------------------------------------------"
+        # 过滤掉常见系统自带组件，只保留用户自己装的服务
+        IGNORE_SVCS="systemd|ssh|cron|dbus|getty|polkit|rsyslog|network|ufw|kmod|apparmor|user@|modprobe|resolv|auditd|multipath|unattended|rsync|logrotate"
+        
+        systemctl list-units --type=service --state=active --no-pager 2>/dev/null | awk '{print $1}' | grep '\.service' | grep -vE "$IGNORE_SVCS" | while read svc; do
+            desc=$(systemctl show -p Description --value "$svc" 2>/dev/null)
+            printf "  ⚙️ 系统服务: \033[1;32m%-20s\033[0m | 📝 战略描述: %s\n" "$svc" "$desc"
+        done
+
+        # ----------------- 第三维度：Docker 深潜 -----------------
+        if command -v docker >/dev/null 2>&1; then
+            echo -e "\n${cyan}🐳 第三维度：Docker 虚拟容器集群深潜雷达${plain}"
+            echo -e "--------------------------------------------------------"
+            if [ -n "$(docker ps -q 2>/dev/null)" ]; then
+                docker ps --format "  📦 活跃容器: \033[1;33m{{.Names}}\033[0m\t| 💾 镜像源: {{.Image}}" | column -t -s $'\t'
+            else
+                echo -e "  ⚪ Docker 引擎在位，但当前未挂载任何活跃容器。"
+            fi
+        fi
+
+        # ----------------- 第四维度：高价值体积目录 -----------------
+        echo -e "\n${cyan}💽 第四维度：FHS 高价值数据藏匿点 (体积 Top 6 盘点)${plain}"
+        echo -e "--------------------------------------------------------"
+        # 扫描第三方软件最喜欢扎堆的路径
+        du -sh /opt/* /var/www/* /usr/local/etc/* /root/* 2>/dev/null | sort -rh | head -n 6 | while read size path; do
+            printf "  📁 实体路径: \033[1;33m%-30s\033[0m | ⚖️ 物理占用: \033[1;31m%s\033[0m\n" "$path" "$size"
+        done
+
+        echo -e "\n${green}🎉 矩阵扫描完毕！全域资产已完全曝光。${plain}"
+        echo -e "💡 ${yellow}提示：现在您可以退出并进入 23 号容灾中心，对上述资产实施模块化精准抽离！${plain}"
+        
+        echo -e "\n${yellow}------------------------------------------${plain}"
+        read -p "👉 按【回车键】返回主菜单..."
+        ;;
         
        U|u)
             echo -e "\n${red}=======================================================${plain}"
@@ -2022,8 +2131,9 @@ EOF_F2B
                 echo -e "\n${cyan}🚀 正在启动全功率焦土卸载引擎...${plain}"
 
                 # 1. 拆除核心面板与所有关联报警组件
-                echo -n "1. 正在清理面板本体与所有监控/报警脚本... "
+                echo -n "1. 正在清理面板本体、备份包裹与所有监控/报警脚本... "
                 rm -f /usr/local/bin/velox /root/velox.sh 2>/dev/null
+                rm -f /root/Velox_Assets_Backup.tar.gz /root/crontab_backup.txt 2>/dev/null
                 rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh
                 rm -f /usr/local/bin/velox_pulse_alert.sh /usr/local/bin/velox_watchdog.sh /tmp/*_dead.flag
                 sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
