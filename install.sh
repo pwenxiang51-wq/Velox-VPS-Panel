@@ -654,7 +654,7 @@ echo -e "${cyan}=======================================================${plain}"
             echo -ne "🇨🇳 百度 (中国大陆): " && ping -c 3 220.181.38.251 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -e "\n${green}✅ 测速完成！${plain}"
             ;;
-     16)
+       16)
             while true; do
                 echo -e "\n${blue}=== 🚨 Telegram 全局防线与智能报警监控中枢 ===${plain}"
                 TG_CONF="/etc/velox_tg.conf"
@@ -699,7 +699,7 @@ echo -e "${cyan}=======================================================${plain}"
                 echo -e "  ${red}4.${plain} 🗑️ 彻底卸载 SSH、开机、晨报及哨兵防线"
                 echo -e "  ${purple}5.${plain} ⚙️ 全局 TG 机器人凭证管理 (当前: $TG_CRED_STAT)"
                 # -----------------------------------
-                echo -e "      ${yellow}└─ 更改/删除 Token 与 ChatID (修改后 VX 和 Velox 的雷达自动生效)${plain}"
+                echo -e "      ${yellow}└─ 更改/删除当前 Velox 大管家的全局防线凭证${plain}"
                 echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
                 echo -e "${cyan}----------------------------------------------------------------------${plain}"
                 # --- 嵌入 3：修改选择范围 [0-5] ---
@@ -967,7 +967,7 @@ EOF_WATCH
                         fi
                         echo -e "\n请选择操作："
                         echo -e "  ${green}1.${plain} 重新输入并物理覆盖配置"
-                        echo -e "  ${red}2.${plain} 彻底删除全局凭证 (💥 将同时强拆 VX 与 Velox 的所有报警进程)"
+                        echo -e "  ${red}2.${plain} 彻底删除全局凭证 (💥 将同时强拆 Velox 的所有报警进程)"
                         echo -e "  ${yellow}0.${plain} 取消并返回"
                         read -p "👉 请选择 [0-2]: " cred_choice
                         case "$cred_choice" in
@@ -979,12 +979,6 @@ EOF_WATCH
                                     echo "GLOBAL_TG_CHATID=\"$new_chatid\"" >> /etc/velox_tg.conf
                                     source "$TG_CONF"
                                     echo -e "${green}✅ 全局凭证已物理覆写！${plain}"
-                                    
-                                    # 跨脚本联动热重载 VX 哨兵
-                                    if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null; then
-                                        systemctl restart vx-tg-sentinel
-                                        echo -e "${green}🔄 侦测到 VX 节点哨兵正在运行，已联动热重载！${plain}"
-                                    fi
                                     echo -e "${green}🔄 Velox 的报警也将在下次触发时自动使用新机器人！${plain}"
                                 else
                                     echo -e "${red}❌ 输入无效，操作已取消。${plain}"
@@ -995,14 +989,6 @@ EOF_WATCH
                                 unset GLOBAL_TG_TOKEN
                                 unset GLOBAL_TG_CHATID
                                 echo -e "${green}🗑️ 全局 TG 配置文件已被物理蒸发！${plain}"
-                                
-                                # 跨脚本联动拆除 VX 哨兵
-                                if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null || [ -f "/usr/local/bin/vx-tg-sentinel.sh" ]; then
-                                    systemctl stop vx-tg-sentinel >/dev/null 2>&1
-                                    systemctl disable vx-tg-sentinel >/dev/null 2>&1
-                                    rm -f /etc/systemd/system/vx-tg-sentinel.service /usr/local/bin/vx-tg-sentinel.sh
-                                    echo -e "${yellow}⚠️ 已联动物理拆除 VX 节点哨兵进程！${plain}"
-                                fi
                                 
                                 # 联动拆除 Velox 本身的报警 (含晨报与哨兵)
                                 if [ -f "/usr/local/bin/ssh_tg_alert.sh" ] || crontab -l 2>/dev/null | grep -qE "velox_pulse_alert.sh|velox_watchdog.sh"; then
