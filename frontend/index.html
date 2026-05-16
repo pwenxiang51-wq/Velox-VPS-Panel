@@ -2,55 +2,110 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Velox Web Panel</title>
+    <title>Velox Web Master Dashboard</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
     <script src="https://unpkg.com/element-plus"></script>
     <style>
-        body { background-color: #0d1117; color: #c9d1d9; font-family: monospace; padding: 40px; }
-        .card { background: #161b22; border: 1px solid #30363d; padding: 30px; border-radius: 8px; max-width: 800px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-        h1 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 15px; margin-bottom: 25px; }
-        .status-box { background: #010409; padding: 15px; border-left: 4px solid #2ea043; border-radius: 4px; margin-bottom: 25px; }
+        body { background-color: #0b0e14; color: #c9d1d9; font-family: 'Courier New', Courier, monospace; padding: 25px; margin: 0; }
+        .dashboard { max-width: 1200px; margin: 0 auto; }
+        .header { border-bottom: 2px solid #21262d; padding-bottom: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { color: #58a6ff; margin: 0; font-size: 26px; text-shadow: 0 0 10px rgba(88,166,255,0.3); }
+        .el-card { background: #161b22; border: 1px solid #30363d; color: #c9d1d9; margin-bottom: 25px; border-radius: 6px; }
+        .el-card__header { border-bottom: 1px solid #30363d; color: #58a6ff; font-weight: bold; font-size: 16px; }
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #21262d; }
+        .info-label { color: #8b949e; }
+        .info-value { color: #58a6ff; font-weight: bold; }
+        .success-text { color: #3fb950; }
+        .alert-text { color: #f85149; text-shadow: 0 0 5px rgba(248,81,73,0.3); }
+        .warn-text { color: #d29922; }
     </style>
 </head>
 <body>
-    <div id="app" class="card">
-        <h1>🚀 Velox 全能运维终端 (V6.0 满血版)</h1>
-        
-        <div class="status-box">
-            <p><strong>🖥️ 服务器底层雷达:</strong></p>
-            <p style="color: #3fb950;">{{ status }}</p>
+    <div id="app" class="dashboard">
+        <div class="header">
+            <h1>🚀 Velox 全能可视化指挥中心 (V6.2 模块化装甲版)</h1>
+            <el-button type="primary" @click="fetchData" :loading="loading" plain>📡 刷新全域雷达</el-button>
         </div>
 
-        <el-button type="primary" @click="fetchStatus" :loading="loading">📡 刷新雷达</el-button>
-        <el-button type="danger" @click="rebootCore">⚡ 焦土化重启代理核心</el-button>
+        <el-alert :title="'🌐 域名资产解析嗅探报告：' + sys.domain" 
+                  :type="sys.domain.includes('🟢') ? 'success' : 'warning'" 
+                  show-icon :closable="false" style="margin-bottom: 25px; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9;">
+        </el-alert>
+
+        <el-row :gutter="25">
+            <el-col :span="12">
+                <el-card shadow="hover">
+                    <template #header><span>🛡️ [板块一] 系统核心运维矩阵</span></template>
+                    <div class="info-row"><span class="info-label">系统内核:</span> <span class="info-value">{{ sys.os }}</span></div>
+                    <div class="info-row"><span class="info-label">内存报告:</span> <span class="info-value">{{ sys.mem }}</span></div>
+                    <div class="info-row"><span class="info-label">磁盘空间:</span> <span class="info-value">{{ sys.disk }}</span></div>
+                    <div style="margin-top: 15px;">
+                        <el-button type="warning" size="small" @click="doAction('/api/core/clean', '深度释放物理内存')">🧹 一键强制释放内存</el-button>
+                    </div>
+                </el-card>
+            </el-col>
+
+            <el-col :span="12">
+                <el-card shadow="hover">
+                    <template #header><span>🚀 [板块二] 网络高阶调优中心</span></template>
+                    <div class="info-row"><span class="info-label">核心代理服务:</span> <span class="info-value" :class="sys.proxy.includes('🟢') ? 'success-text' : 'alert-text'">{{ sys.proxy }}</span></div>
+                    <div class="info-row"><span class="info-label">BBR 拥塞控制:</span> <span class="info-value warn-text">{{ sys.bbr }}</span></div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <el-button type="danger" size="small" @click="doAction('/api/core/restart', '无痛重启所有代理服务')">🔄 修复重启所有代理</el-button>
+                        <el-button type="success" size="small" @click="doAction('/api/network/bbr', '一键注入BBR暴力加速')">⚡ 一键开启 BBR 加速</el-button>
+                    </div>
+                </el-card>
+            </el-col>
+        </el-row>
+
+        <el-row :gutter="25">
+            <el-col :span="24">
+                <el-card shadow="hover">
+                    <template #header><span>🛠️ [板块三/四/五] 星际舰队容灾与自动化中枢</span></template>
+                    <p style="color: #8b949e; text-align: center; padding: 20px 0;">
+                        🛰️ <b>Telegram 报警、流量大管家红线、Acme证书自动化续签</b> 核心逻辑正在全盘重构中... 底层接口已处于就绪状态。
+                    </p>
+                </el-card>
+            </el-col>
+        </el-row>
     </div>
 
     <script>
         const { createApp, ref, onMounted } = Vue
         const app = createApp({
             setup() {
-                const status = ref('等待侦测...')
+                const sys = ref({ os: '-', mem: '-', disk: '-', bbr: '-', proxy: '-', domain: '正在智能嗅探...' })
                 const loading = ref(false)
 
-                const fetchStatus = () => {
+                const fetchData = () => {
                     loading.value = true
-                    fetch('/api/status')
+                    fetch('/api/sysinfo')
                         .then(res => res.json())
-                        .then(data => { status.value = data.data; loading.value = false })
-                        .catch(() => { status.value = '❌ 致命错误：与底层守护进程失联！'; loading.value = false })
+                        .then(data => { sys.value = data; loading.value = false })
+                        .catch(() => {
+                            ElementPlus.ElMessage.error('❌ 底层系统探针回传报告假死，请检查网络！')
+                            loading.value = false
+                        })
                 }
 
-                const rebootCore = () => {
-                    if(confirm('警告：即将向底层发送指令重启代理核心，确定执行？')) {
-                        fetch('/api/core/restart', { method: 'POST' })
-                            .then(res => res.json())
-                            .then(data => alert(data.message))
+                const doAction = (url, actionName) => {
+                    if(confirm(`大驾光临！确定要下达 [${actionName}] 指令吗？`)) {
+                        fetch(url, { method: 'POST' })
+                            .then(res => {
+                                if (!res.ok) return res.json().then(e => { throw new Error(e.message) })
+                                return res.json()
+                            })
+                            .then(data => {
+                                ElementPlus.ElMessage.success(data.message)
+                                setTimeout(fetchData, 1000)
+                            })
+                            .catch(err => ElementPlus.ElMessage.error(err.message || '操作执行失败！'))
                     }
                 }
 
-                onMounted(() => fetchStatus())
-                return { status, loading, fetchStatus, rebootCore }
+                onMounted(() => fetchData())
+                return { sys, loading, fetchData, doAction }
             }
         })
         app.use(ElementPlus)
