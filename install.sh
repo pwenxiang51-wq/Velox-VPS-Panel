@@ -651,7 +651,7 @@ echo -e "${cyan}=======================================================${plain}"
             echo -e "\n${blue}--- 🛰️ 正在测试全球主流节点延迟 ---${plain}"
             echo -ne "🇺🇸 Cloudflare: " && ping -c 3 1.1.1.1 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -ne "🇺🇸 Google: " && ping -c 3 8.8.8.8 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
-            echo -ne "🇨🇳 百度 (中国大陆): " && ping -c 3 220.181.38.251 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
+            echo -ne "🛡️ Quad9 (国际防御): " && ping -c 3 9.9.9.9 | tail -1 | awk -F '/' '{print $5" ms"}' || echo "超时"
             echo -e "\n${green}✅ 测速完成！${plain}"
             ;;
        16)
@@ -1980,8 +1980,7 @@ EOF2
             RAW_LINKS=""
             
             # 💡 通用底座：覆盖市面上 99% 脚本的节点存储路径
-          SEARCH_DIRS="/etc/vx_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf/etc/vx_tg.conf /etc/hysteria /etc/hysteria2 /etc/tuic /opt/alist/data /opt/nezha /root"
-            
+          SEARCH_DIRS="/etc/vx_vne /etc/x-ui /etc/s-box /etc/sing-box /usr/local/etc/xray /etc/vx /usr/local/etc/vx /etc/vne /usr/local/etc/vne /root/agsbx /root/.acme.sh $HOME/.acme.sh /etc/velox_tg.conf /etc/vx_tg.conf /etc/hysteria /etc/hysteria2 /etc/tuic /opt/alist/data /opt/nezha /root"
             # 强制提取：无视二进制，直接暴力抠出所有包含节点链接的文本块
             for f in $(find $SEARCH_DIRS -maxdepth 2 -type f 2>/dev/null); do
                 # 智能防洪：每个文件最多提取最后 20 条，既保证能抓全“大满贯”，又防止历史遗留泛滥
