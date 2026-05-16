@@ -78,12 +78,12 @@ while true; do
         tg_stat=$(echo -e "${yellow}[未设置]${plain}")
     fi
 
-# 17号 流量防线状态检测
-if [ -f "/usr/local/bin/velox_traffic_alert.sh" ]; then
-    traffic_stat=$(echo -e "${green}[已部署]${plain}")
-else
-    traffic_stat=$(echo -e "${yellow}[未设置]${plain}")
-fi
+# 16号 流量大管家状态检测
+    if [ -f "/usr/local/bin/velox_traffic_alert.sh" ]; then
+        traffic_stat=$(echo -e "${green}[已部署]${plain}")
+    else
+        traffic_stat=$(echo -e "${yellow}[未设置]${plain}")
+    fi
     clear
 # ================= 专属署名区 =================
 echo -e "${cyan}██╗   ██╗███████╗██╗     ██████╗ ██╗  ██╗${plain}"
@@ -122,13 +122,13 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "  ${cyan}14.${plain} ⚡ ${cyan}TCP/UDP 网络底层高阶调优 (极限压榨带宽)${plain}"
     echo -e "  ${cyan}15.${plain} 🚨 ${cyan}设置/管理 SSH 异地登录 TG 报警 (含开机秒报)${plain} ${tg_stat}"
     
-    # --- 第四板块：自动化与工具 ---
-    echo -e "\n${blue}[ 板块四：🛠️ 自动化与高阶工具 ]${plain}"
+    # --- 第四板块：系统防御与自动化运维 ---
+    echo -e "\n${blue}[ 板块四：⚙️ 系统防御与自动化运维 ]${plain}"
     echo -e "  ${purple}16.${plain} 📈 ${purple}Velox 流量大管家 (防扣费/防停机/月账单)${plain} ${traffic_stat}"
     echo -e "  ${purple}17.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
     echo -e "  ${purple}18.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
     echo -e "  ${purple}19.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
-    echo -e "  ${purple}20.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain}"
+    echo -e "  ${purple}20.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain}" ${f2b_stat}"
    
     # --- 第五板块：全域高维容灾与资产审计 ---
     echo -e "\n${blue}[ 板块五：📡 全域高维容灾与资产审计 ]${plain}"
@@ -593,8 +593,11 @@ EOF
     14)
         check_virt_safe "TCP/UDP 读写缓冲区与队列扩展" || { read -p "👉 按【回车键】继续..."; continue; }
 
-        # 核心升级：一行注入 tc 防弹装甲
-        require_deps iproute2
+        # 核心升级：精准判定 tc 命令，避免安装死循环
+        if ! command -v tc >/dev/null 2>&1; then
+            echo -e "${yellow}⚙️ 正在向底层注入缺失装甲: iproute2...${plain}"
+            $PKG_INSTALL iproute2 >/dev/null 2>&1
+        fi
 
         echo -e "\n${cyan}请选择网络底层调优方向：${plain}"
         echo -e "  ${green}1.${plain} ⚡ TCP 暴力扩容 (传统大文件下载提速)"
@@ -1568,7 +1571,9 @@ EOF_SVC
                             echo -e "\n${red}❌ 致命拦截：容器架构 ($virt_type) 强装 Fail2Ban 将导致断网失联！请使用 Bash 机枪塔！${plain}"
                         else
                             echo -e "\n${yellow}正在调用智能路由安装 Fail2Ban 工业装甲...${plain}"
-                            require_deps fail2ban
+                           if ! command -v fail2ban-client >/dev/null 2>&1; then
+                                $PKG_INSTALL fail2ban >/dev/null 2>&1
+                            fi
                             
                             # 🚀 降维打击 2：智能适配 Debian 12 / Ubuntu 22+ 的纯 journalctl 环境
                             if [ -f /var/log/auth.log ]; then LOG_CFG="logpath = /var/log/auth.log"
@@ -1727,8 +1732,11 @@ EOF_F2B
     22)
         echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (极客全自动版) ===${plain}"
         
-        # 💡 防崩依赖：强制注入 psmisc，确保 fuser 能强行释放 80 端口
-        require_deps psmisc
+       # 💡 防崩依赖：强制判定 fuser，确保能强行释放 80 端口
+        if ! command -v fuser >/dev/null 2>&1; then
+            echo -e "${yellow}⚙️ 正在向底层注入缺失装甲: psmisc...${plain}"
+            $PKG_INSTALL psmisc >/dev/null 2>&1
+        fi
         
         # 智能侦测 Acme.sh 真实路径
         ACME_BIN=""
