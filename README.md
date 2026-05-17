@@ -1,4 +1,4 @@
-# 🛰️ VeloX VPS Panel v5.2 (全域兼容满血终极版)
+# 🛰️ VeloX VPS Panel v6.2 (全域兼容满血终极版)
 
 [![Linux](https://img.shields.io/badge/OS-Ubuntu%20%7C%20Debian%20%7C%20CentOS-orange.svg)]()
 [![Bash](https://img.shields.io/badge/Language-Pure%20Bash-blue.svg)]()
