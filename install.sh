@@ -2097,9 +2097,9 @@ EOF_F2B
         # ----------------- 第四维度：高价值体积目录 (大佬原版满血流) -----------------
         echo -e "\n${cyan}💽 第四维度：FHS 高价值数据藏匿点 (体积 Top 20 盘点)${plain}"
         echo -e "--------------------------------------------------------"
-        # 🚀 绝对回归大佬四要塞原版！只加一行精确击杀，让 16K、148K 的宝贝脚本满血回归！
-        du -sh /opt/* /var/www/* /usr/local/etc/* /root/* 2>/dev/null \
+        du -sh /opt/* /var/www/* /root/* /home/* /usr/local/bin/* /usr/local/etc/* /root/.acme.sh/* /etc/nginx/conf.d/* /etc/x-ui /etc/3x-ui /etc/sing-box /etc/xray /etc/v2ray 2>/dev/null \
           | grep -vE "google-cloud-ops-agent" \
+          | grep -E "^[0-9.]+[KMG]" \
           | sort -rh | head -n 20 | while read size path; do
             printf "  📁 实体路径: \033[1;33m%-30s\033[0m | ⚖️ 物理占用: \033[1;31m%s\033[0m\n" "$path" "$size"
         done
