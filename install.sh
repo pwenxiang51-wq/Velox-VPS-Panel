@@ -372,76 +372,76 @@ echo -e "${cyan}=======================================================${plain}"
         ;;
         
      9)
-        echo -e "\n${blue}=== 🚀 BBR 状态诊断与高级网络内核调优 (Ubuntu 模块化装甲版) ===${plain}"
-        check_virt_safe "BBR 内核拥塞算法修改" || { read -p "👉 按【回车键】继续..."; continue; }
+        echo -e "\n${blue}=== 🚀 BBR 状态诊断 (极简 Go 风格防爆版) ===${plain}"
+        
+        # 【守门员 1：架构防爆拦截】不行直接熔断返回
+        check_virt_safe "BBR 内核拥塞算法修改" || { echo ""; read -p "👉 按【回车键】返回..."; continue; }
 
         kernel_version=$(uname -r | awk -F- '{print $1}')
         kernel_main=$(echo $kernel_version | awk -F. '{print $1"."$2}')
         current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
         current_qdisc=$(sysctl net.core.default_qdisc 2>/dev/null | awk '{print $3}')
+        BBR_CONF="/etc/sysctl.d/99-velox-bbr.conf"
+        
         echo -e "🔎 ${cyan}当前系统内核版本:${plain} ${kernel_version}"
-        echo -e "🚥 ${cyan}当前拥塞控制算法 (CC):${plain} ${yellow}${current_cc}${plain}"
-        echo -e "🚥 ${cyan}当前队列调度算法 (Qdisc):${plain} ${yellow}${current_qdisc}${plain}"
+        echo -e "🚥 ${cyan}当前拥塞算法 (CC):${plain} ${yellow}${current_cc}${plain}"
+        echo -e "🚥 ${cyan}当前队列调度 (Qdisc):${plain} ${yellow}${current_qdisc}${plain}"
         echo -e "${blue}---------------------------------------------------${plain}"
 
-        BBR_CONF="/etc/sysctl.d/99-velox-bbr.conf"
-
-        # --- 场景 1：如果已经开启了 BBR ---
+        # ==========================================
+        # 业务流 A：如果已经开启了 BBR (处理完直接跳出)
+        # ==========================================
         if [[ "$current_cc" == "bbr" ]]; then
-            echo -e "${green}✅ BBR 底层加速已完美激活，网络正处于高性能模式！${plain}"
-            [[ "$current_qdisc" != *"fq"* ]] && echo -e "${yellow}⚠️ 提示：检测到当前 Qdisc 并非 fq，建议卸载后重新开启。${plain}"
+            echo -e "${green}✅ BBR 底层加速已激活！${plain}"
+            [[ "$current_qdisc" != *"fq"* ]] && echo -e "${yellow}⚠️ 提示：当前 Qdisc 不是 fq，建议重置。${plain}"
             
-            read -p "👉 是否需要【彻底关闭并无痕卸载】BBR 加速？(y/n): " remove_bbr
-            if [[ "${remove_bbr,,}" == "y" ]]; then
-                echo -e "\n${yellow}正在执行 BBR 卸载程序，物理粉碎独立配置...${plain}"
-                rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf
-                sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
-                sysctl -w net.core.default_qdisc=fq_codel >/dev/null 2>&1
-                sysctl --system >/dev/null 2>&1
-                echo -e "${green}✅ BBR 已彻底无痕关闭！系统已恢复为 Ubuntu 标准算法。${plain}"
-            fi
-            echo ""
-            read -p "👉 按【回车键】返回主菜单..."
-            continue # 👈 极客跳跃：执行完直接返回主菜单，杜绝往下嵌套
-        fi
+            read -p "👉 是否【彻底卸载】BBR 加速？(y/n): " act_rm
+            [[ "${act_rm,,}" != "y" ]] && { echo ""; read -p "👉 按【回车键】返回..."; continue; }
 
-        # --- 场景 2：没开启 BBR，且内核太旧 ---
-        echo -e "${red}⚠️ 检测到当前未开启 BBR 加速！${plain}"
-        if awk -v ver="$kernel_main" 'BEGIN {if (ver < 4.9) exit 0; else exit 1}'; then
-            echo -e "${red}❌ 致命错误：当前内核版本 ($kernel_version) 低于 4.9！${plain}"
-            echo -e "${red}强行注入 BBR 参数将导致机器断网失联！请先升级 Ubuntu 内核！${plain}"
-            echo ""
-            read -p "👉 按【回车键】返回主菜单..."
-            continue # 👈 极客跳跃：内核太旧直接拦截
-        fi
-
-        # --- 场景 3：没开启 BBR，内核符合要求，执行开启 ---
-        read -p "👉 是否立即【一键开启 BBR 暴力加速】？(y/n): " enable_bbr
-        if [[ "${enable_bbr,,}" == "y" ]]; then
-            echo -e "\n${cyan}正在向系统内核加载 BBR 模块并建立独立防线...${plain}"
-            modprobe tcp_bbr 2>/dev/null
-            echo "tcp_bbr" > /etc/modules-load.d/velox-bbr.conf
-            
-            # 🚀 绝杀暗雷：用 echo -e 替代 cat << EOF，彻底免疫任何缩进引发的格式崩溃！
-            echo -e "net.core.default_qdisc=fq\nnet.ipv4.tcp_congestion_control=bbr" > "$BBR_CONF"
-            
+            echo -e "\n${yellow}执行物理拆除...${plain}"
+            rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf
+            sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
+            sysctl -w net.core.default_qdisc=fq_codel >/dev/null 2>&1
             sysctl --system >/dev/null 2>&1
+            echo -e "${green}✅ BBR 已无痕关闭！系统恢复默认。${plain}"
             
-            echo -e "\n${blue}--- 📡 核心网络参数实时回显 ---${plain}"
-            sysctl net.ipv4.tcp_congestion_control
-            sysctl net.core.default_qdisc
-            echo -e "${blue}-------------------------------${plain}"
-            
-            if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
-                echo -e "\n${green}🎉 开启成功！【BBR + fq】 黄金组合已全线生效！${plain}"
-            else
-                echo -e "\n${red}❌ 开启失败！当前系统环境受限 (提示：容器架构无法修改底层内核)。${plain}"
-                rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf
-            fi
+            echo ""; read -p "👉 按【回车键】返回..."
+            continue
         fi
 
-        echo ""
-        read -p "👉 按【回车键】返回主菜单..."
+        # ==========================================
+        # 业务流 B：未开启 BBR (线性执行)
+        # ==========================================
+        echo -e "${red}⚠️ 当前未开启 BBR 加速！${plain}"
+
+        # 【守门员 2：内核太旧阻断】Go 风格的 Error check
+        awk -v ver="$kernel_main" 'BEGIN {if (ver < 4.9) exit 0; else exit 1}' && {
+            echo -e "${red}❌ 致命错误：内核 ($kernel_version) 低于 4.9！强行注入将断网！${plain}"
+            echo ""; read -p "👉 按【回车键】返回..."; continue
+        }
+
+        # 最终确认
+        read -p "👉 是否立即【一键开启 BBR 暴力加速】？(y/n): " act_add
+        [[ "${act_add,,}" != "y" ]] && { echo ""; read -p "👉 按【回车键】返回..."; continue; }
+
+        echo -e "\n${cyan}加载内核模块并建立独立防线...${plain}"
+        modprobe tcp_bbr 2>/dev/null
+        echo "tcp_bbr" > /etc/modules-load.d/velox-bbr.conf
+        
+        # 物理粉碎 EOF！用单行 echo -e，哪怕你编辑器再怎么缩进，也绝对不会报错！
+        echo -e "net.core.default_qdisc=fq\nnet.ipv4.tcp_congestion_control=bbr" > "$BBR_CONF"
+        sysctl --system >/dev/null 2>&1
+        
+        echo -e "\n${blue}--- 📡 参数实时回显 ---${plain}"
+        sysctl net.ipv4.tcp_congestion_control
+        sysctl net.core.default_qdisc
+        
+        # 连 if 都省了：极客短路判定，一行搞定成功与失败
+        sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr \
+            && echo -e "\n${green}🎉 开启成功！黄金组合已全线生效！${plain}" \
+            || { echo -e "\n${red}❌ 开启失败！当前环境受限。${plain}"; rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf; }
+
+        echo ""; read -p "👉 按【回车键】返回主菜单..."
         ;;
    10)
         echo -e "\n${blue}=== 🧹 焦土化系统清理与内存强制释放 ===${plain}"
