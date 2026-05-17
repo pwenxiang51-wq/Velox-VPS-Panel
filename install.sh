@@ -373,10 +373,8 @@ echo -e "${cyan}=======================================================${plain}"
         
       9)
         echo -e "\n${blue}=== 🚀 BBR 状态诊断与高级网络内核调优 (Ubuntu 模块化装甲版) ===${plain}"
-        # 🚀 核心升级：架构防爆护盾 
         check_virt_safe "BBR 内核拥塞算法修改" || { read -p "👉 按【回车键】继续..."; continue; }
 
-        # 1. 深度探测系统内核与当前状态
         kernel_version=$(uname -r | awk -F- '{print $1}')
         kernel_main=$(echo $kernel_version | awk -F. '{print $1"."$2}')
         current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
@@ -386,72 +384,59 @@ echo -e "${cyan}=======================================================${plain}"
         echo -e "🚥 ${cyan}当前队列调度算法 (Qdisc):${plain} ${yellow}${current_qdisc}${plain}"
         echo -e "${blue}---------------------------------------------------${plain}"
 
-        # 定义 Velox 专属内核配置文件路径 (极客模块化管理)
         BBR_CONF="/etc/sysctl.d/99-velox-bbr.conf"
 
         if [[ "$current_cc" == "bbr" ]]; then
             echo -e "${green}✅ BBR 底层加速已完美激活，网络正处于高性能模式！${plain}"
-            
             if [[ "$current_qdisc" != *"fq"* ]]; then
                 echo -e "${yellow}⚠️ 提示：检测到当前 Qdisc 并非 fq，建议卸载后重新一键开启以达到 BBR 最佳性能。${plain}"
             fi
-            
             read -p "👉 是否需要【彻底关闭并无痕卸载】BBR 加速？(y/n): " remove_bbr
             if [[ "${remove_bbr,,}" == "y" ]]; then
                 echo -e "\n${yellow}正在执行 BBR 卸载程序，物理粉碎独立配置...${plain}"
-                
-                # 模块化卸载：直接删文件，绝不污染主配置
-                rm -f "$BBR_CONF"
-                
-                # 动态恢复内存中的默认值
+                rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf
                 sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
                 sysctl -w net.core.default_qdisc=fq_codel >/dev/null 2>&1
                 sysctl --system >/dev/null 2>&1
                 echo -e "${green}✅ BBR 已彻底无痕关闭！系统已恢复为 Ubuntu 标准算法。${plain}"
             fi
-        else
-            echo -e "${red}⚠️ 检测到当前未开启 BBR 加速！${plain}"
-            
-            # 内核版本兜底防线
-            if awk -v ver="$kernel_main" 'BEGIN {if (ver < 4.9) exit 0; else exit 1}'; then
-                echo -e "${red}❌ 致命错误：当前内核版本 ($kernel_version) 低于 4.9！${plain}"
-                echo -e "${red}强行注入 BBR 参数将导致机器断网失联！请先升级 Ubuntu 内核！${plain}"
-            else
-                read -p "👉 是否立即【一键开启 BBR 暴力加速】？(y/n): " enable_bbr
-                if [[ "${enable_bbr,,}" == "y" ]]; then
-                    echo -e "\n${cyan}正在向系统内核加载 BBR 模块并建立独立防线...${plain}"
-                    
-                    # 强行拉起模块
-                    modprobe tcp_bbr 2>/dev/null
-                    echo "tcp_bbr" > /etc/modules-load.d/velox-bbr.conf
 
-                    # 模块化注入：生成 Velox 专属配置文件
-                    cat << EOF > "$BBR_CONF"
-# Velox VPS Panel - BBR Tuning
+        elif awk -v ver="$kernel_main" 'BEGIN {if (ver < 4.9) exit 0; else exit 1}'; then
+            # 扁平化架构 1：内核太旧，直接拦截
+            echo -e "${red}⚠️ 检测到当前未开启 BBR 加速！${plain}"
+            echo -e "${red}❌ 致命错误：当前内核版本 ($kernel_version) 低于 4.9！${plain}"
+            echo -e "${red}强行注入 BBR 参数将导致机器断网失联！请先升级 Ubuntu 内核！${plain}"
+
+        else
+            # 扁平化架构 2：正常开启逻辑
+            echo -e "${red}⚠️ 检测到当前未开启 BBR 加速！${plain}"
+            read -p "👉 是否立即【一键开启 BBR 暴力加速】？(y/n): " enable_bbr
+            if [[ "${enable_bbr,,}" == "y" ]]; then
+                echo -e "\n${cyan}正在向系统内核加载 BBR 模块并建立独立防线...${plain}"
+                modprobe tcp_bbr 2>/dev/null
+                echo "tcp_bbr" > /etc/modules-load.d/velox-bbr.conf
+                
+                # 警告：这里的 EOF 必须顶格，前面绝不能有空格！
+                cat << EOF > "$BBR_CONF"
 net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr
 EOF
-                    
-                    # 应用所有 sysctl.d 目录下的配置
-                    sysctl --system >/dev/null 2>&1
-                    
-                    # 极客视觉体验：硬核状态实时回显
-                    echo -e "\n${blue}--- 📡 核心网络参数实时回显 ---${plain}"
-                    sysctl net.ipv4.tcp_congestion_control
-                    sysctl net.core.default_qdisc
-                    echo -e "${blue}-------------------------------${plain}"
-
-                    if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
-                        echo -e "\n${green}🎉 开启成功！【BBR + fq】 黄金组合已全线生效！${plain}"
-                    else
-                        echo -e "\n${red}❌ 开启失败！当前系统环境受限 (提示：容器架构无法修改底层内核)。${plain}"
-                        rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf
-                    fi
+                sysctl --system >/dev/null 2>&1
+                
+                echo -e "\n${blue}--- 📡 核心网络参数实时回显 ---${plain}"
+                sysctl net.ipv4.tcp_congestion_control
+                sysctl net.core.default_qdisc
+                echo -e "${blue}-------------------------------${plain}"
+                
+                if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
+                    echo -e "\n${green}🎉 开启成功！【BBR + fq】 黄金组合已全线生效！${plain}"
+                else
+                    echo -e "\n${red}❌ 开启失败！当前系统环境受限 (提示：容器架构无法修改底层内核)。${plain}"
+                    rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf
                 fi
             fi
         fi
 
-        # 统一的返回停顿
         echo ""
         read -p "👉 按【回车键】返回主菜单..."
         ;;
