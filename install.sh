@@ -2058,7 +2058,7 @@ EOF_F2B
         done
         ;;
 
-    24)
+     24)
         clear
         echo -e "\n${blue}=== 🔍 VeloX 全域高维资产雷达与进程透视镜 ===${plain}"
         echo -e "${yellow}正在启动内核级深空雷达，强行爆破系统进程与高价值数据藏匿点...${plain}\n"
@@ -2066,7 +2066,6 @@ EOF_F2B
         # ----------------- 第一维度：端口雷达 -----------------
         echo -e "${cyan}📡 第一维度：内核级 Socket 端口监听表 (无法伪装)${plain}"
         echo -e "--------------------------------------------------------"
-        # 利用 ss 底层命令，精准提取端口和进程名
         ss -tulnp | grep LISTEN | while read -r line; do
             port=$(echo "$line" | awk '{print $5}' | awk -F':' '{print $NF}')
             proc=$(echo "$line" | grep -oP 'users:\(\("\K[^"]+')
@@ -2074,9 +2073,9 @@ EOF_F2B
         done | sort -u -k4,4n
         
         # ----------------- 第二维度：守护进程透视 -----------------
-        echo -e "\n${cyan}🧬 第二维度：第三方常驻服务 (已反向过滤 Ubuntu 底层冗余)${plain}"
+        echo -e "\n${cyan}🧬 第二维度：第三方常驻服务 (已反向过滤系统冗余与云商探针)${plain}"
         echo -e "--------------------------------------------------------"
-        # 过滤掉常见系统自带组件，只保留用户自己装的服务
+        # 🚀 保持强力清洗：让谷歌官方特务彻底隐形，把屏幕全部留给你的私有服务！
         IGNORE_SVCS="systemd|ssh|cron|dbus|getty|polkit|rsyslog|network|ufw|kmod|apparmor|user@|modprobe|resolv|auditd|multipath|unattended|rsync|logrotate|cloud-|google-|amazon-|aliyun|qcloud|tat_agent|snapd|lvm2|apport|blk-availability|chrony|netfilter|finalrd|systemd-journald"
         
         systemctl list-units --type=service --state=active --no-pager 2>/dev/null | awk '{print $1}' | grep '\.service' | grep -vE "$IGNORE_SVCS" | while read svc; do
@@ -2095,19 +2094,18 @@ EOF_F2B
             fi
         fi
 
-       # ----------------- 第四维度：高价值体积目录 -----------------
-        echo -e "\n${cyan}💽 第四维度：FHS 全域盲盒大爆破 (体积 Top 6 盘点)${plain}"
+        # ----------------- 第四维度：高价值体积目录 (大佬原版满血流) -----------------
+        echo -e "\n${cyan}💽 第四维度：FHS 高价值数据藏匿点 (体积 Top 6 盘点)${plain}"
         echo -e "--------------------------------------------------------"
-        # 🚀 降维打击：全盘通扫用户区加核心 /etc 区，设置 1MB 物理硬拦截，并过滤云商间谍
-        du -sh /root/* /opt/* /var/www/* /usr/local/* /home/* /etc/* 2>/dev/null \
-          | grep -vE "google|aliyun|tencent|snap|/var/lib|/var/cache|/var/log|/etc/ssl" \
-          | grep -E "^[0-9.]+[KMG]" \
+        # 🚀 绝对回归大佬四要塞原版！只加一行精确击杀，让 16K、148K 的宝贝脚本满血回归！
+        du -sh /opt/* /var/www/* /usr/local/etc/* /root/* 2>/dev/null \
+          | grep -vE "google-cloud-ops-agent" \
           | sort -rh | head -n 6 | while read size path; do
             printf "  📁 实体路径: \033[1;33m%-30s\033[0m | ⚖️ 物理占用: \033[1;31m%s\033[0m\n" "$path" "$size"
         done
 
         echo -e "\n${green}🎉 矩阵扫描完毕！全域资产已完全曝光。${plain}"
-        echo -e "💡 ${yellow}提示：现在您可以退出并进入 23 号容灾中心，对上述资产实施模块化精准抽离！${plain}"
+        echo -e "💡 ${yellow}提示：现在您可以退出并进入 23 号容灾中心，复制上述暴露的路径，实施精准抽离！${plain}"
         
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
