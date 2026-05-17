@@ -2049,6 +2049,10 @@ EOF_F2B
           | sort -rh | head -n 20 | while read size path; do
             printf "  📁 实体路径: \033[1;33m%-30s\033[0m | ⚖️ 物理占用: \033[1;31m%s\033[0m\n" "$path" "$size"
         done
+        if [ -f "/etc/nginx/conf.d/stealth.conf" ]; then
+            vip_size=$(du -sh /etc/nginx/conf.d/stealth.conf | awk '{print $1}')
+            printf "  👑 战略核心: \033[1;35m%-30s\033[0m | ⚖️ 物理占用: \033[1;31m%s\033[0m (VIP锁定)\n" "/etc/nginx/conf.d/stealth.conf" "$vip_size"
+        fi
 
         echo -e "\n${green}🎉 矩阵扫描完毕！全域资产已完全曝光。${plain}"
         echo -e "💡 ${yellow}提示：现在您可以退出并进入 23 号容灾中心，复制上述暴露的路径，实施精准抽离！${plain}"
