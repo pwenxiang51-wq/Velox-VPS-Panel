@@ -314,61 +314,7 @@ echo -e "${cyan}=======================================================${plain}"
         else
             echo -e " 🚇 Argo 进程 : ${red}未运行 ❌${plain}"
         fi
-
-        # --- 开源进阶功能：一键部署、更换或彻底物理粉碎 Argo ---
-        echo -e "\n${cyan}💡 进阶管理：您可以全自动部署、更换或彻底卸载 Argo 固定隧道${plain}"
-        echo -e "  ${green}1.${plain} 🚀 部署或更换 Token (并设为开机绝对自启)"
-        echo -e "  ${red}2.${plain} 🗑️ 彻底卸载并清除 Argo 守护进程 (焦土化清理)"
-        read -p "👉 请选择操作 (1/2) [直接回车跳过]: " argo_action
-        
-        if [[ "$argo_action" == "1" ]]; then
-            echo -e "\n${blue}=== 🚇 部署/更换 Cloudflare Argo 固定隧道 ===${plain}"
-            read -p "🔑 请右键粘贴您的 Cloudflare Token (ey...开头): " argo_token
-            
-            if [ -n "$argo_token" ]; then
-                argo_token=$(echo "$argo_token" | tr -d ' ' | tr -d '\n' | tr -d '\r')
-                echo -n "正在为您全自动部署并写入系统底层守护进程... "
-                if ! command -v cloudflared >/dev/null 2>&1; then
-                    curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
-                    chmod +x /usr/local/bin/cloudflared
-                fi
-                
-                # 暴力肃清旧环境 (无视服务名差异，全域扫荡)
-                systemctl stop cloudflared argo velox-argo >/dev/null 2>&1
-                systemctl disable cloudflared argo velox-argo >/dev/null 2>&1
-                cloudflared service uninstall >/dev/null 2>&1
-                rm -f /etc/systemd/system/argo.service /etc/systemd/system/velox-argo.service
-                
-                cloudflared service install "$argo_token" >/dev/null 2>&1
-                systemctl enable --now cloudflared >/dev/null 2>&1
-                echo -e "[${green}部署成功！已满血接入 Cloudflare 零信任网络 ✅${plain}]"
-            else
-                echo -e "${red}❌ Token 不能为空，已取消操作。${plain}"
-            fi
-
-        elif [[ "$argo_action" == "2" ]]; then
-            echo -e "\n${blue}=== 🗑️ 彻底卸载 Argo 固定隧道 ===${plain}"
-            echo -n "正在停止并焦土化清理系统底层的 Argo 守护进程... "
-            
-            ACTIVE_ARGO_SVC=""
-            for svc in cloudflared velox-argo argo; do
-                if systemctl is-active --quiet "$svc" 2>/dev/null; then ACTIVE_ARGO_SVC="$svc"; break; fi
-            done
-
-            if [ -n "$ACTIVE_ARGO_SVC" ] || command -v cloudflared >/dev/null 2>&1 || pgrep -x "cloudflared" >/dev/null 2>&1; then
-                systemctl stop cloudflared argo velox-argo >/dev/null 2>&1
-                systemctl disable cloudflared argo velox-argo >/dev/null 2>&1
-                cloudflared service uninstall >/dev/null 2>&1
-                rm -f /etc/systemd/system/argo.service /etc/systemd/system/velox-argo.service
-                rm -rf /etc/cloudflared
-                pkill -9 cloudflared >/dev/null 2>&1
-                systemctl daemon-reload
-                echo -e "[${green}清理完毕，Argo 已彻底物理粉碎 ✅${plain}]"
-            else
-                echo -e "[${yellow}未检测到安装，无需清理 ⚠️${plain}]"
-            fi
-        fi
-        
+        echo ""
         read -p "👉 按【回车键】继续..."
         ;;
         
@@ -2116,7 +2062,7 @@ EOF_F2B
             echo -e "${red}                ⚠️ 终极卸载与物理粉碎程序                ${plain}"
             echo -e "${red}=======================================================${plain}"
             echo -e "${yellow}💡 提示：此操作为【焦土化卸载】，将彻底拔除 Velox 面板、底层监控及所有定时任务。${plain}"
-            echo -e "${red}⚠️  核平警告：您的代理核心(Sing-box/Xray)、穿透隧道(Argo)以及 WARP 将被连根拔起，物理蒸发！${plain}\n"
+            echo -e "${green}🛡️ 定心丸：您的代理核心(Sing-box/Xray)、伪装网页(Nginx)及穿透隧道【绝对安全】，本次仅焦土化卸载面板及监控！${plain}\n"
             
             read -p "👉 确定要彻底卸载本面板并【焦土化抹除】监控数据吗？(y/n): " confirm_uninstall
             if [[ "${confirm_uninstall,,}" == "y" ]]; then
