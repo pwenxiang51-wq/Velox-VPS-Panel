@@ -449,7 +449,6 @@ EOF
                     fi
                 fi
             fi
-        fi
         
         # 统一的返回停顿
         echo ""
