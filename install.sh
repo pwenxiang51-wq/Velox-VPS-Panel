@@ -66,8 +66,11 @@ while true; do
 
     bbr_stat=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr && echo -e "${green}[加速中]${plain}" || echo -e "${yellow}[未生效]${plain}")
 
-    if command -v fail2ban-client &> /dev/null; then
-        f2b_stat=$(systemctl is-active --quiet fail2ban && echo -e "${green}[守护中]${plain}" || echo -e "${red}[已停止]${plain}")
+    # === 🚨 SSH 防御状态动态检测 (双核雷达：机枪塔 + Fail2Ban) ===
+    if systemctl is-active --quiet velox-defender 2>/dev/null || systemctl is-active --quiet fail2ban 2>/dev/null; then
+        f2b_stat=$(echo -e "${green}[守护中]${plain}")
+    elif [ -f "/etc/systemd/system/velox-defender.service" ] || command -v fail2ban-client &> /dev/null; then
+        f2b_stat=$(echo -e "${red}[已停止]${plain}")
     else
         f2b_stat=$(echo -e "${yellow}[未安装]${plain}")
     fi
