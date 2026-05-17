@@ -2100,7 +2100,7 @@ EOF_F2B
         # 🚀 绝对回归大佬四要塞原版！只加一行精确击杀，让 16K、148K 的宝贝脚本满血回归！
         du -sh /opt/* /var/www/* /usr/local/etc/* /root/* 2>/dev/null \
           | grep -vE "google-cloud-ops-agent" \
-          | sort -rh | head -n 6 | while read size path; do
+          | sort -rh | head -n 20 | while read size path; do
             printf "  📁 实体路径: \033[1;33m%-30s\033[0m | ⚖️ 物理占用: \033[1;31m%s\033[0m\n" "$path" "$size"
         done
 
