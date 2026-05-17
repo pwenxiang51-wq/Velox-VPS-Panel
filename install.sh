@@ -2101,7 +2101,7 @@ EOF_F2B
         # 🚀 降维打击：全盘通扫用户区加核心 /etc 区，设置 1MB 物理硬拦截，并过滤云商间谍
         du -sh /root/* /opt/* /var/www/* /usr/local/* /home/* /etc/* 2>/dev/null \
           | grep -vE "google|aliyun|tencent|snap|/var/lib|/var/cache|/var/log|/etc/ssl" \
-          | grep -E "^[0-9.]+[MG]" \
+          | grep -E "^[0-9.]+[KMG]" \
           | sort -rh | head -n 6 | while read size path; do
             printf "  📁 实体路径: \033[1;33m%-30s\033[0m | ⚖️ 物理占用: \033[1;31m%s\033[0m\n" "$path" "$size"
         done
