@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V5.2 全域兼容满血终极版 - 智能嗅探 + 原子防护)
+# 自动生成并运行 Velox 面板 (V6.2 全域兼容满血终极版 - 智能嗅探 + 原子防护)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
@@ -2240,5 +2240,5 @@ done
 EOF
 
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox V5.2 (全域兼容满血终极版) 部署完毕！请输入 velox 欣赏！\033[0m"
+echo -e "\033[1;32m✅ Velox V6.2 (全域兼容满血终极版) 部署完毕！请输入 velox 欣赏！\033[0m"
 velox
