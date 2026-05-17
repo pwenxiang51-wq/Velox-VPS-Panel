@@ -578,7 +578,7 @@ echo -e "${cyan}=======================================================${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-    14)
+   14)
         check_virt_safe "TCP/UDP 读写缓冲区与队列扩展" || { read -p "👉 按【回车键】继续..."; continue; }
 
         # 核心升级：精准判定 tc 命令，避免安装死循环
@@ -597,6 +597,7 @@ echo -e "${cyan}=======================================================${plain}"
         
         if [ "$tune_choice" == "0" ]; then
             echo -e "\n${yellow}已取消操作，返回主菜单。${plain}"
+            continue
         elif [[ "$tune_choice" =~ ^[1-4]$ ]]; then
             
             TOTAL_MEM=$(free -m | awk '/^Mem:/{print $2}')
@@ -604,31 +605,24 @@ echo -e "${cyan}=======================================================${plain}"
             elif [ "$TOTAL_MEM" -le 1024 ]; then MAX_BUF="26214400"; MEM_TAG="标准级"
             else MAX_BUF="33554432"; MEM_TAG="极速级"; fi
 
-            # 极客升级：独立模块化文件，永不污染主配置！
             VELOX_NET_CONF="/etc/sysctl.d/99-velox-network.conf"
             
-            # 顺手帮你把以前搞脏的主配置清理一次（只执行一次的焦土清理）
             sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d' /etc/sysctl.conf >/dev/null 2>&1
 
             if [ "$tune_choice" == "1" ] || [ "$tune_choice" == "3" ]; then
                 echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ($MEM_TAG) ---${plain}"
-                cat << EOF > "$VELOX_NET_CONF"
-net.core.rmem_max=$MAX_BUF
-net.core.wmem_max=$MAX_BUF
-net.ipv4.tcp_rmem=4096 87380 $MAX_BUF
-net.ipv4.tcp_wmem=4096 65536 $MAX_BUF
-EOF
+                
+                echo -e "net.core.rmem_max=$MAX_BUF\nnet.core.wmem_max=$MAX_BUF\nnet.ipv4.tcp_rmem=4096 87380 $MAX_BUF\nnet.ipv4.tcp_wmem=4096 65536 $MAX_BUF" > "$VELOX_NET_CONF"
+                
                 sysctl --system > /dev/null 2>&1
                 echo -e "${green}✅ TCP 读写窗口缓冲区已动态扩展至 $((MAX_BUF/1024/1024))MB！${plain}"
             fi
 
             if [ "$tune_choice" == "2" ] || [ "$tune_choice" == "3" ]; then
                 echo -e "\n${blue}--- 🌪️ 正在进行 UDP 网络底层高阶调优 ($MEM_TAG) ---${plain}"
-                cat << EOF >> "$VELOX_NET_CONF"
-net.ipv4.udp_rmem_min=8192
-net.ipv4.udp_wmem_min=8192
-EOF
-                # 如果选2，补齐 core 参数
+            
+                echo -e "net.ipv4.udp_rmem_min=8192\nnet.ipv4.udp_wmem_min=8192" >> "$VELOX_NET_CONF"
+                
                 if [ "$tune_choice" == "2" ]; then
                     echo "net.core.rmem_max=$MAX_BUF" >> "$VELOX_NET_CONF"
                     echo "net.core.wmem_max=$MAX_BUF" >> "$VELOX_NET_CONF"
