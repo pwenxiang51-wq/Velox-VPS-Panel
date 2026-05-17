@@ -2074,7 +2074,7 @@ EOF_F2B
         echo -e "\n${cyan}🧬 第二维度：第三方常驻服务 (已反向过滤 Ubuntu 底层冗余)${plain}"
         echo -e "--------------------------------------------------------"
         # 过滤掉常见系统自带组件，只保留用户自己装的服务
-        IGNORE_SVCS="systemd|ssh|cron|dbus|getty|polkit|rsyslog|network|ufw|kmod|apparmor|user@|modprobe|resolv|auditd|multipath|unattended|rsync|logrotate"
+        IGNORE_SVCS="systemd|ssh|cron|dbus|getty|polkit|rsyslog|network|ufw|kmod|apparmor|user@|modprobe|resolv|auditd|multipath|unattended|rsync|logrotate|cloud-|google-|amazon-|aliyun|qcloud|tat_agent|snapd|lvm2|apport|blk-availability|chrony|netfilter|finalrd|systemd-journald"
         
         systemctl list-units --type=service --state=active --no-pager 2>/dev/null | awk '{print $1}' | grep '\.service' | grep -vE "$IGNORE_SVCS" | while read svc; do
             desc=$(systemctl show -p Description --value "$svc" 2>/dev/null)
@@ -2092,11 +2092,14 @@ EOF_F2B
             fi
         fi
 
-        # ----------------- 第四维度：高价值体积目录 -----------------
-        echo -e "\n${cyan}💽 第四维度：FHS 高价值数据藏匿点 (体积 Top 6 盘点)${plain}"
+       # ----------------- 第四维度：高价值体积目录 -----------------
+        echo -e "\n${cyan}💽 第四维度：FHS 全域盲盒大爆破 (体积 Top 6 盘点)${plain}"
         echo -e "--------------------------------------------------------"
-        # 扫描第三方软件最喜欢扎堆的路径
-        du -sh /opt/* /var/www/* /usr/local/etc/* /root/* 2>/dev/null | sort -rh | head -n 6 | while read size path; do
+        # 🚀 降维打击：全盘通扫用户区加核心 /etc 区，设置 1MB 物理硬拦截，并过滤云商间谍
+        du -sh /root/* /opt/* /var/www/* /usr/local/* /home/* /etc/* 2>/dev/null \
+          | grep -vE "google|aliyun|tencent|snap|/var/lib|/var/cache|/var/log|/etc/ssl" \
+          | grep -E "^[0-9.]+[MG]" \
+          | sort -rh | head -n 6 | while read size path; do
             printf "  📁 实体路径: \033[1;33m%-30s\033[0m | ⚖️ 物理占用: \033[1;31m%s\033[0m\n" "$path" "$size"
         done
 
