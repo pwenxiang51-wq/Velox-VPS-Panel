@@ -447,9 +447,6 @@ EOF
                         echo -e "\n${red}❌ 开启失败！当前系统环境受限 (提示：容器架构无法修改底层内核)。${plain}"
                         rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf
                     fi
-                fi
-            fi
-        
         # 统一的返回停顿
         echo ""
         read -p "👉 按【回车键】返回主菜单..."
