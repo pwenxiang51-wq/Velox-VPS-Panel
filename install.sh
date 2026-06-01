@@ -695,9 +695,9 @@ if [ -z "$TG_ALERT_TRIGGERED" ]; then
 ⏰ <b>北京时间:</b> $(date +'%Y-%m-%d %H:%M:%S')"
         MAIN_IF=$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print $5}' | head -n 1)
         if [ -n "$MAIN_IF" ]; then
-            curl --interface "$MAIN_IF" -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" --data-urlencode chat_id="${GLOBAL_TG_CHATID}" --data-urlencode text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1 &
+            curl --interface "$MAIN_IF" -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" --data-urlencode chat_id="${GLOBAL_TG_CHATID}" --data-urlencode text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1 &
         else
-            curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" --data-urlencode chat_id="${GLOBAL_TG_CHATID}" --data-urlencode text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1 &
+            curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" --data-urlencode chat_id="${GLOBAL_TG_CHATID}" --data-urlencode text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1 &
         fi
     fi
 fi
@@ -726,8 +726,8 @@ MSG="🟢 <b>[Velox 系统复苏通知]</b>
 🛡️ WARP 出站: $WARP_STAT
 ⏰ 北京时间: $(date +'%Y-%m-%d %H:%M:%S')"
 MAIN_IF=$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print $5}' | head -n 1)
-if [ -n "$MAIN_IF" ]; then curl --interface "$MAIN_IF" -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" --data-urlencode chat_id="${GLOBAL_TG_CHATID}" --data-urlencode text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1
-else curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" --data-urlencode chat_id="${GLOBAL_TG_CHATID}" --data-urlencode text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1; fi
+if [ -n "$MAIN_IF" ]; then curl --interface "$MAIN_IF" -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" --data-urlencode chat_id="${GLOBAL_TG_CHATID}" --data-urlencode text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+else curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" --data-urlencode chat_id="${GLOBAL_TG_CHATID}" --data-urlencode text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1; fi
 EOF2
                         chmod +x /usr/local/bin/tg_boot_alert.sh
                         cat << EOF3 > /etc/systemd/system/tg_boot_alert.service
@@ -800,7 +800,7 @@ MSG="📊 <b>[Velox 每日体检晨报]</b>
 🛸 Xray 核心: ${XR_LIVE}
 --------------------------------------
 <i>(此消息为每日例行存活打卡)</i>"
-curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
 EOF_P
                         chmod +x /usr/local/bin/velox_pulse_alert.sh
                         crontab -l 2>/dev/null | grep -v "velox_pulse_alert.sh" | crontab -
@@ -835,7 +835,7 @@ for PROC in "${CORE_TARGETS[@]}"; do
 ⏰ <b>时间:</b> $(date +'%Y-%m-%d %H:%M:%S')
 --------------------------------------
 <i>大佬，节点核心物理掉线，请火速上线紧急抢救！</i>"
-                curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+                curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
                 touch "$FLAG_FILE"
             fi
         else
@@ -847,7 +847,7 @@ for PROC in "${CORE_TARGETS[@]}"; do
 ⏰ <b>时间:</b> $(date +'%Y-%m-%d %H:%M:%S')
 --------------------------------------
 <i>(雷达侦测：系统已恢复正常运作)</i>"
-                curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+                curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
                 rm -f "$FLAG_FILE"
             fi
         fi
@@ -1107,7 +1107,7 @@ if [ "\$TRIGGER_100" -eq 1 ]; then
         MSG="🚨 <b>[Velox 流量熔断绝杀]</b>
 大佬，您的机器 <code>\$(hostname)</code> 本月【\$MODE_NAME】已飙升至 <b>\${USAGE_GB} GB</b>！
 已突破设定的 \${LIMIT_GB} GB 终极红线，请火速处理防止天价账单！"
-        curl -s -X POST "https://api.telegram.org/bot\$GLOBAL_TG_TOKEN/sendMessage" -d "chat_id=\$GLOBAL_TG_CHATID" -d "text=\$MSG" -d parse_mode="HTML" >/dev/null 2>&1
+        curl -s -m 5 -X POST "https://api.telegram.org/bot\$GLOBAL_TG_TOKEN/sendMessage" -d "chat_id=\$GLOBAL_TG_CHATID" -d "text=\$MSG" -d parse_mode="HTML" >/dev/null 2>&1
         touch "\$LOCK_100"
     fi
 elif [ "\$TRIGGER_80" -eq 1 ]; then
@@ -1116,7 +1116,7 @@ elif [ "\$TRIGGER_80" -eq 1 ]; then
         MSG="⚠️ <b>[Velox 流量超标预警]</b>
 大佬注意！您的机器 <code>\$(hostname)</code> 本月【\$MODE_NAME】已达 <b>\${USAGE_GB} GB</b>！
 已触发 80% 安全警戒线 (\${LIMIT_80} GB)，请合理安排使用！"
-        curl -s -X POST "https://api.telegram.org/bot\$GLOBAL_TG_TOKEN/sendMessage" -d "chat_id=\$GLOBAL_TG_CHATID" -d "text=\$MSG" -d parse_mode="HTML" >/dev/null 2>&1
+        curl -s -m 5 -X POST "https://api.telegram.org/bot\$GLOBAL_TG_TOKEN/sendMessage" -d "chat_id=\$GLOBAL_TG_CHATID" -d "text=\$MSG" -d parse_mode="HTML" >/dev/null 2>&1
         touch "\$LOCK_80"
     fi
 fi
@@ -1135,7 +1135,7 @@ EOF_ALERT
 📊 <b>当前已用:</b> ${USAGE_GB} GB
 ⚠️ <b>预警黄线:</b> ${WARN_GB} GB (达到自动报警)
 🛑 <b>熔断红线:</b> ${limit_gb} GB (达到发绝杀信)"
-                    curl -s -X POST "https://api.telegram.org/bot$tg_token/sendMessage" -d "chat_id=$tg_chatid" -d "text=$TEST_MSG" -d parse_mode="HTML" >/dev/null 2>&1
+                    curl -s -m 5 -X POST "https://api.telegram.org/bot$tg_token/sendMessage" -d "chat_id=$tg_chatid" -d "text=$TEST_MSG" -d parse_mode="HTML" >/dev/null 2>&1
                     
                     echo -e "\n${green}✅ [$MODE_NAME] 防线部署成功！雷达已潜伏入系统底层守护！${plain}"
                     echo -e "${purple}🔔 叮咚！已向您的 TG 发送了一封【部署连通性测试信】，请立即查看！${plain}"
