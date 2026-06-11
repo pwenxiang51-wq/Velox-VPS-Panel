@@ -593,6 +593,8 @@ echo -e "${cyan}=======================================================${plain}"
                 tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
                 echo -e "${green}✅ 所有强行注入的扩容参数已抹除，系统网络恢复默认纯净状态！${plain}"
             fi
+            echo ""
+            read -p "👉 按【回车键】返回主菜单..."
         else
             echo -e "${red}❌ 无效输入，已取消操作。${plain}"
         fi
@@ -800,7 +802,7 @@ MSG="📊 <b>[Velox 每日体检晨报]</b>
 🛸 Xray 核心: ${XR_LIVE}
 --------------------------------------
 <i>(此消息为每日例行存活打卡)</i>"
-curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" --data-urlencode "text=$MSG" > /dev/null 2>&1
 EOF_P
                         chmod +x /usr/local/bin/velox_pulse_alert.sh
                         crontab -l 2>/dev/null | grep -v "velox_pulse_alert.sh" | crontab -
@@ -835,7 +837,7 @@ for PROC in "${CORE_TARGETS[@]}"; do
 ⏰ <b>时间:</b> $(date +'%Y-%m-%d %H:%M:%S')
 --------------------------------------
 <i>大佬，节点核心物理掉线，请火速上线紧急抢救！</i>"
-                curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+                curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" --data-urlencode "text=$MSG" > /dev/null 2>&1
                 touch "$FLAG_FILE"
             fi
         else
@@ -847,7 +849,7 @@ for PROC in "${CORE_TARGETS[@]}"; do
 ⏰ <b>时间:</b> $(date +'%Y-%m-%d %H:%M:%S')
 --------------------------------------
 <i>(雷达侦测：系统已恢复正常运作)</i>"
-                curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "text=$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+                curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" --data-urlencode "text=$MSG" > /dev/null 2>&1
                 rm -f "$FLAG_FILE"
             fi
         fi
@@ -1086,8 +1088,8 @@ MODE_NAME="$MODE_NAME"
 
 # 🚀 极致性能：纯 awk 内核级计算，全面淘汰 bc！(无缝兼容 Vnstat V1/V2 版本)
 USAGE_GB=\$(vnstat -i "\$IFACE" --oneline b 2>/dev/null | awk -F';' -v mode="\$MODE_NAME" '{
-    if (\$1 == "1") { bytes = (mode == "出站上传(TX)") ? \$9 : \$10 }
-    else if (\$1 == "2") { bytes = (mode == "出站上传(TX)") ? \$10 : \$11 }
+    if (\$1 == "1") { bytes = (mode == "出站上传(TX)") ? \$10 : \$11 }
+    else if (\$1 == "2") { bytes = (mode == "出站上传(TX)") ? \$11 : \$12 }
     else { bytes = 0 }
     printf "%.2f", bytes / 1073741824
 }')
@@ -1107,7 +1109,7 @@ if [ "\$TRIGGER_100" -eq 1 ]; then
         MSG="🚨 <b>[Velox 流量熔断绝杀]</b>
 大佬，您的机器 <code>\$(hostname)</code> 本月【\$MODE_NAME】已飙升至 <b>\${USAGE_GB} GB</b>！
 已突破设定的 \${LIMIT_GB} GB 终极红线，请火速处理防止天价账单！"
-        curl -s -m 5 -X POST "https://api.telegram.org/bot\$GLOBAL_TG_TOKEN/sendMessage" -d "chat_id=\$GLOBAL_TG_CHATID" -d "text=\$MSG" -d parse_mode="HTML" >/dev/null 2>&1
+        curl -s -m 5 -X POST "https://api.telegram.org/bot\$GLOBAL_TG_TOKEN/sendMessage" -d "chat_id=\$GLOBAL_TG_CHATID" -d "parse_mode=HTML" --data-urlencode "text=\$MSG" >/dev/null 2>&1
         touch "\$LOCK_100"
     fi
 elif [ "\$TRIGGER_80" -eq 1 ]; then
@@ -1116,7 +1118,7 @@ elif [ "\$TRIGGER_80" -eq 1 ]; then
         MSG="⚠️ <b>[Velox 流量超标预警]</b>
 大佬注意！您的机器 <code>\$(hostname)</code> 本月【\$MODE_NAME】已达 <b>\${USAGE_GB} GB</b>！
 已触发 80% 安全警戒线 (\${LIMIT_80} GB)，请合理安排使用！"
-        curl -s -m 5 -X POST "https://api.telegram.org/bot\$GLOBAL_TG_TOKEN/sendMessage" -d "chat_id=\$GLOBAL_TG_CHATID" -d "text=\$MSG" -d parse_mode="HTML" >/dev/null 2>&1
+        curl -s -m 5 -X POST "https://api.telegram.org/bot\$GLOBAL_TG_TOKEN/sendMessage" -d "chat_id=\$GLOBAL_TG_CHATID" -d "parse_mode=HTML" --data-urlencode "text=\$MSG" >/dev/null 2>&1
         touch "\$LOCK_80"
     fi
 fi
