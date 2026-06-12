@@ -1128,7 +1128,7 @@ EOF_ALERT
                     (crontab -l 2>/dev/null; echo "0 * * * * /usr/local/bin/velox_traffic_alert.sh") | crontab -
                     
                     # 🚀 发送连通性测试信
-                    USAGE_GB=$(vnstat -i "$DEFAULT_IF" --oneline b 2>/dev/null | awk -F';' -v mode="$MODE_NAME" '{if($1=="1"){b=(mode=="出站上传(TX)")?$9:$10}else{b=(mode=="出站上传(TX)")?$10:$11}; printf "%.2f", b/1073741824}')
+                    USAGE_GB=$(vnstat -i "$DEFAULT_IF" --oneline b 2>/dev/null | awk -F';' -v mode="$MODE_NAME" '{if($1=="1"){b=(mode=="出站上传(TX)")?$10:$11}else{b=(mode=="出站上传(TX)")?$11:$12}; printf "%.2f", b/1073741824}')
                     WARN_GB=$(awk -v l="$limit_gb" 'BEGIN{print l * 0.8}')
                     TEST_MSG="🟢 <b>[Velox 流量管家]</b> 部署测试！
 服务器 <code>$(hostname)</code> 流量防线已激活！
@@ -1137,7 +1137,7 @@ EOF_ALERT
 📊 <b>当前已用:</b> ${USAGE_GB} GB
 ⚠️ <b>预警黄线:</b> ${WARN_GB} GB (达到自动报警)
 🛑 <b>熔断红线:</b> ${limit_gb} GB (达到发绝杀信)"
-                    curl -s -m 5 -X POST "https://api.telegram.org/bot$tg_token/sendMessage" -d "chat_id=$tg_chatid" -d "text=$TEST_MSG" -d parse_mode="HTML" >/dev/null 2>&1
+                    curl -s -m 5 -X POST "https://api.telegram.org/bot$tg_token/sendMessage" -d "chat_id=$tg_chatid" -d "parse_mode=HTML" --data-urlencode "text=$TEST_MSG" >/dev/null 2>&1
                     
                     echo -e "\n${green}✅ [$MODE_NAME] 防线部署成功！雷达已潜伏入系统底层守护！${plain}"
                     echo -e "${purple}🔔 叮咚！已向您的 TG 发送了一封【部署连通性测试信】，请立即查看！${plain}"
