@@ -207,6 +207,15 @@ echo -e "${cyan}=======================================================${plain}"
 
         echo -e "\n${blue}--- 🌍 服务器当前公网出口详情 ---${plain}"
         curl -sS --max-time 3 https://ip.gs || echo -e "${yellow}获取 IP 失败，请检查网络连接${plain}"
+
+        echo -e "\n${blue}--- 📡 关键节点延迟侦测 ---${plain}"
+        for target in "谷歌 8.8.8.8" "CF 1.1.1.1" "微软 13.107.42.14"; do
+            name=$(echo $target | awk '{print $1}')
+            ip=$(echo $target | awk '{print $2}')
+            result=$(ping -c 3 -W 2 $ip 2>/dev/null | awk -F'/' '/^rtt/{printf "%.1f ms", $5}')
+            [ -z "$result" ] && result="⚠️ 超时/不可达"
+            printf "  🌐 %-8s (%s) : ${cyan}%s${plain}\n" "$name" "$ip" "$result"
+        done
         
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
@@ -1358,17 +1367,29 @@ EOF_ALERT
                         echo -e "${red}⚠️ 格式错误！必须输入如 pts/1 格式。${plain}"
                     fi
                     ;;
-                2)
-                    echo -e "\n${blue}--- 💣 正在统计恶意爆破日志 (Top 10) ---${plain}"
-                    ATTACKS=""
-                    if [ -f "/var/log/auth.log" ]; then
-                        ATTACKS=$(grep "Failed password" /var/log/auth.log | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
-                    elif [ -f "/var/log/secure" ]; then
-                        ATTACKS=$(grep "Failed password" /var/log/secure | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
-                    elif command -v journalctl &> /dev/null; then
-                        ATTACKS=$(journalctl -u ssh -u sshd --no-pager 2>/dev/null | grep "Failed password" | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 10)
+               2)
+                    echo -e "\n${blue}--- 💣 正在统计恶意爆破日志 Top 10 (全历史聚合版) ---${plain}"
+                    
+                    # 多源聚合：文件日志 + journalctl 历史全部合并，重启后数据不丢
+                    {
+                        [ -f "/var/log/auth.log" ] && grep "Failed password" /var/log/auth.log 2>/dev/null
+                        [ -f "/var/log/auth.log.1" ] && grep "Failed password" /var/log/auth.log.1 2>/dev/null
+                        [ -f "/var/log/secure" ] && grep "Failed password" /var/log/secure 2>/dev/null
+                        [ -f "/var/log/secure.1" ] && grep "Failed password" /var/log/secure.1 2>/dev/null
+                        command -v journalctl &>/dev/null && journalctl -u ssh -u sshd --no-pager 2>/dev/null | grep "Failed password"
+                    } | awk '{print $(NF-3)}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | sort | uniq -c | sort -nr | head -n 10 > /tmp/velox_attacks.tmp
+                    
+                    TOTAL=$(awk '{sum+=$1} END{print sum+0}' /tmp/velox_attacks.tmp)
+                    
+                    if [ ! -s /tmp/velox_attacks.tmp ]; then
+                        echo -e "${green}🎉 全历史日志未查到任何爆破记录！${plain}"
+                    else
+                        echo -e "${yellow}累计爆破总次数: ${red}${TOTAL}${plain}"
+                        echo -e "${yellow}-----------------------------${plain}"
+                        echo -e "${yellow}次数   |   攻击者 IP${plain}"
+                        echo -e "${cyan}$(cat /tmp/velox_attacks.tmp)${plain}"
                     fi
-                    if [ -z "$ATTACKS" ]; then echo -e "${green}🎉 系统底层未查到任何被爆破的记录！${plain}"; else echo -e "${yellow}次数   |   攻击者 IP${plain}\n${cyan}$ATTACKS${plain}"; fi
+                    rm -f /tmp/velox_attacks.tmp
                     ;;
                3)
                     read -p "✍️ 请输入新的 SSH 端口号 (1000-65535, 输入 22 恢复默认): " new_port
