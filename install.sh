@@ -98,7 +98,7 @@ while true; do
     if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ] && [ "$REMOTE_VERSION" != "404: Not Found" ] && [ -n "$REMOTE_VERSION" ]; then
         OTA_NOTICE="${red}🔥 发现新级装甲 [V${REMOTE_VERSION}] ! 请按 i 立即升级!${plain}"
     else
-        OTA_NOTICE="${green}V${LOCAL_VERSION} (已是最新满血版)${plain}"
+        OTA_NOTICE="${green}V${LOCAL_VERSION} (最新版)${plain}"
     fi
     clear
 # ================= 专属署名区 =================
@@ -1462,13 +1462,14 @@ EOF_ALERT
                     fi
                     ;;
                5)
-                    echo -e "\n${cyan}=== 🔐 极客级密钥部署与防线飞升程序 ===${plain}"
-                    echo -e "${yellow}💡 【极客指南：如何获取您的本地公钥？】${plain}"
-                    echo -e "  🔹 ${purple}Windows (CMD/PowerShell)${plain}: 打开本地终端输入 ${green}type %USERPROFILE%\\.ssh\\id_ed25519.pub${plain} 或 ${green}type %USERPROFILE%\\.ssh\\id_rsa.pub${plain}"
-                    echo -e "  🔹 ${purple}Mac / Linux 本地终端${plain}: 输入 ${green}cat ~/.ssh/id_ed25519.pub${plain} 或 ${green}cat ~/.ssh/id_rsa.pub${plain}"
-                    echo -e "  ⚠️ ${red}如果提示找不到文件${plain}，请先在【本地电脑】执行 ${cyan}ssh-keygen -t ed25519${plain} 一路回车生成！\n"
-                    
-                    read -p "✍️  请将获取到的【公钥 (以 ssh- 开头)】完整粘贴到此处 (直接回车可取消): " ssh_pub_key
+                        echo -e "\n${cyan}=== 🔐 极客级密钥部署与防线飞升程序 ===${plain}"
+                        echo -e "${yellow}💡 【极客指南：去哪里获取您的公钥？】${plain}"
+                        echo -e "  🔹 ${purple}Windows 用户${plain}: 请切回桌面打开 ${green}CMD 或 PowerShell${plain}，输入：${green}type %USERPROFILE%\\.ssh\\id_ed25519.pub${plain} 或 ${green}type %USERPROFILE%\\.ssh\\id_rsa.pub${plain}"
+                        echo -e "  🔹 ${purple}Mac/Linux 用户${plain}: 请切回桌面打开 ${green}终端 (Terminal)${plain}，输入：${green}cat ~/.ssh/id_ed25519.pub${plain} 或 ${green}cat ~/.ssh/id_rsa.pub${plain}"
+                        echo -e "  ⚠️ ${red}如果报错“找不到文件”？说明您本机还没有钥匙！${plain}"
+                        echo -e "     👉 请先在【本地电脑的 CMD/终端】里敲入：${cyan}ssh-keygen -t ed25519${plain} (一路回车即可生成)\n"
+                        
+                        read -p "✍️  请将获取到的【公钥 (以 ssh- 开头)】完整粘贴到此处 (直接回车可取消): " ssh_pub_key
                     
                     # 防呆拦截 1：空值或误触回车，直接安全撤离
                     if [[ -z "$ssh_pub_key" || ${#ssh_pub_key} -lt 20 ]]; then
@@ -2140,17 +2141,19 @@ EOF_F2B
         read -p "👉 按【回车键】返回主菜单..."
         ;;
 
-        i|I)
+       i|I)
             echo -e "\n${blue}=== 🔄 Velox OTA 云端平滑升级引擎 ===${plain}"
             echo -e "${yellow}📡 正在连接 Velo.x 星际指挥中心，请求拉取最新装甲...${plain}"
             
-            # ⚠️ 大佬注意：下面这个 URL 必须换成你 GitHub 仓库里那个 velox.sh 的 Raw 直链！
             UPDATE_URL="https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/install.sh"
-            # 核心防线：先把新脚本拉到临时目录，防止拉取失败直接覆盖导致面板变砖
+            
             if curl -sL "$UPDATE_URL" -o /tmp/velox_update.sh && grep -q "velox" /tmp/velox_update.sh; then
                 echo -e "${cyan}📦 成功捕获最新版源文件，正在执行热重载...${plain}"
                 
-                # 直接执行新拉下来的安装包，它会重新覆写 /usr/local/bin/velox
+                # 🛡️ 极客降维打击：强行剔除安装包末尾的自动拉起命令，防止面板无限套娃假死！
+                sed -i '/^velox[[:space:]]*$/d' /tmp/velox_update.sh
+                
+                # 执行新拉下来的安装包，静默覆写 /usr/local/bin/velox
                 bash /tmp/velox_update.sh
                 
                 # 物理抹除临时文件
