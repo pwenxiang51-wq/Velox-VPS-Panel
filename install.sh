@@ -11,7 +11,7 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
-
+LOCAL_VERSION="6.2"
 if command -v apt-get >/dev/null 2>&1; then
     PKG_INSTALL="apt-get install -yqq"
     PKG_REMOVE="apt-get remove --purge -yqq"
@@ -87,6 +87,17 @@ while true; do
     else
         traffic_stat=$(echo -e "${yellow}[未设置]${plain}")
     fi
+    # === 📡 OTA 云端星际雷达 (毫秒级防假死嗅探) ===
+    # 假设在 GitHub 仓库里放了一个 version.txt，里面只写着最新的版本号（比如 6.3）
+    # 这里加了 -m 2 (2秒超时)，如果 GitHub 抽风，绝不卡死用户的面板！
+    REMOTE_VERSION=$(curl -s -m 2 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/version.txt" || echo "$LOCAL_VERSION")
+    
+    # 智能比对逻辑
+    if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ] && [ -n "$REMOTE_VERSION" ]; then
+        OTA_NOTICE="${red}🔥 发现新级装甲 [V${REMOTE_VERSION}] ! 请按 88 立即升级!${plain}"
+    else
+        OTA_NOTICE="${green}V${LOCAL_VERSION} (已是最新满血版)${plain}"
+    fi
     clear
 # ================= 专属署名区 =================
 echo -e "${cyan}██╗   ██╗███████╗██╗     ██████╗ ██╗  ██╗${plain}"
@@ -99,6 +110,7 @@ echo -e "${cyan}=======================================================${plain}"
 echo -e "   👨‍💻 作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
 echo -e "   📝 作者Velo.x博客 : ${blue}222382.xyz${plain}"
 echo -e "   ✈️ 作者Telegram   : ${blue}@Velox95${plain}"
+echo -e "   📡 面板内核状态   : ${OTA_NOTICE}"
 echo -e "${cyan}=======================================================${plain}"
     # ==============================================
     # --- 第一板块：系统核心运维 ---
@@ -141,11 +153,12 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "  ${yellow}24.${plain} 🔍 ${yellow}全域资产雷达 (多维内核级 Socket 嗅探 / 隐藏进程爆破)${plain}"
     
     echo -e "${cyan}  ---------------------------------------------------${plain}"
+    echo -e "  ${purple}i.${plain} 🔄 ${purple}OTA 在线平滑升级 (获取 Velox 最新防弹装甲)${plain}"
     echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
-    echo -ne "请选择操作 [${green}1${plain}-${yellow}24${plain}, ${red}U${plain}, ${red}0${plain}]: "
+    echo -ne "请选择操作 [${green}1${plain}-${yellow}24${plain}, ${purple}i${plain}, ${red}U${plain}, ${red}0${plain}]: "
     read choice
     
     case $choice in
@@ -327,7 +340,7 @@ echo -e "${cyan}=======================================================${plain}"
         read -p "👉 按【回车键】继续..."
         ;;
         
-     9)
+    9)
         echo -e "\n${blue}=== 🚀 BBR 状态诊断 (极简 Go 风格防爆版) ===${plain}"
         
         # 【守门员 1：架构防爆拦截】不行直接熔断返回
@@ -344,9 +357,6 @@ echo -e "${cyan}=======================================================${plain}"
         echo -e "🚥 ${cyan}当前队列调度 (Qdisc):${plain} ${yellow}${current_qdisc}${plain}"
         echo -e "${blue}---------------------------------------------------${plain}"
 
-        # ==========================================
-        # 业务流 A：如果已经开启了 BBR (处理完直接跳出)
-        # ==========================================
         if [[ "$current_cc" == "bbr" ]]; then
             echo -e "${green}✅ BBR 底层加速已激活！${plain}"
             [[ "$current_qdisc" != *"fq"* ]] && echo -e "${yellow}⚠️ 提示：当前 Qdisc 不是 fq，建议重置。${plain}"
@@ -360,31 +370,28 @@ echo -e "${cyan}=======================================================${plain}"
             sysctl -w net.core.default_qdisc=fq_codel >/dev/null 2>&1
             sysctl --system >/dev/null 2>&1
             echo -e "${green}✅ BBR 已无痕关闭！系统恢复默认。${plain}"
-            
             echo ""; read -p "👉 按【回车键】返回..."
             continue
         fi
 
-        # ==========================================
-        # 业务流 B：未开启 BBR (线性执行)
-        # ==========================================
         echo -e "${red}⚠️ 当前未开启 BBR 加速！${plain}"
 
-        # 【守门员 2：内核太旧阻断】Go 风格的 Error check
+        # 【守门员 2：内核太旧阻断】
         awk -v ver="$kernel_main" 'BEGIN {if (ver < 4.9) exit 0; else exit 1}' && {
             echo -e "${red}❌ 致命错误：内核 ($kernel_version) 低于 4.9！强行注入将断网！${plain}"
             echo ""; read -p "👉 按【回车键】返回..."; continue
         }
 
-        # 最终确认
         read -p "👉 是否立即【一键开启 BBR 暴力加速】？(y/n): " act_add
         [[ "${act_add,,}" != "y" ]] && { echo ""; read -p "👉 按【回车键】返回..."; continue; }
 
-        echo -e "\n${cyan}加载内核模块并建立独立防线...${plain}"
+        echo -e "\n${cyan}正在焦土化清理旧配置并建立独立防线...${plain}"
+        # 降维打击：物理粉碎主配置文件里的历史残留，防止冲突死锁
+        sed -i '/net.core.default_qdisc/d; /net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf >/dev/null 2>&1
+        
         modprobe tcp_bbr 2>/dev/null
         echo "tcp_bbr" > /etc/modules-load.d/velox-bbr.conf
         
-        # 物理粉碎 EOF！用单行 echo -e，哪怕你编辑器再怎么缩进，也绝对不会报错！
         echo -e "net.core.default_qdisc=fq\nnet.ipv4.tcp_congestion_control=bbr" > "$BBR_CONF"
         sysctl --system >/dev/null 2>&1
         
@@ -392,14 +399,14 @@ echo -e "${cyan}=======================================================${plain}"
         sysctl net.ipv4.tcp_congestion_control
         sysctl net.core.default_qdisc
         
-        # 连 if 都省了：极客短路判定，一行搞定成功与失败
         sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr \
             && echo -e "\n${green}🎉 开启成功！黄金组合已全线生效！${plain}" \
             || { echo -e "\n${red}❌ 开启失败！当前环境受限。${plain}"; rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf; }
 
         echo ""; read -p "👉 按【回车键】返回主菜单..."
         ;;
-   10)
+        
+     10)
         echo -e "\n${blue}=== 🧹 焦土化系统清理与内存强制释放 ===${plain}"
         echo -e "${yellow}正在执行深度大扫除，清理底层无用依赖与碎片...${plain}\n"
 
@@ -425,6 +432,7 @@ echo -e "${cyan}=======================================================${plain}"
         echo -e "${blue}---------------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
+        
      11) 
         echo -e "\n${red}⚠️ 警告：此操作将物理重启整台 VPS 服务器！${plain}"
         echo -e "${yellow}执行后，当前的 SSH 连接将会立即断开，请等待 1-2 分钟后再重新连接。${plain}"
@@ -537,16 +545,15 @@ echo -e "${cyan}=======================================================${plain}"
    14)
         check_virt_safe "TCP/UDP 读写缓冲区与队列扩展" || { read -p "👉 按【回车键】继续..."; continue; }
 
-        # 核心升级：精准判定 tc 命令，避免安装死循环
         if ! command -v tc >/dev/null 2>&1; then
             echo -e "${yellow}⚙️ 正在向底层注入缺失装甲: iproute2...${plain}"
             $PKG_INSTALL iproute2 >/dev/null 2>&1
         fi
 
         echo -e "\n${cyan}请选择网络底层调优方向：${plain}"
-        echo -e "  ${green}1.${plain} ⚡ TCP 暴力扩容 (传统大文件下载提速)"
+        echo -e "  ${green}1.${plain} ⚡ TCP 暴力扩容 (并发防断流 + TFO 极速握手)"
         echo -e "  ${green}2.${plain} 🌪️ UDP 极限压榨 (Hysteria2/gRPC 专属抗丢包)"
-        echo -e "  ${green}3.${plain} 🔥 双管齐下 (同时执行 TCP 与 UDP 调优)"
+        echo -e "  ${green}3.${plain} 🔥 双管齐下 (同时执行 TCP 与 UDP 满血调优)"
         echo -e "  ${red}4.${plain} 🗑️ 恢复系统默认 (无痕物理粉碎参数)"
         echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
         read -p "👉 请输入选择 [0-4]: " tune_choice
@@ -563,15 +570,25 @@ echo -e "${cyan}=======================================================${plain}"
 
             VELOX_NET_CONF="/etc/sysctl.d/99-velox-network.conf"
             
-            sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d' /etc/sysctl.conf >/dev/null 2>&1
+            # 焦土化主配置文件里的历史垃圾
+            sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d; /tcp_fastopen/d; /file-max/d; /ip_local_port_range/d' /etc/sysctl.conf >/dev/null 2>&1
 
             if [ "$tune_choice" == "1" ] || [ "$tune_choice" == "3" ]; then
                 echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ($MEM_TAG) ---${plain}"
                 
-                echo -e "net.core.rmem_max=$MAX_BUF\nnet.core.wmem_max=$MAX_BUF\nnet.ipv4.tcp_rmem=4096 87380 $MAX_BUF\nnet.ipv4.tcp_wmem=4096 65536 $MAX_BUF" > "$VELOX_NET_CONF"
+                # 极客注入：加入 tcp_fastopen (降低代理握手延迟) 与 file-max (破除并发死锁)
+                cat << EOF_TCP > "$VELOX_NET_CONF"
+net.core.rmem_max=$MAX_BUF
+net.core.wmem_max=$MAX_BUF
+net.ipv4.tcp_rmem=4096 87380 $MAX_BUF
+net.ipv4.tcp_wmem=4096 65536 $MAX_BUF
+net.ipv4.tcp_fastopen=3
+fs.file-max=1048576
+net.ipv4.ip_local_port_range=1024 65535
+EOF_TCP
                 
                 sysctl --system > /dev/null 2>&1
-                echo -e "${green}✅ TCP 读写窗口缓冲区已动态扩展至 $((MAX_BUF/1024/1024))MB！${plain}"
+                echo -e "${green}✅ TCP 窗口缓冲区已扩展至 $((MAX_BUF/1024/1024))MB！并发端口防线已打通！${plain}"
             fi
 
             if [ "$tune_choice" == "2" ] || [ "$tune_choice" == "3" ]; then
@@ -585,21 +602,23 @@ echo -e "${cyan}=======================================================${plain}"
                 fi
                 
                 sysctl --system > /dev/null 2>&1
-                echo -e "${green}✅ UDP 读写缓冲区已暴力扩容至 $((MAX_BUF/1024/1024))MB！${plain}"
+                echo -e "${green}✅ UDP 读写缓冲区已暴力扩容！${plain}"
                 
                 echo -e "\n${yellow}👉 正在嗅探主网卡并配置 CAKE/FQ 队列调度算法...${plain}"
-                DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
-                tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
-                tc qdisc add dev $DEFAULT_IF root cake >/dev/null 2>&1 || tc qdisc add dev $DEFAULT_IF root fq >/dev/null 2>&1
-                echo -e "${green}✅ 网卡 [$DEFAULT_IF] 队列调度已接管！(抗丢包能力大幅提升)${plain}"
+                DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
+                if [ -n "$DEFAULT_IF" ]; then
+                    # 极客注入：用 replace 替代 del，无缝衔接不报错
+                    tc qdisc replace dev $DEFAULT_IF root cake >/dev/null 2>&1 || tc qdisc replace dev $DEFAULT_IF root fq >/dev/null 2>&1
+                    echo -e "${green}✅ 网卡 [$DEFAULT_IF] 队列调度已接管！(抗丢包能力大幅提升)${plain}"
+                fi
             fi
 
             if [ "$tune_choice" == "4" ]; then
                 echo -e "\n${blue}--- 🗑️ 正在无痕粉碎自定义调优参数 ---${plain}"
                 rm -f "$VELOX_NET_CONF"
                 sysctl --system > /dev/null 2>&1
-                DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{print $5}' | head -n 1)
-                tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
+                DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
+                [ -n "$DEFAULT_IF" ] && tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
                 echo -e "${green}✅ 所有强行注入的扩容参数已抹除，系统网络恢复默认纯净状态！${plain}"
             fi
             echo ""
@@ -1328,7 +1347,7 @@ EOF_ALERT
             echo -e "  ${green}2.${plain} 💣  审计被拦截的黑客爆破日志 (查外鬼)"
             echo -e "  ${cyan}3.${plain} 🚪  修改 SSH 端口 (输入 22 即可恢复默认)"
             echo -e "  ${yellow}4.${plain} 🔑  一键切换密码登录开关 (执行: $pw_toggle)"
-            echo -e "  ${purple}5.${plain} 🚀  一键部署免密登录并【锁死密码】(极客推荐)"
+            echo -e "  ${purple}5.${plain} 🚀  一键部署密钥登录并【锁死密码】(极客推荐)"
             echo -e "  ${red}6.${plain} 🛡️  部署/卸载安全防御武器库 (机枪塔/Fail2Ban)"
             echo -e "  ${yellow}0.${plain} 🔙  返回主菜单"
             echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
@@ -1440,23 +1459,58 @@ EOF_ALERT
                         fi
                     fi
                     ;;
-                5)
+               5)
                     echo -e "\n${cyan}=== 🔐 极客级密钥部署与防线飞升程序 ===${plain}"
-                    echo -e "${yellow}💡 本地获取公钥指令 (Mac/Win10+): ${green}cat ~/.ssh/id_ed25519.pub${plain}"
-                    read -p "✍️  请在此粘贴您的公钥 (ssh-rsa/ssh-ed25519...): " ssh_pub_key
+                    echo -e "${yellow}💡 【极客指南：如何获取您的本地公钥？】${plain}"
+                    echo -e "  🔹 ${purple}Windows (CMD/PowerShell)${plain}: 打开本地终端输入 ${green}type %USERPROFILE%\\.ssh\\id_ed25519.pub${plain} 或 ${green}type %USERPROFILE%\\.ssh\\id_rsa.pub${plain}"
+                    echo -e "  🔹 ${purple}Mac / Linux 本地终端${plain}: 输入 ${green}cat ~/.ssh/id_ed25519.pub${plain} 或 ${green}cat ~/.ssh/id_rsa.pub${plain}"
+                    echo -e "  ⚠️ ${red}如果提示找不到文件${plain}，请先在【本地电脑】执行 ${cyan}ssh-keygen -t ed25519${plain} 一路回车生成！\n"
+                    
+                    read -p "✍️  请将获取到的【公钥 (以 ssh- 开头)】完整粘贴到此处 (直接回车可取消): " ssh_pub_key
+                    
+                    # 防呆拦截 1：空值或误触回车，直接安全撤离
+                    if [[ -z "$ssh_pub_key" || ${#ssh_pub_key} -lt 20 ]]; then
+                        echo -e "\n${yellow}⚠️ 雷达侦测：未检测到有效输入，已安全退出部署程序。${plain}"
+                        continue
+                    fi
+
+                    # 防呆拦截 2：基因识别，必须是标准公钥格式
                     if [[ "$ssh_pub_key" == ssh-rsa* ]] || [[ "$ssh_pub_key" == ssh-ed25519* ]] || [[ "$ssh_pub_key" == ecdsa-sha2* ]]; then
                         mkdir -p ~/.ssh && chmod 700 ~/.ssh
-                        grep -q "$ssh_pub_key" ~/.ssh/authorized_keys 2>/dev/null || echo "$ssh_pub_key" >> ~/.ssh/authorized_keys
-                        chmod 600 ~/.ssh/authorized_keys
                         
-                        sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
-                        sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
-                        grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
+                        # 智能去重：如果有就不重复刻录了
+                        if ! grep -q "$ssh_pub_key" ~/.ssh/authorized_keys 2>/dev/null; then
+                            echo "$ssh_pub_key" >> ~/.ssh/authorized_keys
+                            chmod 600 ~/.ssh/authorized_keys
+                            echo -e "\n${green}✅ 公钥已成功物理刻录至 ~/.ssh/authorized_keys！${plain}"
+                        else
+                            echo -e "\n${yellow}💡 雷达侦测：该公钥已存在于底层库中，无需重复刻录。${plain}"
+                        fi
                         
-                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                        echo -e "\n${green}✅ 公钥注入成功！密码登录已物理切断，防御力拉满！${plain}"
+                        # 核心防线：强拦截警告，逼迫用户去测试
+                        echo -e "${red}🚨 致命拦截警告：为了防止把您自己锁在门外，请【立刻】保持当前窗口不关！${plain}"
+                        echo -e "${cyan}👉 请新开一个终端窗口，测试能否使用密钥【免密码】登入本服务器！${plain}"
+                        
+                        read -p "👉 确认新窗口免密登录成功后，是否立即【物理锁死密码登录】？(y/n): " lock_pwd
+                        if [[ "${lock_pwd,,}" == "y" ]]; then
+                            sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
+                            sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
+                            grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
+                            
+                            systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                            echo -e "\n${green}✅ 密码登录已彻底物理切断，防弹装甲部署完毕，防御力拉满！${plain}"
+                            echo -e "\n${purple}================= 🚨 终极保命警告 (必读) 🚨 =================${plain}"
+                            echo -e "${yellow}您的服务器现已化身为【只认密钥】的防弹铁疙瘩！${plain}"
+                            echo -e "${red}请立刻、马上、现在！将您本地电脑的 .ssh 文件夹（特别是私钥文件）妥善备份！${plain}"
+                            echo -e "💡 ${cyan}极客建议：${plain}扔进加密 U 盘、或使用 Bitwarden 等端到端加密密码管理器托管。"
+                            echo -e "💣 ${red}禁忌：绝对不要把私钥明文发在微信、Telegram 收藏夹或非加密云盘！${plain}"
+                            echo -e "${purple}=============================================================${plain}"
+                            read -p "👉 我已明确知晓风险并已备份私钥 (按回车键继续)..."
+                        else
+                            echo -e "\n${yellow}🛡️ 已为您保留密码登录作为紧急逃生舱。测试成功后，请使用主菜单【选项 4】手动锁死！${plain}"
+                        fi
                     else 
-                        echo -e "\n${red}❌ 格式识别失败！确保粘贴的是以 ssh- 开头的【公钥】。${plain}"
+                        echo -e "\n${red}❌ 基因识别失败！确保您粘贴的是以 ssh-rsa 或 ssh-ed25519 开头的【公钥】文件内容，而不是私钥或乱码。${plain}"
                     fi
                     ;;
                6)
@@ -2083,7 +2137,35 @@ EOF_F2B
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-        
+
+        i|I)
+            echo -e "\n${blue}=== 🔄 Velox OTA 云端平滑升级引擎 ===${plain}"
+            echo -e "${yellow}📡 正在连接 Velo.x 星际指挥中心，请求拉取最新装甲...${plain}"
+            
+            # ⚠️ 大佬注意：下面这个 URL 必须换成你 GitHub 仓库里那个 velox.sh 的 Raw 直链！
+            UPDATE_URL="https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/install.sh"
+            # 核心防线：先把新脚本拉到临时目录，防止拉取失败直接覆盖导致面板变砖
+            if curl -sL "$UPDATE_URL" -o /tmp/velox_update.sh && grep -q "velox" /tmp/velox_update.sh; then
+                echo -e "${cyan}📦 成功捕获最新版源文件，正在执行热重载...${plain}"
+                
+                # 直接执行新拉下来的安装包，它会重新覆写 /usr/local/bin/velox
+                bash /tmp/velox_update.sh
+                
+                # 物理抹除临时文件
+                rm -f /tmp/velox_update.sh
+                
+                echo -e "\n${green}🎉 OTA 升级满血完成！旧版核心已销毁。${plain}"
+                echo -e "${yellow}💡 系统即将退出当前旧面板进程，请重新输入 velox 呼出最新版本！${plain}"
+                exit 0
+            else
+                echo -e "\n${red}❌ 信号丢失！无法连接到云端指挥中心，或文件校验失败！${plain}"
+                echo -e "${yellow}请检查服务器网络，或确认您的 GitHub Raw 直链是否有效。${plain}"
+                rm -f /tmp/velox_update.sh
+            fi
+            
+            read -p "👉 按【回车键】返回主菜单..."
+            ;;
+            
        U|u)
             echo -e "\n${red}=======================================================${plain}"
             echo -e "${red}                ⚠️ 终极卸载与物理粉碎程序                ${plain}"
@@ -2174,6 +2256,25 @@ EOF_F2B
                     else
                         echo -e "${cyan}已跳过 Fail2Ban 卸载，系统防盗门继续服役。${plain}"
                     fi
+                fi
+
+                # 8. 终极逃生舱：SSH 防线降级询问
+                echo -n "8. 正在探测系统 SSH 防盗门状态... "
+                if grep -qi "^PasswordAuthentication no" /etc/ssh/sshd_config; then
+                    echo -e "[${yellow}雷达显示：密码登录已锁死${plain}]"
+                    echo -e "\n${red}🚨 关键抉择：您当前的 VPS 已物理切断密码登录。${plain}"
+                    echo -e "${yellow}如果您卸载面板后不慎丢失了本地私钥，将永远无法进入服务器！${plain}"
+                    read -p "👉 是否需要为您【重新开启密码登录】作为安全逃生后路？(y/n): " restore_pwd
+                    
+                    if [[ "${restore_pwd,,}" == "y" ]]; then
+                        sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                        echo -e "${green}✅ 逃生舱已激活！SSH 密码登录已为您重新开启！${plain}"
+                    else
+                        echo -e "${cyan}🛡️ 指挥官确认：保持最高警戒！密码登录依然处于物理切断状态。${plain}"
+                    fi
+                else
+                    echo -e "[${green}未锁死，无需处理${plain}]"
                 fi
 
                 echo -e "\n${green}🎉 卸载完毕！Velox 面板已事了拂衣去，历史监控数据已清零！${plain}"
