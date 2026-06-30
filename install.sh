@@ -88,13 +88,15 @@ while true; do
         traffic_stat=$(echo -e "${yellow}[未设置]${plain}")
     fi
     # === 📡 OTA 云端星际雷达 (毫秒级防假死嗅探) ===
-    # 假设在 GitHub 仓库里放了一个 version.txt，里面只写着最新的版本号（比如 6.3）
-    # 这里加了 -m 2 (2秒超时)，如果 GitHub 抽风，绝不卡死用户的面板！
-    REMOTE_VERSION=$(curl -s -m 2 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/version.txt" || echo "$LOCAL_VERSION")
+    # 极客注入：加入 -f 参数，遇到 404 直接报错并触发备用逻辑，防止抓瞎
+    REMOTE_VERSION=$(curl -fsL -m 2 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/version.txt" 2>/dev/null || echo "$LOCAL_VERSION")
     
-    # 智能比对逻辑
-    if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ] && [ -n "$REMOTE_VERSION" ]; then
-        OTA_NOTICE="${red}🔥 发现新级装甲 [V${REMOTE_VERSION}] ! 请按 88 立即升级!${plain}"
+    # 物理抹除 GitHub 可能自带的换行符/回车符，防止版本比对炸膛
+    REMOTE_VERSION=$(echo "$REMOTE_VERSION" | tr -d '\n' | tr -d '\r')
+    
+    # 智能比对逻辑 (增加 404 拦截装甲)
+    if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ] && [ "$REMOTE_VERSION" != "404: Not Found" ] && [ -n "$REMOTE_VERSION" ]; then
+        OTA_NOTICE="${red}🔥 发现新级装甲 [V${REMOTE_VERSION}] ! 请按 i 立即升级!${plain}"
     else
         OTA_NOTICE="${green}V${LOCAL_VERSION} (已是最新满血版)${plain}"
     fi
