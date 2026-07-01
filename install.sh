@@ -358,7 +358,6 @@ echo -e "${cyan}=======================================================${plain}"
      9)
         echo -e "\n${blue}=== 🚀 BBR 狂暴引擎与底层网络终极调优 (自适应防爆版) ===${plain}"
         
-        # 【守门员 1：架构与内核防爆拦截】
         check_virt_safe "底层网络协议栈修改" || { echo ""; read -p "👉 按【回车键】返回..."; continue; }
 
         kernel_version=$(uname -r | awk -F- '{print $1}')
@@ -366,13 +365,11 @@ echo -e "${cyan}=======================================================${plain}"
         current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
         BBR_CONF="/etc/sysctl.d/99-velox-bbr-ultimate.conf"
         
-        # 【守门员 2：内核太旧阻断】
         awk -v ver="$kernel_main" 'BEGIN {if (ver < 4.9) exit 0; else exit 1}' && {
             echo -e "${red}❌ 致命错误：内核 ($kernel_version) 低于 4.9！强行注入将触发物理断网！${plain}"
             echo ""; read -p "👉 按【回车键】返回..."; continue
         }
 
-        # === 👇 极客态势感知雷达 (找回丢失的 UI) 👇 ===
         echo -e "🔎 ${cyan}当前系统内核版本:${plain} ${kernel_version}"
         echo -e "🚥 ${cyan}当前拥塞算法 (CC):${plain} ${yellow}${current_cc}${plain}"
         
@@ -389,9 +386,8 @@ echo -e "${cyan}=======================================================${plain}"
             fi
         fi
         echo -e "${blue}---------------------------------------------------${plain}"
-        # === 👆 雷达探测结束 👆 ===
 
-        if [[ "$current_cc" == "bbr" && -f "$BBR_CONF" ]]; then
+        if [[ "$current_cc" == *"bbr"* && -f "$BBR_CONF" ]]; then
             echo -e "${green}✅ BBR 终极加速引擎已在满血运行！${plain}"
             read -p "👉 是否【物理拆除】BBR 引擎与所有网络调优？(y/n): " act_rm
             if [[ "${act_rm,,}" == "y" ]]; then
@@ -401,7 +397,6 @@ echo -e "${cyan}=======================================================${plain}"
                 sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
                 sysctl -w net.core.default_qdisc=fq_codel >/dev/null 2>&1
                 sysctl --system >/dev/null 2>&1
-                # 拆除 tc 网卡队列
                 DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
                 [ -n "$DEFAULT_IF" ] && tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
                 echo -e "${green}✅ BBR 及所有网络调优已彻底清零，系统恢复原厂状态！${plain}"
@@ -413,31 +408,27 @@ echo -e "${cyan}=======================================================${plain}"
         [[ "${act_add,,}" != "y" ]] && { echo ""; read -p "👉 按【回车键】返回..."; continue; }
 
         echo -e "\n${cyan}>>> 正在剥离旧规则并注入全新融合协议...${plain}"
-        # 清理可能存在的历史垃圾
         rm -f /etc/sysctl.d/99-velox-bbr.conf /etc/sysctl.d/99-velox-network.conf 2>/dev/null
         sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d; /tcp_fastopen/d; /file-max/d; /ip_local_port_range/d; /default_qdisc/d; /tcp_congestion_control/d' /etc/sysctl.conf >/dev/null 2>&1
         
         modprobe tcp_bbr 2>/dev/null
         echo "tcp_bbr" > /etc/modules-load.d/velox-bbr.conf
 
-        # 🧠 智能侦测：物理内存嗅探
         total_mem=$(free -m | awk '/^Mem:/{print $2}')
         echo -e "🧠 ${cyan}雷达侦测到物理内存: ${plain}${total_mem} MB"
 
-        # 写入基础 BBR 与高并发句柄
-        cat <<EOF > "$BBR_CONF"
+        cat <<EOF_BBR > "$BBR_CONF"
 net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr
 net.ipv4.tcp_ecn=1
 net.ipv4.tcp_fastopen=3
 fs.file-max=1048576
 net.ipv4.ip_local_port_range=1024 65535
-EOF
+EOF_BBR
 
-        # ⚙️ 基于真实物理内存的动态资源分配
         if [[ "$total_mem" -ge 2000 ]]; then
             echo -e "🚀 ${green}系统内存充裕 (≥2GB)，已自动匹配【32MB 极速版】网络调优策略！${plain}"
-            cat <<EOF >> "$BBR_CONF"
+            cat <<EOF_BBR >> "$BBR_CONF"
 net.ipv4.tcp_rmem = 8192 262144 33554432
 net.ipv4.tcp_wmem = 8192 262144 33554432
 net.core.rmem_max = 33554432
@@ -446,10 +437,10 @@ net.ipv4.udp_mem = 131072 262144 524288
 net.ipv4.udp_rmem_min = 16384
 net.ipv4.udp_wmem_min = 16384
 net.core.netdev_max_backlog = 16384
-EOF
+EOF_BBR
         elif [[ "$total_mem" -ge 800 ]]; then
             echo -e "🛡️ ${green}适配标准架构 (≥800MB)，已自动匹配【16MB 标准版】网络调优策略！${plain}"
-            cat <<EOF >> "$BBR_CONF"
+            cat <<EOF_BBR >> "$BBR_CONF"
 net.ipv4.tcp_rmem = 4096 87380 16777216
 net.ipv4.tcp_wmem = 4096 65536 16777216
 net.core.rmem_max = 16777216
@@ -458,29 +449,27 @@ net.ipv4.udp_mem = 65536 131072 262144
 net.ipv4.udp_rmem_min = 8192
 net.ipv4.udp_wmem_min = 8192
 net.core.netdev_max_backlog = 8192
-EOF
+EOF_BBR
         else
             echo -e "⚠️ ${yellow}识别为轻量节点 (<800MB)，已自动匹配【8MB 轻量版】以确保系统稳定！${plain}"
-            cat <<EOF >> "$BBR_CONF"
+            cat <<EOF_BBR >> "$BBR_CONF"
 net.ipv4.tcp_rmem = 4096 87380 8388608
 net.ipv4.tcp_wmem = 4096 65536 8388608
 net.core.rmem_max = 8388608
 net.core.wmem_max = 8388608
 net.ipv4.udp_mem = 32768 65536 131072
 net.core.netdev_max_backlog = 4096
-EOF
+EOF_BBR
         fi
 
         sysctl --system >/dev/null 2>&1
         
-        # 结果回显
         if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
             echo -e "\n${green}🎉 BBR 及全量网络优化配置点火成功！冲突隐患已彻底肃清！${plain}"
         else
             echo -e "\n${red}❌ 点火失败！当前内核或云服务商环境受限。${plain}"
             rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf
         fi
-
         echo ""; read -p "👉 按【回车键】返回主菜单..."
         ;;
         
