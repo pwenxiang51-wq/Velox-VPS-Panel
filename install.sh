@@ -64,9 +64,10 @@ while true; do
         sb_stat=$(echo -e "${yellow}[未安装]${plain}")
     fi
 
-    # === 🚀 BBR 菜单状态渲染 (专业优雅版) ===
+    # === 🚀 BBR 菜单状态渲染 (专业优雅版 + 抗干扰雷达) ===
     if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
-        local sys_rmem=$(sysctl -n net.core.rmem_max 2>/dev/null)
+        # 物理抹除 local 声明和回车符，精准抓取内核参数
+        sys_rmem=$(sysctl -n net.core.rmem_max 2>/dev/null | tr -d '\r')
         if [[ "$sys_rmem" == "33554432" || "$sys_rmem" == "67108864" ]]; then
             bbr_stat=$(echo -e "${purple}[加速中-32MB 极速版]${plain}")
         elif [[ "$sys_rmem" == "16777216" ]]; then
@@ -370,11 +371,13 @@ echo -e "${cyan}=======================================================${plain}"
             echo ""; read -p "👉 按【回车键】返回..."; continue
         }
 
+       # === 👇 极客态势感知雷达 👇 ===
         echo -e "🔎 ${cyan}当前系统内核版本:${plain} ${kernel_version}"
         echo -e "🚥 ${cyan}当前拥塞算法 (CC):${plain} ${yellow}${current_cc}${plain}"
         
         if [[ "$current_cc" == *"bbr"* ]]; then
-            local sys_rmem=$(sysctl -n net.core.rmem_max 2>/dev/null)
+            # 物理抹除 local 声明和回车符
+            sys_rmem=$(sysctl -n net.core.rmem_max 2>/dev/null | tr -d '\r')
             if [[ "$sys_rmem" == "33554432" || "$sys_rmem" == "67108864" ]]; then
                 echo -e "🚀 ${cyan}当前网络调优策略:${plain} ${purple}32MB 极速版 (高并发满血吞吐)${plain}"
             elif [[ "$sys_rmem" == "16777216" ]]; then
@@ -386,6 +389,7 @@ echo -e "${cyan}=======================================================${plain}"
             fi
         fi
         echo -e "${blue}---------------------------------------------------${plain}"
+        # === 👆 雷达探测结束 👆 ===
 
         if [[ "$current_cc" == *"bbr"* && -f "$BBR_CONF" ]]; then
             echo -e "${green}✅ BBR 终极加速引擎已在满血运行！${plain}"
