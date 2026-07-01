@@ -64,7 +64,21 @@ while true; do
         sb_stat=$(echo -e "${yellow}[未安装]${plain}")
     fi
 
-    bbr_stat=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr && echo -e "${green}[加速中]${plain}" || echo -e "${yellow}[未生效]${plain}")
+    # === 🚀 BBR 菜单状态渲染 (专业优雅版) ===
+    if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
+        local sys_rmem=$(sysctl -n net.core.rmem_max 2>/dev/null)
+        if [[ "$sys_rmem" == "33554432" || "$sys_rmem" == "67108864" ]]; then
+            bbr_stat=$(echo -e "${purple}[加速中-32MB 极速版]${plain}")
+        elif [[ "$sys_rmem" == "16777216" ]]; then
+            bbr_stat=$(echo -e "${green}[加速中-16MB 标准版]${plain}")
+        elif [[ "$sys_rmem" == "8388608" ]]; then
+            bbr_stat=$(echo -e "${yellow}[加速中-8MB 轻量版]${plain}")
+        else
+            bbr_stat=$(echo -e "${cyan}[加速中-系统原生版]${plain}")
+        fi
+    else
+        bbr_stat=$(echo -e "${yellow}[未生效]${plain}")
+    fi
 
     # === 🚨 SSH 防御状态动态检测 (双核雷达：机枪塔 + Fail2Ban) ===
     if systemctl is-active --quiet velox-defender 2>/dev/null || systemctl is-active --quiet fail2ban 2>/dev/null; then
@@ -96,7 +110,7 @@ while true; do
     
     # 智能比对逻辑 (增加 404 拦截装甲)
     if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ] && [ "$REMOTE_VERSION" != "404: Not Found" ] && [ -n "$REMOTE_VERSION" ]; then
-        OTA_NOTICE="${red}🔥 发现新级装甲 [V${REMOTE_VERSION}] ! 请按 i 立即升级!${plain}"
+        OTA_NOTICE="${red}🔥 发现新版本 [V${REMOTE_VERSION}] ! 请按 i 立即升级!${plain}"
     else
         OTA_NOTICE="${green}V${LOCAL_VERSION} (最新版)${plain}"
     fi
@@ -136,23 +150,22 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "\n${blue}[ 板块三：🔌 代理核心管理 ]${plain}"
     echo -e "  ${cyan}12.${plain} 🎬 ${cyan}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
     echo -e "  ${cyan}13.${plain} 🛡️ ${cyan}IP 纯净度与欺诈风险体检 (精准排雷)${plain}"
-    echo -e "  ${cyan}14.${plain} ⚡ ${cyan}TCP/UDP 网络底层高阶调优 (极限压榨带宽)${plain}"
-    echo -e "  ${cyan}15.${plain} 🚨 ${cyan}设置/管理 SSH 异地登录 TG 报警 (含开机秒报)${plain} ${tg_stat}"
+    echo -e "  ${cyan}14.${plain} 🚨 ${cyan}设置/管理 SSH 异地登录 TG 报警 (含开机秒报)${plain} ${tg_stat}"
     
     # --- 第四板块：系统防御与自动化运维 ---
     echo -e "\n${blue}[ 板块四：⚙️ 系统防御与自动化运维 ]${plain}"
-    echo -e "  ${purple}16.${plain} 📈 ${purple}Velox 流量大管家 (防扣费/防停机/月账单)${plain} ${traffic_stat}"
-    echo -e "  ${purple}17.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
-    echo -e "  ${purple}18.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
-    echo -e "  ${purple}19.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
-    echo -e "  ${purple}20.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain} ${f2b_stat}"
+    echo -e "  ${purple}15.${plain} 📈 ${purple}Velox 流量大管家 (防扣费/防停机/月账单)${plain} ${traffic_stat}"
+    echo -e "  ${purple}16.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
+    echo -e "  ${purple}17.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
+    echo -e "  ${purple}18.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
+    echo -e "  ${purple}19.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain} ${f2b_stat}"
    
     # --- 第五板块：全域高维容灾与资产审计 ---
     echo -e "\n${blue}[ 板块五：📡 全域高维容灾与资产审计 ]${plain}"
-    echo -e "  ${yellow}21.${plain} ⏱️  ${yellow}时空调度中心 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
-    echo -e "  ${yellow}22.${plain} 🔐 ${yellow}Acme 证书管理 (硬核全自动避让 / 到期查询 / 强制续签)${plain}"
-    echo -e "  ${yellow}23.${plain} 🧳 ${yellow}模块化资产备份 (精准按需克隆 / 星际舰队 / TG 云端容灾)${plain}"
-    echo -e "  ${yellow}24.${plain} 🔍 ${yellow}全域资产雷达 (多维内核级 Socket 嗅探 / 隐藏进程爆破)${plain}"
+    echo -e "  ${yellow}20.${plain} ⏱️  ${yellow}时空调度中心 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
+    echo -e "  ${yellow}21.${plain} 🔐 ${yellow}Acme 证书管理 (硬核全自动避让 / 到期查询 / 强制续签)${plain}"
+    echo -e "  ${yellow}22.${plain} 🧳 ${yellow}模块化资产备份 (精准按需克隆 / 星际舰队 / TG 云端容灾)${plain}"
+    echo -e "  ${yellow}23.${plain} 🔍 ${yellow}全域资产雷达 (多维内核级 Socket 嗅探 / 隐藏进程爆破)${plain}"
     
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${purple}i.${plain} 🔄 ${purple}OTA 在线平滑升级 (获取 Velox 最新防弹装甲)${plain}"
@@ -160,7 +173,7 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
-    echo -ne "请选择操作 [${green}1${plain}-${yellow}24${plain}, ${purple}i${plain}, ${red}U${plain}, ${red}0${plain}]: "
+    echo -ne "请选择操作 [${green}1${plain}-${yellow}23${plain}, ${purple}i${plain}, ${red}U${plain}, ${red}0${plain}]: "
     read choice
     
     case $choice in
@@ -342,68 +355,131 @@ echo -e "${cyan}=======================================================${plain}"
         read -p "👉 按【回车键】继续..."
         ;;
         
-    9)
-        echo -e "\n${blue}=== 🚀 BBR 状态诊断 (极简 Go 风格防爆版) ===${plain}"
+     9)
+        echo -e "\n${blue}=== 🚀 BBR 狂暴引擎与底层网络终极调优 (自适应防爆版) ===${plain}"
         
-        # 【守门员 1：架构防爆拦截】不行直接熔断返回
-        check_virt_safe "BBR 内核拥塞算法修改" || { echo ""; read -p "👉 按【回车键】返回..."; continue; }
+        # 【守门员 1：架构与内核防爆拦截】
+        check_virt_safe "底层网络协议栈修改" || { echo ""; read -p "👉 按【回车键】返回..."; continue; }
 
         kernel_version=$(uname -r | awk -F- '{print $1}')
         kernel_main=$(echo $kernel_version | awk -F. '{print $1"."$2}')
         current_cc=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}')
-        current_qdisc=$(sysctl net.core.default_qdisc 2>/dev/null | awk '{print $3}')
-        BBR_CONF="/etc/sysctl.d/99-velox-bbr.conf"
+        BBR_CONF="/etc/sysctl.d/99-velox-bbr-ultimate.conf"
         
-        echo -e "🔎 ${cyan}当前系统内核版本:${plain} ${kernel_version}"
-        echo -e "🚥 ${cyan}当前拥塞算法 (CC):${plain} ${yellow}${current_cc}${plain}"
-        echo -e "🚥 ${cyan}当前队列调度 (Qdisc):${plain} ${yellow}${current_qdisc}${plain}"
-        echo -e "${blue}---------------------------------------------------${plain}"
-
-        if [[ "$current_cc" == "bbr" ]]; then
-            echo -e "${green}✅ BBR 底层加速已激活！${plain}"
-            [[ "$current_qdisc" != *"fq"* ]] && echo -e "${yellow}⚠️ 提示：当前 Qdisc 不是 fq，建议重置。${plain}"
-            
-            read -p "👉 是否【彻底卸载】BBR 加速？(y/n): " act_rm
-            [[ "${act_rm,,}" != "y" ]] && { echo ""; read -p "👉 按【回车键】返回..."; continue; }
-
-            echo -e "\n${yellow}执行物理拆除...${plain}"
-            rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf
-            sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
-            sysctl -w net.core.default_qdisc=fq_codel >/dev/null 2>&1
-            sysctl --system >/dev/null 2>&1
-            echo -e "${green}✅ BBR 已无痕关闭！系统恢复默认。${plain}"
-            echo ""; read -p "👉 按【回车键】返回..."
-            continue
-        fi
-
-        echo -e "${red}⚠️ 当前未开启 BBR 加速！${plain}"
-
         # 【守门员 2：内核太旧阻断】
         awk -v ver="$kernel_main" 'BEGIN {if (ver < 4.9) exit 0; else exit 1}' && {
-            echo -e "${red}❌ 致命错误：内核 ($kernel_version) 低于 4.9！强行注入将断网！${plain}"
+            echo -e "${red}❌ 致命错误：内核 ($kernel_version) 低于 4.9！强行注入将触发物理断网！${plain}"
             echo ""; read -p "👉 按【回车键】返回..."; continue
         }
 
-        read -p "👉 是否立即【一键开启 BBR 暴力加速】？(y/n): " act_add
+        # === 👇 极客态势感知雷达 (找回丢失的 UI) 👇 ===
+        echo -e "🔎 ${cyan}当前系统内核版本:${plain} ${kernel_version}"
+        echo -e "🚥 ${cyan}当前拥塞算法 (CC):${plain} ${yellow}${current_cc}${plain}"
+        
+        if [[ "$current_cc" == *"bbr"* ]]; then
+            local sys_rmem=$(sysctl -n net.core.rmem_max 2>/dev/null)
+            if [[ "$sys_rmem" == "33554432" || "$sys_rmem" == "67108864" ]]; then
+                echo -e "🚀 ${cyan}当前网络调优策略:${plain} ${purple}32MB 极速版 (高并发满血吞吐)${plain}"
+            elif [[ "$sys_rmem" == "16777216" ]]; then
+                echo -e "🛡️ ${cyan}当前网络调优策略:${plain} ${green}16MB 标准版 (兼顾性能与稳定)${plain}"
+            elif [[ "$sys_rmem" == "8388608" ]]; then
+                echo -e "⚠️ ${cyan}当前网络调优策略:${plain} ${yellow}8MB 轻量版 (小内存安全适配)${plain}"
+            else
+                echo -e "🌐 ${cyan}当前网络调优策略:${plain} ${cyan}系统原生版 (未扩容网络缓冲)${plain}"
+            fi
+        fi
+        echo -e "${blue}---------------------------------------------------${plain}"
+        # === 👆 雷达探测结束 👆 ===
+
+        if [[ "$current_cc" == "bbr" && -f "$BBR_CONF" ]]; then
+            echo -e "${green}✅ BBR 终极加速引擎已在满血运行！${plain}"
+            read -p "👉 是否【物理拆除】BBR 引擎与所有网络调优？(y/n): " act_rm
+            if [[ "${act_rm,,}" == "y" ]]; then
+                echo -e "\n${yellow}执行焦土化物理拆除...${plain}"
+                rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf /etc/sysctl.d/99-velox-network.conf 2>/dev/null
+                sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d; /tcp_fastopen/d; /file-max/d; /ip_local_port_range/d; /default_qdisc/d; /tcp_congestion_control/d' /etc/sysctl.conf >/dev/null 2>&1
+                sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
+                sysctl -w net.core.default_qdisc=fq_codel >/dev/null 2>&1
+                sysctl --system >/dev/null 2>&1
+                # 拆除 tc 网卡队列
+                DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
+                [ -n "$DEFAULT_IF" ] && tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
+                echo -e "${green}✅ BBR 及所有网络调优已彻底清零，系统恢复原厂状态！${plain}"
+            fi
+            echo ""; read -p "👉 按【回车键】返回..."; continue
+        fi
+
+        read -p "👉 确认开启【TCP/UDP/BBR 终极全量调优】？(y/n): " act_add
         [[ "${act_add,,}" != "y" ]] && { echo ""; read -p "👉 按【回车键】返回..."; continue; }
 
-        echo -e "\n${cyan}正在焦土化清理旧配置并建立独立防线...${plain}"
-        # 降维打击：物理粉碎主配置文件里的历史残留，防止冲突死锁
-        sed -i '/net.core.default_qdisc/d; /net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf >/dev/null 2>&1
+        echo -e "\n${cyan}>>> 正在剥离旧规则并注入全新融合协议...${plain}"
+        # 清理可能存在的历史垃圾
+        rm -f /etc/sysctl.d/99-velox-bbr.conf /etc/sysctl.d/99-velox-network.conf 2>/dev/null
+        sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d; /tcp_fastopen/d; /file-max/d; /ip_local_port_range/d; /default_qdisc/d; /tcp_congestion_control/d' /etc/sysctl.conf >/dev/null 2>&1
         
         modprobe tcp_bbr 2>/dev/null
         echo "tcp_bbr" > /etc/modules-load.d/velox-bbr.conf
-        
-        echo -e "net.core.default_qdisc=fq\nnet.ipv4.tcp_congestion_control=bbr" > "$BBR_CONF"
+
+        # 🧠 智能侦测：物理内存嗅探
+        total_mem=$(free -m | awk '/^Mem:/{print $2}')
+        echo -e "🧠 ${cyan}雷达侦测到物理内存: ${plain}${total_mem} MB"
+
+        # 写入基础 BBR 与高并发句柄
+        cat <<EOF > "$BBR_CONF"
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+net.ipv4.tcp_ecn=1
+net.ipv4.tcp_fastopen=3
+fs.file-max=1048576
+net.ipv4.ip_local_port_range=1024 65535
+EOF
+
+        # ⚙️ 基于真实物理内存的动态资源分配
+        if [[ "$total_mem" -ge 2000 ]]; then
+            echo -e "🚀 ${green}系统内存充裕 (≥2GB)，已自动匹配【32MB 极速版】网络调优策略！${plain}"
+            cat <<EOF >> "$BBR_CONF"
+net.ipv4.tcp_rmem = 8192 262144 33554432
+net.ipv4.tcp_wmem = 8192 262144 33554432
+net.core.rmem_max = 33554432
+net.core.wmem_max = 33554432
+net.ipv4.udp_mem = 131072 262144 524288
+net.ipv4.udp_rmem_min = 16384
+net.ipv4.udp_wmem_min = 16384
+net.core.netdev_max_backlog = 16384
+EOF
+        elif [[ "$total_mem" -ge 800 ]]; then
+            echo -e "🛡️ ${green}适配标准架构 (≥800MB)，已自动匹配【16MB 标准版】网络调优策略！${plain}"
+            cat <<EOF >> "$BBR_CONF"
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.ipv4.udp_mem = 65536 131072 262144
+net.ipv4.udp_rmem_min = 8192
+net.ipv4.udp_wmem_min = 8192
+net.core.netdev_max_backlog = 8192
+EOF
+        else
+            echo -e "⚠️ ${yellow}识别为轻量节点 (<800MB)，已自动匹配【8MB 轻量版】以确保系统稳定！${plain}"
+            cat <<EOF >> "$BBR_CONF"
+net.ipv4.tcp_rmem = 4096 87380 8388608
+net.ipv4.tcp_wmem = 4096 65536 8388608
+net.core.rmem_max = 8388608
+net.core.wmem_max = 8388608
+net.ipv4.udp_mem = 32768 65536 131072
+net.core.netdev_max_backlog = 4096
+EOF
+        fi
+
         sysctl --system >/dev/null 2>&1
         
-        echo -e "\n${blue}--- 📡 参数实时回显 ---${plain}"
-        sysctl net.ipv4.tcp_congestion_control
-        sysctl net.core.default_qdisc
-        
-        sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr \
-            && echo -e "\n${green}🎉 开启成功！黄金组合已全线生效！${plain}" \
-            || { echo -e "\n${red}❌ 开启失败！当前环境受限。${plain}"; rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf; }
+        # 结果回显
+        if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
+            echo -e "\n${green}🎉 BBR 及全量网络优化配置点火成功！冲突隐患已彻底肃清！${plain}"
+        else
+            echo -e "\n${red}❌ 点火失败！当前内核或云服务商环境受限。${plain}"
+            rm -f "$BBR_CONF" /etc/modules-load.d/velox-bbr.conf
+        fi
 
         echo ""; read -p "👉 按【回车键】返回主菜单..."
         ;;
@@ -544,93 +620,7 @@ echo -e "${cyan}=======================================================${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-   14)
-        check_virt_safe "TCP/UDP 读写缓冲区与队列扩展" || { read -p "👉 按【回车键】继续..."; continue; }
-
-        if ! command -v tc >/dev/null 2>&1; then
-            echo -e "${yellow}⚙️ 正在向底层注入缺失装甲: iproute2...${plain}"
-            $PKG_INSTALL iproute2 >/dev/null 2>&1
-        fi
-
-        echo -e "\n${cyan}请选择网络底层调优方向：${plain}"
-        echo -e "  ${green}1.${plain} ⚡ TCP 暴力扩容 (并发防断流 + TFO 极速握手)"
-        echo -e "  ${green}2.${plain} 🌪️ UDP 极限压榨 (Hysteria2/gRPC 专属抗丢包)"
-        echo -e "  ${green}3.${plain} 🔥 双管齐下 (同时执行 TCP 与 UDP 满血调优)"
-        echo -e "  ${red}4.${plain} 🗑️ 恢复系统默认 (无痕物理粉碎参数)"
-        echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
-        read -p "👉 请输入选择 [0-4]: " tune_choice
-        
-        if [ "$tune_choice" == "0" ]; then
-            echo -e "\n${yellow}已取消操作，返回主菜单。${plain}"
-            continue
-        elif [[ "$tune_choice" =~ ^[1-4]$ ]]; then
-            
-            TOTAL_MEM=$(free -m | awk '/^Mem:/{print $2}')
-            if [ "$TOTAL_MEM" -le 512 ]; then MAX_BUF="16777216"; MEM_TAG="轻量级"
-            elif [ "$TOTAL_MEM" -le 1024 ]; then MAX_BUF="26214400"; MEM_TAG="标准级"
-            else MAX_BUF="33554432"; MEM_TAG="极速级"; fi
-
-            VELOX_NET_CONF="/etc/sysctl.d/99-velox-network.conf"
-            
-            # 焦土化主配置文件里的历史垃圾
-            sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d; /tcp_fastopen/d; /file-max/d; /ip_local_port_range/d' /etc/sysctl.conf >/dev/null 2>&1
-
-            if [ "$tune_choice" == "1" ] || [ "$tune_choice" == "3" ]; then
-                echo -e "\n${blue}--- ⚡ 正在进行 TCP 网络底层调优 ($MEM_TAG) ---${plain}"
-                
-                # 极客注入：加入 tcp_fastopen (降低代理握手延迟) 与 file-max (破除并发死锁)
-                cat << EOF_TCP > "$VELOX_NET_CONF"
-net.core.rmem_max=$MAX_BUF
-net.core.wmem_max=$MAX_BUF
-net.ipv4.tcp_rmem=4096 87380 $MAX_BUF
-net.ipv4.tcp_wmem=4096 65536 $MAX_BUF
-net.ipv4.tcp_fastopen=3
-fs.file-max=1048576
-net.ipv4.ip_local_port_range=1024 65535
-EOF_TCP
-                
-                sysctl --system > /dev/null 2>&1
-                echo -e "${green}✅ TCP 窗口缓冲区已扩展至 $((MAX_BUF/1024/1024))MB！并发端口防线已打通！${plain}"
-            fi
-
-            if [ "$tune_choice" == "2" ] || [ "$tune_choice" == "3" ]; then
-                echo -e "\n${blue}--- 🌪️ 正在进行 UDP 网络底层高阶调优 ($MEM_TAG) ---${plain}"
-            
-                echo -e "net.ipv4.udp_rmem_min=8192\nnet.ipv4.udp_wmem_min=8192" >> "$VELOX_NET_CONF"
-                
-                if [ "$tune_choice" == "2" ]; then
-                    echo "net.core.rmem_max=$MAX_BUF" >> "$VELOX_NET_CONF"
-                    echo "net.core.wmem_max=$MAX_BUF" >> "$VELOX_NET_CONF"
-                fi
-                
-                sysctl --system > /dev/null 2>&1
-                echo -e "${green}✅ UDP 读写缓冲区已暴力扩容！${plain}"
-                
-                echo -e "\n${yellow}👉 正在嗅探主网卡并配置 CAKE/FQ 队列调度算法...${plain}"
-                DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
-                if [ -n "$DEFAULT_IF" ]; then
-                    # 极客注入：用 replace 替代 del，无缝衔接不报错
-                    tc qdisc replace dev $DEFAULT_IF root cake >/dev/null 2>&1 || tc qdisc replace dev $DEFAULT_IF root fq >/dev/null 2>&1
-                    echo -e "${green}✅ 网卡 [$DEFAULT_IF] 队列调度已接管！(抗丢包能力大幅提升)${plain}"
-                fi
-            fi
-
-            if [ "$tune_choice" == "4" ]; then
-                echo -e "\n${blue}--- 🗑️ 正在无痕粉碎自定义调优参数 ---${plain}"
-                rm -f "$VELOX_NET_CONF"
-                sysctl --system > /dev/null 2>&1
-                DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
-                [ -n "$DEFAULT_IF" ] && tc qdisc del dev $DEFAULT_IF root >/dev/null 2>&1
-                echo -e "${green}✅ 所有强行注入的扩容参数已抹除，系统网络恢复默认纯净状态！${plain}"
-            fi
-            echo ""
-            read -p "👉 按【回车键】返回主菜单..."
-        else
-            echo -e "${red}❌ 无效输入，已取消操作。${plain}"
-        fi
-        ;;
-      
-        15)
+        14)
             while true; do
                 echo -e "\n${blue}=== 🚨 Telegram 全局防线与智能报警监控中枢 ===${plain}"
                 TG_CONF="/etc/velox_tg.conf"
@@ -966,7 +956,7 @@ EOF_WATCH
                 esac
             done
             ;;
-   16)
+   15)
         DEFAULT_IF=$(ip -4 route ls | grep default | grep -vE 'tun|warp|wg|tailscale' | awk '{print $5}' | head -n 1)
         [ -z "$DEFAULT_IF" ] && DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
         
@@ -1219,7 +1209,7 @@ EOF_ALERT
         done
         ;;
         
-   17)
+   16)
         echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
         check_virt_safe "Swap 虚拟内存硬盘挂载" || { read -p "👉 按【回车键】继续..."; continue; }
 
@@ -1258,7 +1248,7 @@ EOF_ALERT
         read -p "👉 按【回车键】继续..."
         ;;
         
-    18)
+    17)
         echo -e "\n${blue}--- 📝 修改服务器主机名 (VPS 物理改名/洗白) ---${plain}"
         echo -e "当前主机名: ${yellow}$(hostname)${plain}"
         echo -e "  ${green}1.${plain} 🔄 恢复系统默认主机名 (洗白为: localhost)"
@@ -1289,7 +1279,7 @@ EOF_ALERT
         fi
         ;;
         
-    19)
+    18)
         echo -e "\n${blue}=== 🔄 一键系统全能更新与焦土清理 (防卡死纯净版) ===${plain}"
         echo -e "${yellow}正在调用底层包管理器拉取最新防弹补丁，请耐心等待...${plain}\n"
         
@@ -1318,7 +1308,7 @@ EOF_ALERT
         read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-   20)
+    19)
         while true; do
             # --- 🕵️‍♂️ 史诗级智能侦测引擎 ---
             current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
@@ -1673,7 +1663,7 @@ EOF_F2B
         done
         ;;
     
-       21)
+       20)
         while true; do
             clear
             echo -e "\n${blue}=== ⏱️ Velox 高级定时任务与时空调度中心 ===${plain}"
@@ -1779,7 +1769,7 @@ EOF_F2B
         done
         ;;
         
-    22)
+    21)
         echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (极客全自动版) ===${plain}"
         
        # 💡 防崩依赖：强制判定 fuser，确保能强行释放 80 端口
@@ -1868,7 +1858,7 @@ EOF_F2B
         read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-       23)
+       22)
         while true; do
             echo -e "\n${blue}=== 🛰️ 星际舰队与跨机容灾中心 ===${plain}"
             echo -e "  ${green}1.${plain} 📦 全域资产一键打包与跨机搬家 (真·动态路径克隆版)"
@@ -2125,7 +2115,7 @@ EOF_F2B
         done
         ;;
 
-     24)
+     23)
         clear
         echo -e "\n${blue}=== 🔍 VeloX 全域高维资产雷达与进程透视镜 ===${plain}"
         echo -e "${yellow}正在启动内核级深空雷达，强行爆破系统进程与高价值数据藏匿点...${plain}\n"
@@ -2201,15 +2191,17 @@ EOF_F2B
                 rm -f /tmp/velox_update.sh
                 
                 echo -e "\n${green}🎉 OTA 升级满血完成！旧版核心已销毁。${plain}"
-                echo -e "${yellow}💡 系统即将退出当前旧面板进程，请重新输入 velox 呼出最新版本！${plain}"
-                exit 0
+                echo -e "${cyan}🚀 正在启动无缝热重载 (Hot Reloading)...${plain}"
+                sleep 1.5
+                
+                # 💥 核心魔法：使用 exec 直接夺舍当前 bash 进程拉起新面板，告别掉回命令行的恶心体验！
+                exec /usr/local/bin/velox
             else
                 echo -e "\n${red}❌ 信号丢失！无法连接到云端指挥中心，或文件校验失败！${plain}"
                 echo -e "${yellow}请检查服务器网络，或确认您的 GitHub Raw 直链是否有效。${plain}"
                 rm -f /tmp/velox_update.sh
+                read -p "👉 按【回车键】返回主菜单..."
             fi
-            
-            read -p "👉 按【回车键】返回主菜单..."
             ;;
             
        U|u)
@@ -2261,11 +2253,12 @@ EOF_F2B
                 rm -f /root/.velox_fleet_nodes.txt ~/.ssh/velox_fleet_rsa ~/.ssh/velox_fleet_rsa.pub
                 echo -e "[${green}已彻底抹除${plain}]"
 
-                # 4. 恢复网络底层默认参数 (🚀 智改：抹除独立模块配置，防遗漏)
+                # 4. 恢复网络底层默认参数
                 echo -n "4. 正在抹除底层网络调优 (TCP/UDP/BBR) 并恢复出厂状态... "
-                rm -f /etc/sysctl.d/99-velox-network.conf /etc/sysctl.d/99-velox-bbr.conf /etc/modules-load.d/velox-bbr.conf
-                # 顺手打扫一下可能存在的旧版本残留
-                sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d; /default_qdisc/d; /tcp_congestion_control/d' /etc/sysctl.conf
+                # 👇 极客补枪：把极简版、狂暴版、自适应版的配置文件残骸一波全带走
+                rm -f /etc/sysctl.d/99-velox-network.conf /etc/sysctl.d/99-velox-bbr.conf /etc/sysctl.d/99-velox-bbr-extreme.conf /etc/modules-load.d/velox-bbr.conf 2>/dev/null
+        
+                sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d; /default_qdisc/d; /tcp_congestion_control/d/tcp_fastopen/d; /file-max/d; /ip_local_port_range/d' /etc/sysctl.conf
                 sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
                 sysctl --system > /dev/null 2>&1
                 DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
