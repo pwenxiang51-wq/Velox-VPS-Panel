@@ -1325,13 +1325,19 @@ EOF_ALERT
             [ -z "$current_port" ] && current_port="22 (默认)"
 
             pwd_auth=$(grep -i "^PasswordAuthentication" /etc/ssh/sshd_config | awk '{print $2}' | tr -d '\r' | head -n 1)
+            key_auth=$(grep -i "^PubkeyAuthentication" /etc/ssh/sshd_config | awk '{print $2}' | tr -d '\r' | head -n 1)
+            
+            # 默认情况下 Pubkey 都是开启的
+            [ -z "$key_auth" ] && key_auth="yes"
 
-            if [[ "$pwd_auth" == "no" ]]; then
-                login_status="${green}仅限密钥登录 (极高安全) 🛡️${plain}"; pw_toggle="重新开启密码"
-            elif [ -f ~/.ssh/authorized_keys ] && [ -s ~/.ssh/authorized_keys ]; then
-                login_status="${yellow}密钥/密码混合模式 (建议锁死) ⚠️${plain}"; pw_toggle="强制关闭密码"
+            if [[ "${key_auth,,}" == "yes" && "${pwd_auth,,}" == "no" ]]; then
+                login_status="${green}仅限密钥登录 (极高安全) 🛡️${plain}"; pw_toggle="重新开启密码"; key_toggle="关闭密钥(联动开启密码)"
+            elif [[ "${key_auth,,}" == "yes" ]] && [ -f ~/.ssh/authorized_keys ] && [ -s ~/.ssh/authorized_keys ]; then
+                login_status="${yellow}密钥/密码混合模式 (建议锁死) ⚠️${plain}"; pw_toggle="强制关闭密码"; key_toggle="关闭密钥(联动开启密码)"
+            elif [[ "${key_auth,,}" == "no" ]]; then
+                login_status="${red}仅限密码登录 (密钥已封锁) 🚨${plain}"; pw_toggle="保持密码开启"; key_toggle="开启密钥(联动锁死密码)"
             else
-                login_status="${red}纯密码登录 (极高风险) 🚨${plain}"; pw_toggle="强制关闭密码"
+                login_status="${red}纯密码登录 (极高风险) 🚨${plain}"; pw_toggle="强制关闭密码"; key_toggle="开启密钥"
             fi
 
             defender_status="${red}裸奔中 (未部署防爆破)${plain}"
@@ -1348,12 +1354,13 @@ EOF_ALERT
             echo -e "  ${green}1.${plain} 🕵️  查看当前在线 SSH 用户并实施制裁"
             echo -e "  ${green}2.${plain} 💣  审计被拦截的黑客爆破日志 (查外鬼)"
             echo -e "  ${cyan}3.${plain} 🚪  修改 SSH 端口 (输入 22 即可恢复默认)"
-            echo -e "  ${yellow}4.${plain} 🔑  一键切换密码登录开关 (执行: $pw_toggle)"
-            echo -e "  ${purple}5.${plain} 🚀  一键部署密钥登录并【锁死密码】(极客推荐)"
-            echo -e "  ${red}6.${plain} 🛡️  部署/卸载安全防御武器库 (机枪塔/Fail2Ban)"
+            echo -e "  ${yellow}4.${plain} 🔑  一键切换【密码】登录开关 (执行: $pw_toggle)"
+            echo -e "  ${purple}5.${plain} 🚀  一键部署全新密钥并【锁死密码】(初次配置推荐)"
+            echo -e "  ${purple}6.${plain} ⚙️  一键切换【密钥】登录开关 (执行: $key_toggle)"
+            echo -e "  ${red}7.${plain} 🛡️  部署/卸载安全防御武器库 (机枪塔/Fail2Ban)"
             echo -e "  ${yellow}0.${plain} 🔙  返回主菜单"
             echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
-            read -p "👉 请选择安全操作 [0-6]: " ssh_choice
+            read -p "👉 请选择安全操作 [0-7]: " ssh_choice
             
             case $ssh_choice in
                 1)
@@ -1390,8 +1397,6 @@ EOF_ALERT
                     ;;
                2)
                     echo -e "\n${blue}--- 💣 正在统计恶意爆破日志 Top 10 (全历史聚合版) ---${plain}"
-                    
-                    # 多源聚合：文件日志 + journalctl 历史全部合并，重启后数据不丢
                     {
                         [ -f "/var/log/auth.log" ] && grep "Failed password" /var/log/auth.log 2>/dev/null
                         [ -f "/var/log/auth.log.1" ] && grep "Failed password" /var/log/auth.log.1 2>/dev/null
@@ -1447,7 +1452,10 @@ EOF_ALERT
                     fi
                     ;;
                 4)
-                    if [[ "$pwd_auth" == "no" ]]; then
+                    if [[ "${key_auth,,}" == "no" ]]; then
+                        echo -e "\n${red}❌ 致命拦截：当前密钥登录处于【关闭】状态！${plain}"
+                        echo -e "${yellow}强制关闭密码将导致您物理失联，操作已被安全防线熔断！${plain}"
+                    elif [[ "${pwd_auth,,}" == "no" ]]; then
                         sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
                         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
                         echo -e "\n${yellow}🔓 密码登录已【重新开启】！(防线已降级)${plain}"
@@ -1495,10 +1503,11 @@ EOF_ALERT
                         echo -e "${cyan}👉 请新开一个终端窗口，测试能否使用密钥【免密码】登入本服务器！${plain}"
                         
                         read -p "👉 确认新窗口免密登录成功后，是否立即【物理锁死密码登录】？(y/n): " lock_pwd
-                        if [[ "${lock_pwd,,}" == "y" ]]; then
+                        if [[ "$lock_pwd" == "y" || "$lock_pwd" == "Y" ]]; then
                             sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
                             sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
                             grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
+                            grep -q "^PubkeyAuthentication yes" /etc/ssh/sshd_config || echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
                             
                             systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
                             echo -e "\n${green}✅ 密码登录已彻底物理切断，防弹装甲部署完毕，防御力拉满！${plain}"
@@ -1516,7 +1525,40 @@ EOF_ALERT
                         echo -e "\n${red}❌ 基因识别失败！确保您粘贴的是以 ssh-rsa 或 ssh-ed25519 开头的【公钥】文件内容，而不是私钥或乱码。${plain}"
                     fi
                     ;;
-               6)
+                6)
+                    echo -e "\n${blue}--- ⚙️ 极客联动：切换密钥登录装甲 ---${plain}"
+                    if [[ "${key_auth,,}" == "no" ]]; then
+                        echo -e "${yellow}正在【开启】密钥登录，并为您【物理切断】密码登录...${plain}"
+                        sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
+                        grep -q "^PubkeyAuthentication yes" /etc/ssh/sshd_config || echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+                        
+                        # 联动关闭密码
+                        sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
+                        grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
+                        
+                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                        echo -e "${green}✅ 操作完成！已恢复【纯密钥防弹模式】，密码已锁死！${plain}"
+                    else
+                        echo -e "${red}🚨 警告：您正在请求【关闭】密钥登录防线！${plain}"
+                        echo -e "${yellow}为防止物理失联，系统将强制为您【开启】密码登录通道作为逃生舱。${plain}"
+                        read -p "👉 确定要关闭密钥登录吗？(y/n): " confirm_off_key
+                        if [[ "$confirm_off_key" == "y" || "$confirm_off_key" == "Y" ]]; then
+                            # 先强行开启密码防失联
+                            sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+                            grep -q "^PasswordAuthentication yes" /etc/ssh/sshd_config || echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
+                            
+                            # 再关闭密钥
+                            sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication no/g' /etc/ssh/sshd_config
+                            grep -q "^PubkeyAuthentication no" /etc/ssh/sshd_config || echo "PubkeyAuthentication no" >> /etc/ssh/sshd_config
+                            
+                            systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                            echo -e "${cyan}✅ 操作完成！密钥登录已物理阻断，系统已降级为【纯密码登录】。${plain}"
+                        else
+                            echo -e "${yellow}操作已取消，保持防弹装甲。${plain}"
+                        fi
+                    fi
+                    ;;
+               7)
                     echo -e "\n${blue}--- 🚀 Velox 双核安全防御武器库 ---${plain}"
                     echo -e "  ${cyan}1.${plain} 🟢 [极简特种兵] 部署纯 Bash 机枪塔 (0 内存消耗，专防 SSH)"
                     echo -e "  ${cyan}2.${plain} 🗑️ ${red}[极简特种兵] 拆除并物理粉碎 Bash 机枪塔${plain}"
@@ -1528,7 +1570,6 @@ EOF_ALERT
                     if [ "$def_choice" == "1" ]; then
                         echo -e "\n${yellow}正在手搓 Bash 底层守护进程并注入 Systemd...${plain}"
                         
-                        # 🚀 降维打击 1：抛弃丑陋的 echo 拼接，直接用原生 Heredoc 生成防爆破脚本
                         cat << 'EOF_DEFENDER' > /usr/local/bin/velox-defender.sh
 #!/bin/bash
 if [ -f /var/log/auth.log ]; then LOG_CMD="tail -Fn0 /var/log/auth.log"
@@ -2280,6 +2321,20 @@ EOF_F2B
                     fi
                 else
                     echo -e "[${green}未锁死，无需处理${plain}]"
+                fi
+
+                # 9. 强迫症专属：废弃公钥物理熔毁
+                if [ -s ~/.ssh/authorized_keys ]; then
+                    echo -e "\n${purple}🧹 强迫症清理选项：检测到系统底层残留着您之前部署的 SSH 公钥。${plain}"
+                    echo -e "${yellow}如果您打算彻底重置服务器的安全防线，可以一并将其清空。${plain}"
+                    echo -e "⚠️ ${red}警告：清空后，所有绑定过此机器的免密设备都将被踢出！${plain}"
+                    read -p "👉 是否彻底清空 ~/.ssh/authorized_keys (熔毁旧锁芯)？(y/n): " clear_keys
+                    if [[ "${clear_keys,,}" == "y" ]]; then
+                        > ~/.ssh/authorized_keys
+                        echo -e "${green}✅ 锁芯已物理熔毁！旧公钥垃圾已彻底清零。${plain}"
+                    else
+                        echo -e "${cyan}已保留您的公钥配置。${plain}"
+                    fi
                 fi
 
                 echo -e "\n${green}🎉 卸载完毕！Velox 面板已事了拂衣去，历史监控数据已清零！${plain}"
