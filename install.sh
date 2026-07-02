@@ -1452,10 +1452,11 @@ EOF_ALERT
                         fi
                     fi
                     ;;
-               5)
+                 5)
                         echo -e "\n${cyan}=== 🔐 极客级密钥部署与防线飞升程序 ===${plain}"
                         echo -e "${yellow}💡 【极客指南：去哪里获取您的公钥？】${plain}"
-                        echo -e "  🔹 ${purple}Windows 用户${plain}: 请切回桌面打开 ${green}CMD 或 PowerShell${plain}，输入：${green}type %USERPROFILE%\\.ssh\\id_ed25519.pub${plain} 或 ${green}type %USERPROFILE%\\.ssh\\id_rsa.pub${plain}"
+                        echo -e "  🔹 ${purple}Windows 用户${plain}: 请切回桌面打开 ${green}CMD ，输入：${green}type %USERPROFILE%\\.ssh\\id_ed25519.pub${plain}"
+                        echo -e "  🔹 ${purple}Windows (PowerShell)${plain}: 输入：${green}cat ~/.ssh/id_ed25519.pub${plain}"
                         echo -e "  🔹 ${purple}Mac/Linux 用户${plain}: 请切回桌面打开 ${green}终端 (Terminal)${plain}，输入：${green}cat ~/.ssh/id_ed25519.pub${plain} 或 ${green}cat ~/.ssh/id_rsa.pub${plain}"
                         echo -e "  ⚠️ ${red}如果报错“找不到文件”？说明您本机还没有钥匙！${plain}"
                         echo -e "     👉 请先在【本地电脑的 CMD/终端】里敲入：${cyan}ssh-keygen -t ed25519${plain} (一路回车即可生成)\n"
@@ -2159,7 +2160,7 @@ EOF_F2B
         fi
 
         echo -e "\n${green}🎉 矩阵扫描完毕！全域资产已完全曝光。${plain}"
-        echo -e "💡 ${yellow}提示：现在您可以退出并进入 23 号容灾中心，复制上述暴露的路径，实施精准抽离！${plain}"
+        echo -e "💡 ${yellow}提示：现在您可以退出并进入 22 号容灾中心，复制上述暴露的路径，实施精准抽离！${plain}"
         
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
