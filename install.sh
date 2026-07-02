@@ -1462,6 +1462,8 @@ EOF_ALERT
                         echo -e "     👉 请先在【本地电脑的 CMD/终端】里敲入：${cyan}ssh-keygen -t ed25519${plain} (一路回车即可生成)\n"
                         
                         read -p "✍️  请将获取到的【公钥 (以 ssh- 开头)】完整粘贴到此处 (直接回车可取消): " ssh_pub_key
+                        # 物理强刷：抠掉首尾空格与恶心的换行符
+                        ssh_pub_key=$(echo "$ssh_pub_key" | sed -e 's/^[ \t]*//' -e 's/[ \t]*$//' -e 's/\r//g')
                     
                     # 防呆拦截 1：空值或误触回车，直接安全撤离
                     if [[ -z "$ssh_pub_key" || ${#ssh_pub_key} -lt 20 ]]; then
@@ -1564,8 +1566,11 @@ eval "$LOG_CMD" | awk '/Failed password/ {print $(NF-3)}' | while read IP; do
     if [ -n "$IP" ]; then
         COUNT=$(grep -c "^$IP$" /tmp/velox_ip_counts.txt 2>/dev/null || echo 0)
         if [ "$COUNT" -ge 4 ]; then
-            if ! iptables -C INPUT -s "$IP" -j DROP &>/dev/null; then 
-                iptables -I INPUT -s "$IP" -j DROP
+            # 👇 智能双栈雷达：判断是否包含冒号
+            if [[ "$IP" =~ ":" ]]; then FW_CMD="ip6tables"; else FW_CMD="iptables"; fi
+            
+            if ! $FW_CMD -C INPUT -s "$IP" -j DROP &>/dev/null; then 
+                $FW_CMD -I INPUT -s "$IP" -j DROP
                 echo "$(date +'%Y-%m-%d %H:%M:%S') - 💥 击毙爆破 IP: $IP" >> /var/log/velox-defender.log
             fi
             sed -i "/^$IP$/d" /tmp/velox_ip_counts.txt 2>/dev/null
@@ -2252,7 +2257,7 @@ EOF_F2B
                 # 👇 极客补枪：把极简版、狂暴版、自适应版的配置文件残骸一波全带走
                 rm -f /etc/sysctl.d/99-velox-network.conf /etc/sysctl.d/99-velox-bbr.conf /etc/sysctl.d/99-velox-bbr-extreme.conf /etc/modules-load.d/velox-bbr.conf 2>/dev/null
         
-                sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d; /default_qdisc/d; /tcp_congestion_control/d/tcp_fastopen/d; /file-max/d; /ip_local_port_range/d' /etc/sysctl.conf
+                sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d; /default_qdisc/d; /tcp_congestion_control/d; /tcp_fastopen/d; /file-max/d; /ip_local_port_range/d' /etc/sysctl.conf
                 sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
                 sysctl --system > /dev/null 2>&1
                 DEFAULT_IF=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5}' | head -n 1)
