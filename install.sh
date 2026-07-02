@@ -1455,7 +1455,7 @@ EOF_ALERT
                  5)
                         echo -e "\n${cyan}=== 🔐 极客级密钥部署与防线飞升程序 ===${plain}"
                         echo -e "${yellow}💡 【极客指南：去哪里获取您的公钥？】${plain}"
-                        echo -e "  🔹 ${purple}Windows 用户${plain}: 请切回桌面打开 ${green}CMD ，输入：${green}type %USERPROFILE%\\.ssh\\id_ed25519.pub${plain}"
+                        echo -e "  🔹 ${purple}Windows 用户${plain}: 请切回桌面打开 ${plain}CMD 输入：${green}type %USERPROFILE%\\.ssh\\id_ed25519.pub${plain}"
                         echo -e "  🔹 ${purple}Windows (PowerShell)${plain}: 输入：${green}cat ~/.ssh/id_ed25519.pub${plain}"
                         echo -e "  🔹 ${purple}Mac/Linux 用户${plain}: 请切回桌面打开 ${green}终端 (Terminal)${plain}，输入：${green}cat ~/.ssh/id_ed25519.pub${plain} 或 ${green}cat ~/.ssh/id_rsa.pub${plain}"
                         echo -e "  ⚠️ ${red}如果报错“找不到文件”？说明您本机还没有钥匙！${plain}"
