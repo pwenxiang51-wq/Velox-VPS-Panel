@@ -685,6 +685,8 @@ EOF_BBR
                             echo -e "${green}✅ 验证通过！司令部已确认身份。${plain}"
                             echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
                             echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
+                            # 👇 必须在这里加锁，封死 SSH 报警模块的初始化漏洞
+                            chmod 600 "$TG_CONF"
                             GLOBAL_TG_TOKEN="$tg_token"
                             GLOBAL_TG_CHATID="$tg_chatid"
                         else
@@ -918,6 +920,7 @@ EOF_WATCH
                                 if [[ -n "$new_token" && -n "$new_chatid" ]]; then
                                     echo "GLOBAL_TG_TOKEN=\"$new_token\"" > /etc/velox_tg.conf
                                     echo "GLOBAL_TG_CHATID=\"$new_chatid\"" >> /etc/velox_tg.conf
+                                    chmod 600 /etc/velox_tg.conf  # 👈 补上这一行：物理强锁！
                                     source "$TG_CONF"
                                     echo -e "${green}✅ 全局凭证已物理覆写！${plain}"
                                 else
@@ -1088,6 +1091,8 @@ EOF_WATCH
                         fi
                         echo "GLOBAL_TG_TOKEN=\"$tg_token\"" > "$TG_CONF"
                         echo "GLOBAL_TG_CHATID=\"$tg_chatid\"" >> "$TG_CONF"
+                        # 👇 同步在这里加锁，封死流量监控模块的初始化漏洞
+                        chmod 600 "$TG_CONF"
                     fi
 
                     echo -e "\n${cyan}正在锻造底层极客哨兵...${plain}"
@@ -1979,6 +1984,8 @@ EOF_F2B
                         echo -e "\n${cyan}⏳ 正在对所选模块进行高强度压缩加密 (强行保留绝对路径与权限)...${plain}"
                         
                         tar --exclude=/root/Velox_Assets_Backup.tar.gz -czpPf /root/Velox_Assets_Backup.tar.gz $BACKUP_LIST >/dev/null 2>&1
+                        # 👇 强行注入防弹装甲，除了 root 之外，任何人连这个包裹的边都别想碰！
+                        chmod 600 /root/Velox_Assets_Backup.tar.gz 2>/dev/null
                         
                         SSH_PORT=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}')
                         [ -z "$SSH_PORT" ] && SSH_PORT="22"
@@ -2001,21 +2008,37 @@ EOF_F2B
                                     
                                     echo "GLOBAL_TG_TOKEN=\"$GLOBAL_TG_TOKEN\"" > "$SHARED_TG_CONF"
                                     echo "GLOBAL_TG_CHATID=\"$GLOBAL_TG_CHATID\"" >> "$SHARED_TG_CONF"
+                                    chmod 600 "$SHARED_TG_CONF"  # 👈 补上这一行：物理强锁！
                                 else
                                     echo -e "${green}✅ 成功抓取到全局绑定的 TG 凭据！无需重复输入。${plain}"
                                 fi
                                 
                                 if [ -n "$GLOBAL_TG_TOKEN" ] && [ -n "$GLOBAL_TG_CHATID" ]; then
-                                    echo -e "${cyan}🚀 正在将包裹推送到 Telegram... (若文件较大需等待几秒)${plain}"
-                                    TG_RESP=$(curl -s -F "chat_id=$GLOBAL_TG_CHATID" \
-                                        -F "document=@/root/Velox_Assets_Backup.tar.gz" \
-                                        -F "caption=📦 [Velox 灾备中心] 主机: $(hostname) | 时间: $(date +'%Y-%m-%d %H:%M')" \
-                                        "https://api.telegram.org/bot$GLOBAL_TG_TOKEN/sendDocument")
+                                    echo -e "\n${purple}⚠️ [极客安全拦截] 检测到即将向公网传输核心资产！${plain}"
+                                    read -p "🔐 请输入云端高强度加密密码 (物理致盲公网，切记不可遗忘) [直接回车取消推送]: " backup_pwd
                                     
-                                    if echo "$TG_RESP" | grep -q '"ok":true'; then
-                                        echo -e "${green}✅ 云端推送成功！请前往 Telegram 您的 Bot 对话框查收。${plain}"
+                                    if [ -z "$backup_pwd" ]; then
+                                        echo -e "${red}❌ 拒绝明文传输！已自动取消云端推送，包裹仅安全保留在本地。${plain}"
                                     else
-                                        echo -e "${red}❌ 推送失败！可能是 Token/ID 错误，或网络无法连通 TG API。${plain}"
+                                        echo -e "${cyan}⏳ 正在对核心包裹施加 AES-256-CBC 军工级加密...${plain}"
+                                        
+                                        # 直接通过 openssl 加密本地已经打包好的 tar 包，生成防谍包 .enc
+                                        openssl enc -aes-256-cbc -salt -pbkdf2 -pass pass:"$backup_pwd" -in /root/Velox_Assets_Backup.tar.gz -out /root/Velox_Assets_Backup.tar.gz.enc
+                                        
+                                        echo -e "${cyan}🚀 正在将【加密防谍包】推送到 Telegram... (若文件较大需等待几秒)${plain}"
+                                        TG_RESP=$(curl -s -F "chat_id=$GLOBAL_TG_CHATID" \
+                                            -F "document=@/root/Velox_Assets_Backup.tar.gz.enc" \
+                                            -F "caption=🔐 [Velox 军工级加密灾备] 主机: $(hostname) | 时间: $(date +'%Y-%m-%d %H:%M') | ⚠️ 下载后请使用设定的密码进行物理脱壳" \
+                                            "https://api.telegram.org/bot$GLOBAL_TG_TOKEN/sendDocument")
+                                        
+                                        if echo "$TG_RESP" | grep -q '"ok":true'; then
+                                            echo -e "${green}✅ 云端加密推送成功！请前往 Telegram 您的 Bot 对话框查收。${plain}"
+                                        else
+                                            echo -e "${red}❌ 推送失败！可能是 Token/ID 错误，或网络无法连通 TG API。${plain}"
+                                        fi
+                                        
+                                        # 焦土化清理本地临时生成的加密包裹，绝不留底
+                                        rm -f /root/Velox_Assets_Backup.tar.gz.enc
                                     fi
                                 fi
                             )
@@ -2051,6 +2074,9 @@ EOF_F2B
                     if [ ! -f ~/.ssh/velox_fleet_rsa ]; then
                         echo -e "${yellow}正在为母舰生成专属指挥官兵符 (velox_fleet_rsa)...${plain}"
                         ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/velox_fleet_rsa >/dev/null 2>&1
+                        # 👇 极客补枪：锁死父目录与专属私钥！
+                        chmod 700 ~/.ssh 2>/dev/null
+                        chmod 600 ~/.ssh/velox_fleet_rsa ~/.ssh/velox_fleet_rsa.pub 2>/dev/null
                     fi
                     
                     read -p "👉 请输入目标僚机 IP 地址: " target_ip
