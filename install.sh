@@ -2054,25 +2054,35 @@ EOF_F2B
                                 fi
                             )
                         fi
-                        # ================= 👆 TG 云端容灾结束 👆 =================
+                       # ================= 👆 TG 云端容灾结束 👆 =================
                         
                         echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (全系统平台智能适配版)：${plain}"
                         echo -e "--------------------------------------------------------"
-                        echo -e "${cyan}👉 方案 A：使用图形化 SSH 软件 (如 FinalShell / Termius)${plain}"
-                        echo -e "  1. 右键下载 /root/Velox_Assets_Backup.tar.gz 到电脑桌面。"
-                        echo -e "  2. 登录【新机器】，直接将该包拖拽上传到新机器的 /root 目录下。\n"
                         
-                        echo -e "${cyan}👉 方案 B：使用纯命令行工具 (CMD / PowerShell / Mac终端)${plain}"
-                        echo -e "  📥 【第一步：下载到本地电脑】打开本地新终端，复制执行 (请修改旧IP)："
-                        echo -e "   - [Windows 用户]: scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz D:/"
-                        echo -e "   - [Mac/Linux 用户]: scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz ~/Desktop/"
-                        echo -e ""
-                        echo -e "  📤 【第二步：上传至新机器】(请修改新IP及端口)："
-                        echo -e "   - [Windows 用户]: scp -P 22 D:/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
-                        echo -e "   - [Mac/Linux 用户]: scp -P 22 ~/Desktop/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
-                        echo -e ""
+                        # 📡 智能感知雷达：判断原包是否已被焦土化
+                        if [ -f "/root/Velox_Assets_Backup.tar.gz" ]; then
+                            echo -e "${cyan}👉 方案 A：使用图形化 SSH 软件 (如 FinalShell / Termius)${plain}"
+                            echo -e "  1. 右键下载 /root/Velox_Assets_Backup.tar.gz 到电脑桌面。"
+                            echo -e "  2. 登录【新机器】，直接将该包拖拽上传到新机器的 /root 目录下。\n"
+                            
+                            echo -e "${cyan}👉 方案 B：使用纯命令行工具 (CMD / PowerShell / Mac终端)${plain}"
+                            echo -e "  📥 【第一步：下载到本地电脑】打开本地新终端，复制执行 (请修改旧IP)："
+                            echo -e "   - [Windows 用户]: scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz D:/"
+                            echo -e "   - [Mac/Linux 用户]: scp -P $SSH_PORT root@旧VPS的IP:/root/Velox_Assets_Backup.tar.gz ~/Desktop/"
+                            echo -e ""
+                            echo -e "  📤 【第二步：上传至新机器】(请修改新IP及端口)："
+                            echo -e "   - [Windows 用户]: scp -P 22 D:/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
+                            echo -e "   - [Mac/Linux 用户]: scp -P 22 ~/Desktop/Velox_Assets_Backup.tar.gz root@新VPS的IP:/root/"
+                            echo -e ""
+                        else
+                            echo -e "${cyan}👉 专属链路：从 Telegram 云端恢复 (因母舰已执行焦土清理)${plain}"
+                            echo -e "  1. 从 Telegram 机器人处将【Velox_Assets_Backup.tar.gz.enc】下载到电脑。"
+                            echo -e "  2. 登录【新机器】，将该 .enc 加密包上传到新机器的 /root 目录下。"
+                            echo -e "  3. 在新机器终端执行物理脱壳解密 (需输入您设置的密文钥匙)："
+                            echo -e "     ${green}cd /root && openssl enc -d -aes-256-cbc -pbkdf2 -in Velox_Assets_Backup.tar.gz.enc -out Velox_Assets_Backup.tar.gz${plain}\n"
+                        fi
 
-                        echo -e "${purple}🔥 【第三步：新机器终极恢复长指令】 (在新 VPS 终端执行)：${plain}"
+                        echo -e "${purple}🔥 【终极恢复长指令】 (确保新机器 /root 目录下存在 .tar.gz 明文原包后执行)：${plain}"
                         echo -e "  ${cyan}cd / && tar -xzpPf /root/Velox_Assets_Backup.tar.gz && crontab /root/crontab_backup.txt 2>/dev/null; systemctl restart nginx vx-core sing-box xray x-ui cloudflared velox-argo 2>/dev/null; echo -e \"\\n✅ 资产覆盖恢复成功！节点、证书与 TG 防线已满血复活！\"${plain}"
                     else
                         echo -e "\n${red}❌ 未提取到任何资产，打包已取消。${plain}"
