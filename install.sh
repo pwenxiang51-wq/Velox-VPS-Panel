@@ -2013,9 +2013,10 @@ EOF_F2B
                                     echo -e "${green}✅ 成功抓取到全局绑定的 TG 凭据！无需重复输入。${plain}"
                                 fi
                                 
-                                if [ -n "$GLOBAL_TG_TOKEN" ] && [ -n "$GLOBAL_TG_CHATID" ]; then
+                              if [ -n "$GLOBAL_TG_TOKEN" ] && [ -n "$GLOBAL_TG_CHATID" ]; then
                                     echo -e "\n${purple}⚠️ [极客安全拦截] 检测到即将向公网传输核心资产！${plain}"
-                                    read -p "🔐 请输入云端高强度加密密码 (物理致盲公网，切记不可遗忘) [直接回车取消推送]: " backup_pwd
+                                    echo -e "${yellow}💡 极客防谍提示：密码可以随便输（数字/字母皆可），但你刚才输入的这串字符，就是未来【解密该包裹的唯一钥匙】！${plain}"
+                                    read -p "🔐 请设置并牢记本次打包的加密密码 [直接回车取消推送]: " backup_pwd
                                     
                                     if [ -z "$backup_pwd" ]; then
                                         echo -e "${red}❌ 拒绝明文传输！已自动取消云端推送，包裹仅安全保留在本地。${plain}"
@@ -2025,20 +2026,30 @@ EOF_F2B
                                         # 直接通过 openssl 加密本地已经打包好的 tar 包，生成防谍包 .enc
                                         openssl enc -aes-256-cbc -salt -pbkdf2 -pass pass:"$backup_pwd" -in /root/Velox_Assets_Backup.tar.gz -out /root/Velox_Assets_Backup.tar.gz.enc
                                         
+                                        # 极客排版：时间单独一行，警告单独一行
+                                        CAPTION="🔐 <b>[Velox 军工级加密灾备]</b>
+主机: <code>$(hostname)</code>
+时间: <code>$(date +'%Y-%m-%d %H:%M')</code>
+--------------------------------------
+⚠️ <b>下载后请使用您刚才设定的密码进行物理脱壳</b>"
+
                                         echo -e "${cyan}🚀 正在将【加密防谍包】推送到 Telegram... (若文件较大需等待几秒)${plain}"
                                         TG_RESP=$(curl -s -F "chat_id=$GLOBAL_TG_CHATID" \
                                             -F "document=@/root/Velox_Assets_Backup.tar.gz.enc" \
-                                            -F "caption=🔐 [Velox 军工级加密灾备] 主机: $(hostname) | 时间: $(date +'%Y-%m-%d %H:%M') | ⚠️ 下载后请使用设定的密码进行物理脱壳" \
+                                            -F "caption=$CAPTION" \
+                                            -F "parse_mode=HTML" \
                                             "https://api.telegram.org/bot$GLOBAL_TG_TOKEN/sendDocument")
                                         
                                         if echo "$TG_RESP" | grep -q '"ok":true'; then
                                             echo -e "${green}✅ 云端加密推送成功！请前往 Telegram 您的 Bot 对话框查收。${plain}"
+                                            # 💥 最终绝杀：确认 TG 收到后，物理粉碎加密副本 AND 原始明文备份包！
+                                            rm -f /root/Velox_Assets_Backup.tar.gz.enc /root/Velox_Assets_Backup.tar.gz
+                                            echo -e "${yellow}🧹 母舰已执行焦土清理，本地资产及临时加密包已彻底销毁！${plain}"
                                         else
                                             echo -e "${red}❌ 推送失败！可能是 Token/ID 错误，或网络无法连通 TG API。${plain}"
+                                            echo -e "${yellow}🧹 仅销毁临时加密包，保留本地原始包裹以防万一。${plain}"
+                                            rm -f /root/Velox_Assets_Backup.tar.gz.enc
                                         fi
-                                        
-                                        # 焦土化清理本地临时生成的加密包裹，绝不留底
-                                        rm -f /root/Velox_Assets_Backup.tar.gz.enc
                                     fi
                                 fi
                             )
