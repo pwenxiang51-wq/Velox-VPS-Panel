@@ -2056,7 +2056,7 @@ EOF_F2B
                         fi
                        # ================= 👆 TG 云端容灾结束 👆 =================
                         
-                        echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (全系统平台智能适配版)：${plain}"
+                      echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (全系统平台智能适配版)：${plain}"
                         echo -e "--------------------------------------------------------"
                         
                         # 📡 智能感知雷达：判断原包是否已被焦土化
@@ -2064,7 +2064,7 @@ EOF_F2B
                             echo -e "${cyan}👉 方案 A：使用图形化 SSH 软件 (如 WindTerm / FinalShell)${plain}"
                             echo -e "  1. 下载 /root/Velox_Assets_Backup.tar.gz 到本地电脑。"
                             echo -e "  2. 登录【新机器】，执行 ${green}apt update && apt install lrzsz -y${plain} 为新机焊上空投装甲。"
-                            echo -e "  3. 直接将该包拖拽上传到新机器的终端窗口内，等待进度条完成。\n"
+                            echo -e "  3. 直接将该包拖拽上传到新机器的 SSH 终端窗口内，等待进度条完成。\n"
                             
                             echo -e "${cyan}👉 方案 B：使用纯命令行工具 (CMD / PowerShell / Mac终端)${plain}"
                             echo -e "  📥 【第一步：下载到本地电脑】打开本地新终端，复制执行 (请修改旧IP)："
@@ -2077,16 +2077,16 @@ EOF_F2B
                             echo -e ""
                         else
                             echo -e "${cyan}👉 专属链路：从 Telegram 云端恢复 (因母舰已执行焦土清理)${plain}"
-                            echo -e "  1. 从 Telegram 机器人处将【Velox_Assets_Backup.tar.gz.enc】下载到电脑。"
-                            echo -e "  2. 登录【新机器】，在SSH终端内执行下行指令，为新机强行焊上空投装甲："
+                            echo -e "  1. 从 Telegram 机器人处将【Velox_Assets_Backup.tar.gz.enc】下载到本地电脑。"
+                            echo -e "  2. 登录【新机器】，在 SSH 终端内执行下行指令，为新机强行焊上空投装甲："
                             echo -e "     ${green}apt update && apt install lrzsz -y${plain}"
-                            echo -e "  3. 将 .enc 加密包直接用鼠标拖入新机器终端，自动完成上传。"
+                            echo -e "  3. 将 .enc 加密包直接拖入新机器 SSH 终端窗口，自动完成上传。"
                             echo -e "  4. 在新机器终端执行物理脱壳解密 (需输入您设置的密文钥匙)："
                             echo -e "     ${green}cd /root && openssl enc -d -aes-256-cbc -pbkdf2 -in Velox_Assets_Backup.tar.gz.enc -out Velox_Assets_Backup.tar.gz${plain}\n"
                         fi
 
-                        echo -e "${purple}🔥 【终极恢复长指令】 (确保新机器 /root 目录下存在 .tar.gz 明文原包后执行)：${plain}"
-                        echo -e "  ${cyan}cd / && tar -xzpPf /root/Velox_Assets_Backup.tar.gz && crontab /root/crontab_backup.txt 2>/dev/null; systemctl restart nginx vx-core sing-box xray x-ui cloudflared velox-argo 2>/dev/null; echo -e \"\\n✅ 资产覆盖恢复成功！节点、证书与 TG 防线已满血复活！\"${plain}"
+                        echo -e "${purple}🔥 【终极恢复长指令】 (确保新机 /root 下存在 .tar.gz 原包后执行，执行后自动销毁包裹)：${plain}"
+                        echo -e "  ${cyan}cd / && tar -xzpPf /root/Velox_Assets_Backup.tar.gz && crontab /root/crontab_backup.txt 2>/dev/null; systemctl restart nginx vx-core sing-box xray x-ui cloudflared velox-argo 2>/dev/null; rm -f /root/Velox_Assets_Backup.tar.gz /root/Velox_Assets_Backup.tar.gz.enc /root/crontab_backup.txt; echo -e \"\\n✅ 资产覆盖恢复成功，且本地包裹已无痕物理销毁！节点、证书与 TG 防线已满血复活！\"${plain}"
                     else
                         echo -e "\n${red}❌ 未提取到任何资产，打包已取消。${plain}"
                     fi
