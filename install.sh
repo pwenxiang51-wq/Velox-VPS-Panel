@@ -2062,7 +2062,7 @@ EOF_F2B
                         # 📡 智能感知雷达：判断原包是否已被焦土化
                         if [ -f "/root/Velox_Assets_Backup.tar.gz" ]; then
                             echo -e "${cyan}👉 方案 A：使用图形化 SSH 软件 (如 WindTerm / FinalShell)${plain}"
-                            echo -e "  1. 下载 /root/Velox_Assets_Backup.tar.gz 到电脑桌面。"
+                            echo -e "  1. 下载 /root/Velox_Assets_Backup.tar.gz 到本地电脑。"
                             echo -e "  2. 登录【新机器】，执行 ${green}apt update && apt install lrzsz -y${plain} 为新机焊上空投装甲。"
                             echo -e "  3. 直接将该包拖拽上传到新机器的终端窗口内，等待进度条完成。\n"
                             
@@ -2078,7 +2078,7 @@ EOF_F2B
                         else
                             echo -e "${cyan}👉 专属链路：从 Telegram 云端恢复 (因母舰已执行焦土清理)${plain}"
                             echo -e "  1. 从 Telegram 机器人处将【Velox_Assets_Backup.tar.gz.enc】下载到电脑。"
-                            echo -e "  2. 登录【新机器】，在黑框内执行下行指令，为新机强行焊上空投装甲："
+                            echo -e "  2. 登录【新机器】，在SSH终端内执行下行指令，为新机强行焊上空投装甲："
                             echo -e "     ${green}apt update && apt install lrzsz -y${plain}"
                             echo -e "  3. 将 .enc 加密包直接用鼠标拖入新机器终端，自动完成上传。"
                             echo -e "  4. 在新机器终端执行物理脱壳解密 (需输入您设置的密文钥匙)："
