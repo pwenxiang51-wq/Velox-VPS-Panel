@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V6.2 全域兼容满血终极版 - 智能嗅探 + 原子防护)
+# 自动生成并运行 Velox 面板 (V6.2.1 全域兼容满血终极版 - 智能嗅探 + 原子防护)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
@@ -706,7 +706,7 @@ if [ -z "$TG_ALERT_TRIGGERED" ]; then
         GEO_INFO=$(curl -s4m3 "http://ip-api.com/line/$USER_IP?lang=zh-CN&fields=country,city,isp" | tr '\n' ' ' | sed 's/ $//')
         [ -z "$GEO_INFO" ] && GEO_INFO="未知归属地或查询超时"
         MSG="🚨 <b>[神盾局警告]</b>
-大佬，您的服务器 <code>$(hostname)</code> 刚刚被登录了！
+Sir，您的服务器 <code>$(hostname)</code> 刚刚被登录了！
 👉 <b>来源 IP:</b> <code>$USER_IP</code>
 🌍 <b>IP 溯源:</b> $GEO_INFO
 ⏰ <b>北京时间:</b> $(date +'%Y-%m-%d %H:%M:%S')"
@@ -735,7 +735,7 @@ if systemctl is-active --quiet xray 2>/dev/null || systemctl is-active --quiet x
 if pgrep -x "cloudflared" >/dev/null 2>&1 || systemctl is-active --quiet velox-argo 2>/dev/null || systemctl is-active --quiet argo 2>/dev/null; then ARGO_STAT="运行中 ✅"; else ARGO_STAT="未运行/无自启 ⚠️"; fi
 if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null || systemctl is-active --quiet warp-svc 2>/dev/null || ip link show wg0 >/dev/null 2>&1 || ip link show warp >/dev/null 2>&1; then WARP_STAT="已就绪 ✅"; else WARP_STAT="未开启/未安装 ⚠️"; fi
 MSG="🟢 <b>[Velox 系统复苏通知]</b>
-大佬，您的服务器 <code>$(hostname)</code> 已完成重启并成功连网！
+Sir，您的服务器 <code>$(hostname)</code> 已完成重启并成功连网！
 📊 <b>【核心体检报告】</b>
 🚀 Sing-box : $SB_STAT
 🛸 Xray 核心: $XR_STAT
@@ -851,7 +851,7 @@ for PROC in "${CORE_TARGETS[@]}"; do
 ⚠️ <b>状态:</b> <code>${PROC}</code> 核心已阵亡！
 ⏰ <b>时间:</b> $(date +'%Y-%m-%d %H:%M:%S')
 --------------------------------------
-<i>大佬，节点核心物理掉线，请火速上线紧急抢救！</i>"
+<i>Sir，节点核心物理掉线，请火速上线紧急抢救！</i>"
                 curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" --data-urlencode "text=$MSG" > /dev/null 2>&1
                 touch "$FLAG_FILE"
             fi
@@ -1125,7 +1125,7 @@ LOCK_100="/tmp/velox_warn_100_\${CURRENT_MONTH}.lock"
 if [ "\$TRIGGER_100" -eq 1 ]; then
     if [ ! -f "\$LOCK_100" ]; then
         MSG="🚨 <b>[Velox 流量熔断绝杀]</b>
-大佬，您的机器 <code>\$(hostname)</code> 本月【\$MODE_NAME】已飙升至 <b>\${USAGE_GB} GB</b>！
+Sir，您的机器 <code>\$(hostname)</code> 本月【\$MODE_NAME】已飙升至 <b>\${USAGE_GB} GB</b>！
 已突破设定的 \${LIMIT_GB} GB 终极红线，请火速处理防止天价账单！"
         curl -s -m 5 -X POST "https://api.telegram.org/bot\$GLOBAL_TG_TOKEN/sendMessage" -d "chat_id=\$GLOBAL_TG_CHATID" -d "parse_mode=HTML" --data-urlencode "text=\$MSG" >/dev/null 2>&1
         touch "\$LOCK_100"
@@ -1134,7 +1134,7 @@ elif [ "\$TRIGGER_80" -eq 1 ]; then
     if [ ! -f "\$LOCK_80" ]; then
         LIMIT_80=\$(awk -v l="\$LIMIT_GB" 'BEGIN{print l * 0.8}')
         MSG="⚠️ <b>[Velox 流量超标预警]</b>
-大佬注意！您的机器 <code>\$(hostname)</code> 本月【\$MODE_NAME】已达 <b>\${USAGE_GB} GB</b>！
+Sir注意！您的机器 <code>\$(hostname)</code> 本月【\$MODE_NAME】已达 <b>\${USAGE_GB} GB</b>！
 已触发 80% 安全警戒线 (\${LIMIT_80} GB)，请合理安排使用！"
         curl -s -m 5 -X POST "https://api.telegram.org/bot\$GLOBAL_TG_TOKEN/sendMessage" -d "chat_id=\$GLOBAL_TG_CHATID" -d "parse_mode=HTML" --data-urlencode "text=\$MSG" >/dev/null 2>&1
         touch "\$LOCK_80"
@@ -1405,40 +1405,58 @@ EOF_ALERT
                     fi
                     rm -f /tmp/velox_attacks.tmp
                     ;;
-               3)
-                    read -p "✍️ 请输入新的 SSH 端口号 (1000-65535, 输入 22 恢复默认): " new_port
-                    if [[ "$new_port" =~ ^[0-9]+$ ]] && ([ "$new_port" -eq 22 ] || ([ "$new_port" -ge 1000 ] && [ "$new_port" -le 65535 ])); then
-                        sed -i "s/^#\?Port .*/Port $new_port/g" /etc/ssh/sshd_config
-                        grep -q "^Port " /etc/ssh/sshd_config || echo "Port $new_port" >> /etc/ssh/sshd_config
-                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
-                        
-                        if [ "$new_port" -eq 22 ]; then 
-                            echo -e "\n${green}✅ SSH 端口已恢复为默认 ${red}22${plain} 端口！${plain}"
-                        else 
-                            vps_ip=$(echo $SSH_CONNECTION | awk '{print $3}')
-                            if [ -z "$vps_ip" ]; then
-                                real_iface=$(ip -4 route ls | grep default | grep -vE 'wg|warp|tun' | awk '{print $5}' | head -n 1)
-                                vps_ip=$(curl -s4m8 --interface "$real_iface" https://icanhazip.com 2>/dev/null)
-                            fi
-                            [ -z "$vps_ip" ] && vps_ip="您的VPS真实IP"
+             3)
+            read -p "✍️ 请输入新的 SSH 端口号 (1000-65535, 输入 22 恢复默认): " new_port
+            
+            # 1. 强力防呆引信：非数字、空输入、或者长度直接跨入 6 位数（超过 5 位），一枪爆头
+            if [[ ! "$new_port" =~ ^[0-9]+$ ]] || [ "${#new_port}" -gt 5 ]; then
+                echo -e "\n${red}❌ 致命拦截：探测到非法击键或位数溢出！端口极限为 5 位数！操作已安全熔断！${plain}"
+                sleep 2
+                continue # 拒绝向下传导，直接弹回大屏
+            fi
+            
+            # 2. 边界值硬核狙击：虽然是 5 位数，但如果超过了 16位无符号整型极限 65535
+            if [ "$new_port" -gt 65535 ]; then
+                echo -e "\n${red}❌ 致命拦截：数值超越 TCP 协议栈物理极限 (65535)！Sir，此操作会导致服务脑死亡！${plain}"
+                sleep 2
+                continue
+            fi
+            
+            # 3. 常规避坑检查：防止小白误输入 1000 以下的冷门保留端口
+            if [ "$new_port" -ne 22 ] && [ "$new_port" -lt 1000 ]; then
+                echo -e "\n${red}❌ 战术拦截：1000 以下为系统级保留特权端口（22除外），强装极易触发高并发冲突！${plain}"
+                sleep 2
+                continue
+            fi
 
-                            echo -e "\n${yellow}================ 🚨 极客换门指南 & 避坑必读 🚨 =================${plain}"
-                            echo -e "${green}✅ SSH 端口已成功切换至: ${new_port}${plain}"
-                            echo -e "👉 当前窗口断开后，请使用以下全新口令登录："
-                            echo -e "${cyan}ssh root@${vps_ip} -p ${new_port}${plain}\n"
-                            
-                            echo -e "${purple}💡 【如果改完端口后连不上怎么办？】${plain}"
-                            echo -e " ${cyan}▶ 场景 A: 终端提示 REMOTE HOST IDENTIFICATION HAS CHANGED${plain}"
-                            echo -e "   本地执行: ${green}ssh-keygen -R \"[${vps_ip}]:${new_port}\"${plain} 洗白记录即可！"
-                            echo -e " ${cyan}▶ 场景 B: 客户端弹窗提示主机密钥已更改${plain}"
-                            echo -e "   直接点击 ${green}「接受并保存」${plain} 即可进入！"
-                            echo -e "${yellow}=================================================================${plain}\n"
-                            echo -e "⚠️ ${red}切记：务必去云服务商（如 GCP/AWS）网页防火墙放行 ${new_port} 端口！${plain}"
-                        fi
-                    else
-                        echo -e "\n${red}❌ 端口不合法。${plain}"
-                    fi
-                    ;;
+            # ===============================================================
+            # 🧱 安全预检通过，开始执行 22 端口物理拔管与 Include 焦土肃清
+            # ===============================================================
+            echo -e "\n${cyan}>>> 基因校验通过，正在封闭 Include 漏洞文件...${plain}"
+            sed -i 's/^Include/#Include/g' /etc/ssh/sshd_config
+            
+            sed -i "s/^#\?Port .*/Port $new_port/g" /etc/ssh/sshd_config
+            grep -q "^Port " /etc/ssh/sshd_config || echo "Port $new_port" >> /etc/ssh/sshd_config
+            
+            if systemctl is-active --quiet ssh.socket 2>/dev/null || systemctl is-enabled --quiet ssh.socket 2>/dev/null; then
+                echo -e "${yellow}>>> 强拆 systemd socket 劫持回路，释放 22 端口监听...${plain}"
+                systemctl stop ssh.socket >/dev/null 2>&1
+                systemctl disable ssh.socket >/dev/null 2>&1
+                systemctl mask ssh.socket >/dev/null 2>&1
+            fi
+            
+            systemctl daemon-reload
+            systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+            
+            # 联动原版极其炫酷的 UI 输出
+            vps_ip=$(curl -s4m3 api.ipify.org || echo "您的VPS真实IP")
+            echo -e "\n${cyan}================ 🚨 SSH 门禁重组竣工 🚨 =================${plain}"
+            echo -e "${green}✅ 唯一放行大门已锁定为: ${new_port}${plain}"
+            echo -e "👉 请 Sir 复制全新连接指令移步新信道："
+            echo -e "${cyan}ssh root@${vps_ip} -p ${new_port}${plain}"
+            echo -e "${cyan}=================================================================${plain}\n"
+            read -p "👉 确认新信道畅通后，按【回车键】安全返回指挥中心..."
+            ;;
                 4)
                     if [[ "${key_auth,,}" == "no" ]]; then
                         echo -e "\n${red}❌ 致命拦截：当前密钥登录处于【关闭】状态！${plain}"
@@ -2200,7 +2218,7 @@ EOF_F2B
             fi
         fi
 
-        # ----------------- 第四维度：高价值体积目录 (大佬原版满血流) -----------------
+        # ----------------- 第四维度：高价值体积目录 (Sir原版满血流) -----------------
         echo -e "\n${cyan}💽 第四维度：FHS 高价值数据藏匿点 (体积 Top 20 盘点)${plain}"
         echo -e "--------------------------------------------------------"
         du -sh /opt/* /var/www/* /root/* /home/* /usr/local/bin/* /usr/local/etc/* /root/.acme.sh/* /etc/nginx/conf.d/* /etc/x-ui /etc/3x-ui /etc/sing-box /etc/xray /etc/v2ray 2>/dev/null \
@@ -2400,5 +2418,5 @@ done
 EOF
 
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox V6.2 (全域兼容满血终极版) 部署完毕！请输入 velox 欣赏！\033[0m"
+echo -e "\033[1;32m✅ Velox V6.2.1 (全域兼容满血终极版) 部署完毕！请输入 velox 欣赏！\033[0m"
 velox
