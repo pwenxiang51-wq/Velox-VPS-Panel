@@ -11,7 +11,7 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
-LOCAL_VERSION="6.2"
+LOCAL_VERSION="6.2.1"
 if command -v apt-get >/dev/null 2>&1; then
     PKG_INSTALL="apt-get install -yqq"
     PKG_REMOVE="apt-get remove --purge -yqq"
@@ -103,8 +103,8 @@ while true; do
         traffic_stat=$(echo -e "${yellow}[未设置]${plain}")
     fi
     # === 📡 OTA 云端星际雷达 (毫秒级防假死嗅探) ===
-    # 极客注入：加入 -f 参数，遇到 404 直接报错并触发备用逻辑，防止抓瞎
-    REMOTE_VERSION=$(curl -fsL -m 2 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/version.txt" 2>/dev/null || echo "$LOCAL_VERSION")
+    # 强行注入 ?t=$RANDOM 摧毁 CDN 节点缓存，逼迫其回源拉取真数据
+    REMOTE_VERSION=$(curl -fsL -m 2 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/version.txt?t=$RANDOM" 2>/dev/null || echo "$LOCAL_VERSION")
     
     # 物理抹除 GitHub 可能自带的换行符/回车符，防止版本比对炸膛
     REMOTE_VERSION=$(echo "$REMOTE_VERSION" | tr -d '\n' | tr -d '\r')
@@ -2243,7 +2243,7 @@ EOF_F2B
             echo -e "\n${blue}=== 🔄 Velox OTA 云端平滑升级引擎 ===${plain}"
             echo -e "${yellow}📡 正在连接 Velo.x 星际指挥中心，请求拉取最新装甲...${plain}"
             
-            UPDATE_URL="https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/install.sh"
+            UPDATE_URL="https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/install.sh?t=$RANDOM"
             
             if curl -sL "$UPDATE_URL" -o /tmp/velox_update.sh && grep -q "velox" /tmp/velox_update.sh; then
                 echo -e "${cyan}📦 成功捕获最新版源文件，正在执行热重载...${plain}"
