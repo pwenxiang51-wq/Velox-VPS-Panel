@@ -783,13 +783,45 @@ EOF3
 #!/bin/bash
 source /etc/velox_tg.conf
 
-if command -v sing-box >/dev/null 2>&1 || [ -f "/usr/local/bin/sing-box" ] || [ -f "/usr/bin/sing-box" ]; then
-    pgrep -x "sing-box" >/dev/null && SB_LIVE="🟢 满血" || SB_LIVE="🔴 阵亡"
-else SB_LIVE="⚪ 未安装"; fi
+# 🚀 绝杀 1：强行注入全量环境网道，治好 Cron 的赛博瞎子！
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 
-if command -v xray >/dev/null 2>&1 || [ -f "/usr/local/bin/xray" ] || [ -f "/usr/bin/xray" ]; then
-    pgrep -x "xray" >/dev/null && XR_LIVE="🟢 满血" || XR_LIVE="🔴 阵亡"
-else XR_LIVE="⚪ 未安装"; fi
+# 🚀 绝杀 2：封装【全域活体特征雷达】函数
+core_radar() {
+    local core_name=$1
+    
+    # 第一层：活体内存穿透（只要在跑，无视任何安装路径，瞬间抓捕）
+    if pgrep -x "$core_name" >/dev/null 2>&1 || ps -ef | grep -v grep | grep -wq "$core_name" || systemctl is-active --quiet "$core_name" 2>/dev/null; then
+        echo "🟢 满血"
+        return
+    fi
+
+    # 第二层：遗体特征库扫雷（如果进程死了，到底安没安装？）
+    # 路径 1：利用补全后的 PATH 变量进行标准探查
+    if command -v "$core_name" >/dev/null 2>&1; then
+        echo "🔴 阵亡"
+        return
+    fi
+    
+    # 路径 2：暴力穷举全网主流脚本生态库（兼容：甬哥、x-ui全系分支、Mack-a、官方等）
+    if ls /etc/s-box/${core_name} /usr/local/x-ui/bin/${core_name} /usr/local/x-ui/bin/${core_name}-linux-amd64 /etc/x-ui/bin/${core_name} /opt/${core_name}/${core_name} /root/${core_name} >/dev/null 2>&1; then
+        echo "🔴 阵亡"
+        return
+    fi
+
+    # 路径 3：Systemd 注册表底层扒尸（就算二进制文件藏得再深，只要注册了系统服务就能抓出来）
+    if systemctl list-unit-files 2>/dev/null | grep -iq "${core_name}"; then
+        echo "🔴 阵亡"
+        return
+    fi
+
+    # 如果以上三层雷达全扫不到，那才是真没安装！
+    echo "⚪ 未安装"
+}
+
+# 调用雷达，瞬间返回极简状态
+SB_LIVE=$(core_radar "sing-box")
+XR_LIVE=$(core_radar "xray")
 
 IP_ADDR=$(curl -s4m3 api.ipify.org || curl -s4m3 icanhazip.com || echo "未知")
 UP_TIME=$(uptime -p | sed 's/up //')
