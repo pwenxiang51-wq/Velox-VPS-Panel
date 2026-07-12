@@ -803,11 +803,21 @@ core_radar() {
         return
     fi
     
-    # 路径 2：暴力穷举全网主流脚本生态库（兼容：甬哥、x-ui全系分支、Mack-a、官方等）
-    if ls /etc/s-box/${core_name} /usr/local/x-ui/bin/${core_name} /usr/local/x-ui/bin/${core_name}-linux-amd64 /etc/x-ui/bin/${core_name} /opt/${core_name}/${core_name} /root/${core_name} >/dev/null 2>&1; then
-        echo "🔴 阵亡"
-        return
-    fi
+  # 路径 2：暴力穷举全网主流脚本生态库（防弹数组版）
+    local check_paths=(
+        "/etc/s-box/${core_name}"
+        "/usr/local/x-ui/bin/${core_name}"
+        "/usr/local/x-ui/bin/${core_name}-linux-amd64"
+        "/etc/x-ui/bin/${core_name}"
+        "/opt/${core_name}/${core_name}"
+        "/root/${core_name}"
+    )
+    for path in "${check_paths[@]}"; do
+        if [ -f "$path" ]; then
+            echo "🔴 阵亡"
+            return
+        fi
+    done
 
     # 路径 3：Systemd 注册表底层扒尸（就算二进制文件藏得再深，只要注册了系统服务就能抓出来）
     if systemctl list-unit-files 2>/dev/null | grep -iq "${core_name}"; then
