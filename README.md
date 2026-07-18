@@ -88,3 +88,6 @@ bash <(curl -sL  https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Pane
 GPG TEST
 Fix key id error
 Fix key id error
+test gpg fix again
+test gpg fix again
+test gpg fix with primary key
