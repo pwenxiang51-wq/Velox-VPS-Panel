@@ -85,3 +85,4 @@ bash <(curl -sL  https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Pane
 * **作者 GitHub**: [github.com/pwenxiang51-wq](https://github.com/pwenxiang51-wq)
 * **极客博客**: [222382.xyz](https://222382.xyz)
 * **Telegram 中枢**: [@Velox95](https://t.me/Velox95)
+GPG TEST
