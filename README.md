@@ -86,3 +86,4 @@ bash <(curl -sL  https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Pane
 * **极客博客**: [222382.xyz](https://222382.xyz)
 * **Telegram 中枢**: [@Velox95](https://t.me/Velox95)
 GPG TEST
+Fix key id error
