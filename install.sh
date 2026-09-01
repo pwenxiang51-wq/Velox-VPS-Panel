@@ -2118,16 +2118,14 @@ EOF_F2B
         done
         ;;
         
-    21)
+     21)
         echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (极客全自动版) ===${plain}"
         
-       # 💡 防崩依赖：强制判定 fuser，确保能强行释放 80 端口
         if ! command -v fuser >/dev/null 2>&1; then
             echo -e "${yellow}⚙️ 正在向底层注入缺失装甲: psmisc...${plain}"
             $PKG_INSTALL psmisc >/dev/null 2>&1
         fi
         
-        # 智能侦测 Acme.sh 真实路径
         ACME_BIN=""
         if [ -f "/root/.acme.sh/acme.sh" ]; then ACME_BIN="/root/.acme.sh/acme.sh"
         elif [ -f "$HOME/.acme.sh/acme.sh" ]; then ACME_BIN="$HOME/.acme.sh/acme.sh"; fi
@@ -2144,7 +2142,6 @@ EOF_F2B
             echo -e "\n${green}💡 极客科普：${plain}"
             echo -e "正常的 Acme 脚本会自动在后台续签。若发现节点突然断流，且距离到期不足 10 天，请手动强制续签！"
             
-            # 🚀 进阶子菜单：续签与卸载彻底分离
             echo -e "\n  ${green}1.${plain} 🚀 强制续签证书 (智能注入 Nginx 避让与节点重启守护)"
             echo -e "  ${red}2.${plain} 🗑️ 彻底删除证书 (焦土化清理无用域名残留)"
             echo -e "  ${purple}3.${plain} ⏰ 证书到期 TG 预警 (部署/卸载每日探针)"
@@ -2157,18 +2154,14 @@ EOF_F2B
                     read -p "✍️ 请输入需要续签的【主域名 Main_Domain】 (例如 node.123.xyz): " renew_domain
                     if [ -n "$renew_domain" ]; then
                         echo -e "\n${yellow}⏳ 正在向 Acme 底层注入端口避让与服务联动逻辑...${plain}"
-                        
                         PRE_HOOK="systemctl stop nginx apache2 >/dev/null 2>&1; fuser -k 80/tcp >/dev/null 2>&1"
                         POST_HOOK="systemctl restart nginx sing-box xray x-ui 3x-ui v2ray >/dev/null 2>&1"
-                        
                         echo -e "${cyan}⏳ 正在向 CA 签发机构请求续签 [ ${renew_domain} ]，请耐心等待...${plain}"
-                        
                         "$ACME_BIN" --renew -d "$renew_domain" --force --ecc --pre-hook "$PRE_HOOK" --post-hook "$POST_HOOK"
                         if [ $? -ne 0 ]; then
                             echo -e "\n${yellow}⚠️ ECC 模式续签失败，正在尝试切换为 RSA 模式强行重试...${plain}"
                             "$ACME_BIN" --renew -d "$renew_domain" --force --pre-hook "$PRE_HOOK" --post-hook "$POST_HOOK"
                         fi
-                        
                         echo -e "\n${green}✅ 操作完毕！Web 容器与代理服务已满血复活！${plain}"
                         echo -e "💡 ${cyan}提示：避让逻辑已刻入底层配置。以后的后台自动续签将【100%防炸全自动】完成，无需手动干预！${plain}"
                     else
@@ -2179,15 +2172,12 @@ EOF_F2B
                     read -p "✍️ 请输入需要彻底物理吊销的【旧域名 Main_Domain】: " del_domain
                     if [ -n "$del_domain" ]; then
                         echo -e "\n${yellow}⏳ 正在向 CA 机构请求吊销，并抹除续签守护...${plain}"
-                        
                         "$ACME_BIN" --remove -d "$del_domain" --ecc 2>/dev/null
                         "$ACME_BIN" --remove -d "$del_domain" 2>/dev/null
-                        
                         echo -n "正在物理粉碎本地残留的证书实体文件... "
                         rm -rf ~/.acme.sh/"$del_domain"
                         rm -rf ~/.acme.sh/"${del_domain}_ecc"
                         echo -e "[${green}已彻底焦土化${plain}]"
-                        
                         echo -e "\n✅ ${green}操作完毕！该域名证书已被完全销毁，系统将不再触发失效续签报错！${plain}"
                     else
                         echo -e "${red}❌ 域名输入为空，已取消删除操作。${plain}"
@@ -2270,9 +2260,9 @@ EOF_CERT
                                 echo -e "${green}✅ 证书到期预警已部署！每天 03:00 自动检查，剩余 ≤7 天将发送 TG 警报。${plain}"
                             fi
                             ;;
-                         2)
+                        2)
                             read -p "⚠️ 确认彻底卸载证书预警探针？(y/n): " conf
-                            [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; continue; }
+                            [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; }
                             rm -f /usr/local/bin/velox_cert_alert.sh
                             crontab -l 2>/dev/null | grep -v "velox_cert_alert.sh" | crontab -
                             echo -e "${green}✅ 证书预警探针已彻底卸载。${plain}"
@@ -2288,7 +2278,11 @@ EOF_CERT
                     echo -e "${red}❌ 无效选择，请输入 0、1、2 或 3。${plain}"
                     ;;
             esac
-            ;;
+        fi
+
+        echo -e "\n${yellow}------------------------------------------${plain}"
+        read -p "👉 按【回车键】返回主菜单..."
+        ;;
         
        22)
         while true; do
