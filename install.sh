@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V6.2.1 全域兼容满血终极版 - 智能嗅探 + 原子防护)
+# 自动生成并运行 Velox 面板 (V6.2.2 全域兼容满血终极版 - 智能嗅探 + 原子防护)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
@@ -11,7 +11,7 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
-LOCAL_VERSION="6.2.1"
+LOCAL_VERSION="6.2.2"
 if command -v apt-get >/dev/null 2>&1; then
     PKG_INSTALL="apt-get install -yqq"
     PKG_REMOVE="apt-get remove --purge -yqq"
@@ -54,67 +54,213 @@ check_virt_safe() {
 }
 # ====================================================
 
-while true; do 
-    # === 🚀 万能核心服务动态状态检测 (穿透查进程) ===
-    if pgrep -x "sing-box" > /dev/null 2>&1 || pgrep -x "xray" > /dev/null 2>&1; then
-        sb_stat=$(echo -e "${green}[运行中]${plain}")
-    elif command -v sing-box >/dev/null 2>&1 || command -v xray >/dev/null 2>&1; then
-        sb_stat=$(echo -e "${red}[已停止]${plain}")
-    else
-        sb_stat=$(echo -e "${yellow}[未安装]${plain}")
+# ================= 🚀 命令行入参拦截器 (CLI 模式) =================
+if [ "$1" == "restore" ]; then
+    echo -e "\n${blue}=== 🛰️ Velox 星际资产恢复程序 ===${plain}"
+    
+    local has_enc=0
+    local has_plain=0
+    [ -f "/root/Velox_Assets_Backup.tar.gz.enc" ] && has_enc=1
+    [ -f "/root/Velox_Assets_Backup.tar.gz" ] && has_plain=1
+
+    if [ $has_enc -eq 0 ] && [ $has_plain -eq 0 ]; then
+        echo -e "${red}❌ 致命错误：在 /root 目录下未探测到任何 Velox 资产包裹！${plain}"
+        echo -e "${yellow}请先将包裹 (.tar.gz 或 .enc) 上传至 /root 目录后再执行此命令。${plain}"
+        exit 1
     fi
 
-    # === 🚀 BBR 菜单状态渲染 (专业优雅版 + 抗干扰雷达) ===
-    if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
-        # 物理抹除 local 声明和回车符，精准抓取内核参数
-        sys_rmem=$(sysctl -n net.core.rmem_max 2>/dev/null | tr -d '\r')
-        if [[ "$sys_rmem" == "33554432" || "$sys_rmem" == "67108864" ]]; then
-            bbr_stat=$(echo -e "${purple}[加速中-32MB 极速版]${plain}")
-        elif [[ "$sys_rmem" == "16777216" ]]; then
-            bbr_stat=$(echo -e "${green}[加速中-16MB 标准版]${plain}")
-        elif [[ "$sys_rmem" == "8388608" ]]; then
-            bbr_stat=$(echo -e "${yellow}[加速中-8MB 轻量版]${plain}")
-        else
-            bbr_stat=$(echo -e "${cyan}[加速中-系统原生版]${plain}")
+    # 二次确认
+    echo -e "${yellow}⚠️ 警告：此操作将覆盖当前机器上的对应资产文件！${plain}"
+    read -p "👉 确认执行恢复？(y/n): " confirm_restore
+    [[ "${confirm_restore,,}" != "y" ]] && { echo -e "${yellow}已取消。${plain}"; exit 0; }
+
+    # 1. 物理脱壳（优先处理加密包）
+    if [ $has_enc -eq 1 ]; then
+        echo -e "${cyan}🔐 检测到军工级加密防谍包，准备执行物理脱壳...${plain}"
+        read -s -p "👉 请输入加密密文钥匙: " decrypt_pwd
+        echo ""
+        if ! openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$decrypt_pwd" \
+            -in /root/Velox_Assets_Backup.tar.gz.enc \
+            -out /root/Velox_Assets_Backup.tar.gz 2>/dev/null; then
+            echo -e "${red}❌ 密码错误或包裹已损坏！脱壳失败。${plain}"
+            rm -f /root/Velox_Assets_Backup.tar.gz
+            exit 1
         fi
-    else
-        bbr_stat=$(echo -e "${yellow}[未生效]${plain}")
+        echo -e "${green}✅ 密码验证通过，脱壳成功！${plain}"
+        # 脱壳成功后删除加密包，避免残留
+        rm -f /root/Velox_Assets_Backup.tar.gz.enc
     fi
 
-    # === 🚨 SSH 防御状态动态检测 (双核雷达：机枪塔 + Fail2Ban) ===
-    if systemctl is-active --quiet velox-defender 2>/dev/null || systemctl is-active --quiet fail2ban 2>/dev/null; then
-        f2b_stat=$(echo -e "${green}[守护中]${plain}")
-    elif [ -f "/etc/systemd/system/velox-defender.service" ] || command -v fail2ban-client &> /dev/null; then
-        f2b_stat=$(echo -e "${red}[已停止]${plain}")
-    else
-        f2b_stat=$(echo -e "${yellow}[未安装]${plain}")
+    # 2. 解包覆盖
+    echo -e "${cyan}⏳ 正在执行物理解包与资产强行覆盖...${plain}"
+    if ! tar -xzpPf /root/Velox_Assets_Backup.tar.gz -C / >/dev/null 2>&1; then
+        echo -e "${red}❌ 解包失败！请检查包裹是否完整或权限是否足够。${plain}"
+        exit 1
     fi
-# TG 报警状态检测
-    if [ -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
-        tg_stat=$(echo -e "${green}[已部署]${plain}")
-    else
-        tg_stat=$(echo -e "${yellow}[未设置]${plain}")
+    echo -e "${green}✅ 资产文件覆盖完成${plain}"
+
+    # 恢复 crontab
+    if [ -f "/root/crontab_backup.txt" ]; then
+        crontab /root/crontab_backup.txt 2>/dev/null && echo -e "✅ [系统自动化定时任务] 已恢复"
     fi
 
-# 16号 流量大管家状态检测
-    if [ -f "/usr/local/bin/velox_traffic_alert.sh" ]; then
-        traffic_stat=$(echo -e "${green}[已部署]${plain}")
-    else
-        traffic_stat=$(echo -e "${yellow}[未设置]${plain}")
+    # 3. 重启常见核心服务（失败忽略）
+    echo -e "${cyan}⏳ 正在向各核心服务发送重启脉冲...${plain}"
+    systemctl restart nginx sing-box xray x-ui 3x-ui cloudflared velox-argo argo warp-go 2>/dev/null
+    echo -e "${green}✅ 服务重启指令已下发${plain}"
+
+    # 4. 抹除痕迹
+    rm -f /root/Velox_Assets_Backup.tar.gz /root/Velox_Assets_Backup.tar.gz.enc /root/crontab_backup.txt
+
+    echo -e "\n${green}🎉 资产覆盖恢复成功！本地包裹已无痕物理销毁。${plain}"
+    echo -e "${purple}节点、证书与安全防线已满血复活！${plain}\n"
+    exit 0
+fi
+# =================================================================
+
+# ================= 🚀 主菜单异步状态引擎 =================
+STATUS_DIR="/tmp/velox_status"
+mkdir -p "$STATUS_DIR" 2>/dev/null
+chmod 700 "$STATUS_DIR" 2>/dev/null
+
+cleanup_velox_status() {
+    rm -rf "$STATUS_DIR" 2>/dev/null
+}
+trap cleanup_velox_status EXIT
+
+refresh_status_async() {
+    local lock="$STATUS_DIR/refresh.lock"
+    if mkdir "$lock" 2>/dev/null; then
+        (
+            # 代理核心
+            if pgrep -x "sing-box" >/dev/null 2>&1 || pgrep -x "xray" >/dev/null 2>&1; then
+                echo "running" > "$STATUS_DIR/sb.stat"
+            elif command -v sing-box >/dev/null 2>&1 || command -v xray >/dev/null 2>&1; then
+                echo "stopped" > "$STATUS_DIR/sb.stat"
+            else
+                echo "not_installed" > "$STATUS_DIR/sb.stat"
+            fi
+
+            # BBR
+                if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
+                sys_rmem=$(sysctl -n net.core.rmem_max 2>/dev/null | tr -d '\r')
+                if [[ "$sys_rmem" == "33554432" || "$sys_rmem" == "67108864" ]]; then
+                    echo "bbr_32m" > "$STATUS_DIR/bbr.stat"
+                elif [[ "$sys_rmem" == "16777216" ]]; then
+                    echo "bbr_16m" > "$STATUS_DIR/bbr.stat"
+                elif [[ "$sys_rmem" == "8388608" ]]; then
+                    echo "bbr_8m" > "$STATUS_DIR/bbr.stat"
+                else
+                    echo "bbr_native" > "$STATUS_DIR/bbr.stat"
+                fi
+            else
+                echo "off" > "$STATUS_DIR/bbr.stat"
+            fi
+
+            # SSH 防御
+            if systemctl is-active --quiet velox-defender 2>/dev/null || systemctl is-active --quiet fail2ban 2>/dev/null; then
+                echo "running" > "$STATUS_DIR/f2b.stat"
+            elif [ -f "/etc/systemd/system/velox-defender.service" ] || command -v fail2ban-client &>/dev/null; then
+                echo "stopped" > "$STATUS_DIR/f2b.stat"
+            else
+                echo "not_installed" > "$STATUS_DIR/f2b.stat"
+            fi
+
+            # TG 报警
+            if [ -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
+                echo "deployed" > "$STATUS_DIR/tg.stat"
+            else
+                echo "not_set" > "$STATUS_DIR/tg.stat"
+            fi
+
+            # 流量管家
+            if [ -f "/usr/local/bin/velox_traffic_alert.sh" ]; then
+                echo "deployed" > "$STATUS_DIR/traffic.stat"
+            else
+                echo "not_set" > "$STATUS_DIR/traffic.stat"
+            fi
+
+            # OTA 版本（最慢，放最后）
+            local remote=$(curl -fsL -m 2 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/version.txt?t=$RANDOM" 2>/dev/null || echo "$LOCAL_VERSION")
+            remote=$(echo "$remote" | tr -d '\n' | tr -d '\r')
+            echo "$remote" > "$STATUS_DIR/version.stat"
+
+            date +%s > "$STATUS_DIR/timestamp"
+            rmdir "$lock" 2>/dev/null
+        ) &
     fi
-    # === 📡 OTA 云端星际雷达 (毫秒级防假死嗅探) ===
-    # 强行注入 ?t=$RANDOM 摧毁 CDN 节点缓存，逼迫其回源拉取真数据
-    REMOTE_VERSION=$(curl -fsL -m 2 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/version.txt?t=$RANDOM" 2>/dev/null || echo "$LOCAL_VERSION")
-    
-    # 物理抹除 GitHub 可能自带的换行符/回车符，防止版本比对炸膛
-    REMOTE_VERSION=$(echo "$REMOTE_VERSION" | tr -d '\n' | tr -d '\r')
-    
-    # 智能比对逻辑 (增加 404 拦截装甲)
-    if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ] && [ "$REMOTE_VERSION" != "404: Not Found" ] && [ -n "$REMOTE_VERSION" ]; then
+}
+
+get_status() {
+    local key="$1"
+    local file="$STATUS_DIR/${key}.stat"
+    local ts_file="$STATUS_DIR/timestamp"
+    local now=$(date +%s)
+    local ts=0
+    [ -f "$ts_file" ] && ts=$(cat "$ts_file" 2>/dev/null || echo 0)
+
+    if [ ! -f "$file" ] || [ $((now - ts)) -gt 3 ]; then
+        refresh_status_async
+    fi
+
+    if [ -f "$file" ]; then
+        cat "$file" 2>/dev/null
+    else
+        echo "unknown"
+    fi
+}
+# ========================================================
+
+while true; do
+    # === 异步状态读取（几乎零延迟）===
+    sb_raw=$(get_status sb)
+    case "$sb_raw" in
+        running)       sb_stat=$(echo -e "${green}[运行中]${plain}") ;;
+        stopped)       sb_stat=$(echo -e "${red}[已停止]${plain}") ;;
+        not_installed) sb_stat=$(echo -e "${yellow}[未安装]${plain}") ;;
+        *)             sb_stat=$(echo -e "${yellow}[检测中]${plain}") ;;
+    esac
+
+    bbr_raw=$(get_status bbr)
+    case "$bbr_raw" in
+        bbr_32m)    bbr_stat=$(echo -e "${purple}[加速中-32MB 极速版]${plain}") ;;
+        bbr_16m)    bbr_stat=$(echo -e "${green}[加速中-16MB 标准版]${plain}") ;;
+        bbr_8m)     bbr_stat=$(echo -e "${yellow}[加速中-8MB 轻量版]${plain}") ;;
+        bbr_native) bbr_stat=$(echo -e "${cyan}[加速中-系统原生版]${plain}") ;;
+        off)        bbr_stat=$(echo -e "${yellow}[未生效]${plain}") ;;
+        *)          bbr_stat=$(echo -e "${yellow}[检测中]${plain}") ;;
+    esac
+
+    f2b_raw=$(get_status f2b)
+    case "$f2b_raw" in
+        running)       f2b_stat=$(echo -e "${green}[守护中]${plain}") ;;
+        stopped)       f2b_stat=$(echo -e "${red}[已停止]${plain}") ;;
+        not_installed) f2b_stat=$(echo -e "${yellow}[未安装]${plain}") ;;
+        *)             f2b_stat=$(echo -e "${yellow}[检测中]${plain}") ;;
+    esac
+
+    tg_raw=$(get_status tg)
+    case "$tg_raw" in
+        deployed) tg_stat=$(echo -e "${green}[已部署]${plain}") ;;
+        *)        tg_stat=$(echo -e "${yellow}[未设置]${plain}") ;;
+    esac
+
+    traffic_raw=$(get_status traffic)
+    case "$traffic_raw" in
+        deployed) traffic_stat=$(echo -e "${green}[已部署]${plain}") ;;
+        *)        traffic_stat=$(echo -e "${yellow}[未设置]${plain}") ;;
+    esac
+
+    REMOTE_VERSION=$(get_status version)
+    [ -z "$REMOTE_VERSION" ] && REMOTE_VERSION="$LOCAL_VERSION"
+    if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ] && [ "$REMOTE_VERSION" != "404: Not Found" ] && [ -n "$REMOTE_VERSION" ] && [ "$REMOTE_VERSION" != "unknown" ]; then
         OTA_NOTICE="${red}🔥 发现新版本 [V${REMOTE_VERSION}] ! 请按 i 立即升级!${plain}"
     else
         OTA_NOTICE="${green}V${LOCAL_VERSION} (最新版)${plain}"
     fi
+
+    refresh_status_async   # 主动后台刷新，保证下次更准
+
     clear
 # ================= 专属署名区 =================
 echo -e "${cyan}██╗   ██╗███████╗██╗     ██████╗ ██╗  ██╗${plain}"
@@ -142,6 +288,7 @@ echo -e "${cyan}=======================================================${plain}"
     # --- 第二板块：网络高阶调优 ---
     echo -e "\n${blue}[ 板块二：🚀 网络高阶调优 ]${plain}"
     echo -e "  ${green}7.${plain}  📦 ${green}查看代理服务运行状态 (深度体检与 IP 查询)${plain} ${sb_stat}"
+    echo -e "  ${cyan}7.5.${plain} 🛠️  ${cyan}代理核心手术台 (启停/日志/深度体检)${plain}"
     echo -e "  ${green}8.${plain}  🌐 ${green}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
     echo -e "  ${green}9.${plain}  🚀 ${green}深度验证与管理 BBR 加速${plain} ${bbr_stat}"
     echo -e "  ${green}10.${plain} 🧹 ${green}一键清理系统垃圾与强制释放内存${plain}"
@@ -249,7 +396,145 @@ echo -e "${cyan}=======================================================${plain}"
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
         ;;
-   8)
+
+      7.5)
+        while true; do
+            clear
+            echo -e "\n${blue}=== 🛠️ 代理核心手术台 ===${plain}"
+            echo -e "${yellow}当前北京时间：${green}$(date +"%Y-%m-%d %H:%M:%S")${plain}\n"
+
+            check_core() {
+                local name=$1
+                local display=$2
+                local bin=""
+                local running=false
+                local version="未知"
+                local ports="无"
+
+                bin=$(command -v "$name" 2>/dev/null)
+                [ -z "$bin" ] && [ -f "/usr/local/bin/$name" ] && bin="/usr/local/bin/$name"
+                [ -z "$bin" ] && [ -f "/usr/bin/$name" ] && bin="/usr/bin/$name"
+                [ -z "$bin" ] && [ -f "/opt/$name/$name" ] && bin="/opt/$name/$name"
+                if [ "$name" = "mihomo" ]; then
+                    [ -z "$bin" ] && [ -f "/usr/local/bin/clash-meta" ] && bin="/usr/local/bin/clash-meta"
+                    [ -z "$bin" ] && [ -f "/usr/bin/clash-meta" ] && bin="/usr/bin/clash-meta"
+                fi
+
+                if pgrep -x "$name" >/dev/null 2>&1 || pgrep -x "clash-meta" >/dev/null 2>&1 || systemctl is-active --quiet "$name" 2>/dev/null; then
+                    running=true
+                fi
+
+                if [ -n "$bin" ]; then
+                    version=$($bin version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n1)
+                    [ -z "$version" ] && version=$($bin -v 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n1)
+                    [ -z "$version" ] && version=$($bin -version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n1)
+                    [ -z "$version" ] && version="未知版本"
+                fi
+
+                ports=$(ss -tlnp 2>/dev/null | grep -E "($name|clash-meta)" | awk '{print $4}' | awk -F':' '{print $NF}' | sort -n -u | tr '\n' ' ')
+                [ -z "$ports" ] && ports="无外部监听"
+
+                if [ "$running" = true ]; then
+                    echo -e " ${display} : ${green}运行中 ✅${plain}  版本: ${cyan}${version}${plain}  端口: ${cyan}${ports}${plain}"
+                elif [ -n "$bin" ]; then
+                    echo -e " ${display} : ${red}已停止 ❌${plain}  版本: ${cyan}${version}${plain}"
+                else
+                    echo -e " ${display} : ${yellow}未安装 ⚠️${plain}"
+                fi
+            }
+
+            check_core "sing-box"   "🚀 Sing-box"
+            check_core "xray"       "🛸 Xray"
+            check_core "mihomo"     "⚔️  Mihomo (Clash Meta)"
+            check_core "cloudflared" "🚇 Cloudflared (Argo)"
+
+            echo -e "\n${cyan}------------------------------------------------${plain}"
+            echo -e "  ${green}1.${plain} 重启 Sing-box"
+            echo -e "  ${green}2.${plain} 停止 Sing-box"
+            echo -e "  ${green}3.${plain} 重启 Xray"
+            echo -e "  ${green}4.${plain} 停止 Xray"
+            echo -e "  ${green}5.${plain} 重启 Mihomo"
+            echo -e "  ${green}6.${plain} 停止 Mihomo"
+            echo -e "  ${green}7.${plain} 重启 Cloudflared / Argo"
+            echo -e "  ${cyan}8.${plain} 实时查看 Sing-box 日志 (Ctrl+C 退出)"
+            echo -e "  ${cyan}9.${plain} 实时查看 Xray 日志 (Ctrl+C 退出)"
+            echo -e "  ${cyan}10.${plain} 实时查看 Mihomo 日志 (Ctrl+C 退出)"
+            echo -e "  ${cyan}11.${plain} 实时查看 Cloudflared 日志 (Ctrl+C 退出)"
+            echo -e "  ${yellow}0.${plain} 返回主菜单"
+            echo -e "${cyan}------------------------------------------------${plain}"
+            read -p "👉 请选择操作 [0-11]: " core_op
+
+            case $core_op in
+                1)
+                    read -p "⚠️ 确认重启 Sing-box？(y/n): " conf
+                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
+                    systemctl restart sing-box 2>/dev/null || pkill -9 sing-box 2>/dev/null
+                    sleep 1; echo -e "${green}✅ Sing-box 重启指令已下发${plain}"
+                    ;;
+                2)
+                    read -p "⚠️ 确认停止 Sing-box？(y/n): " conf
+                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
+                    systemctl stop sing-box 2>/dev/null || pkill -9 sing-box 2>/dev/null
+                    echo -e "${yellow}✅ Sing-box 已停止${plain}"
+                    ;;
+                3)
+                    read -p "⚠️ 确认重启 Xray？(y/n): " conf
+                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
+                    systemctl restart xray 2>/dev/null || systemctl restart x-ui 2>/dev/null || pkill -9 xray 2>/dev/null
+                    sleep 1; echo -e "${green}✅ Xray 重启指令已下发${plain}"
+                    ;;
+                4)
+                    read -p "⚠️ 确认停止 Xray？(y/n): " conf
+                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
+                    systemctl stop xray 2>/dev/null || systemctl stop x-ui 2>/dev/null || pkill -9 xray 2>/dev/null
+                    echo -e "${yellow}✅ Xray 已停止${plain}"
+                    ;;
+                5)
+                    read -p "⚠️ 确认重启 Mihomo？(y/n): " conf
+                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
+                    systemctl restart mihomo 2>/dev/null || systemctl restart clash-meta 2>/dev/null || pkill -9 mihomo 2>/dev/null || pkill -9 clash-meta 2>/dev/null
+                    sleep 1; echo -e "${green}✅ Mihomo 重启指令已下发${plain}"
+                    ;;
+                6)
+                    read -p "⚠️ 确认停止 Mihomo？(y/n): " conf
+                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
+                    systemctl stop mihomo 2>/dev/null || systemctl stop clash-meta 2>/dev/null || pkill -9 mihomo 2>/dev/null || pkill -9 clash-meta 2>/dev/null
+                    echo -e "${yellow}✅ Mihomo 已停止${plain}"
+                    ;;
+                7)
+                    read -p "⚠️ 确认重启 Cloudflared/Argo？(y/n): " conf
+                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
+                    systemctl restart cloudflared 2>/dev/null || systemctl restart velox-argo 2>/dev/null || systemctl restart argo 2>/dev/null || pkill -9 cloudflared 2>/dev/null
+                    sleep 1; echo -e "${green}✅ Argo 重启指令已下发${plain}"
+                    ;;
+                8)
+                    echo -e "${cyan}正在抓取 Sing-box 实时日志 (Ctrl+C 退出)...${plain}"
+                    journalctl -u sing-box -f --no-pager 2>/dev/null || journalctl _COMM=sing-box -f --no-pager
+                    ;;
+                9)
+                    echo -e "${cyan}正在抓取 Xray 实时日志 (Ctrl+C 退出)...${plain}"
+                    journalctl -u xray -u x-ui -f --no-pager 2>/dev/null || journalctl _COMM=xray -f --no-pager
+                    ;;
+                10)
+                    echo -e "${cyan}正在抓取 Mihomo 实时日志 (Ctrl+C 退出)...${plain}"
+                    journalctl -u mihomo -u clash-meta -f --no-pager 2>/dev/null || journalctl _COMM=mihomo -f --no-pager || journalctl _COMM=clash-meta -f --no-pager
+                    ;;
+                11)
+                    echo -e "${cyan}正在抓取 Cloudflared 实时日志 (Ctrl+C 退出)...${plain}"
+                    journalctl -u cloudflared -u velox-argo -u argo -f --no-pager 2>/dev/null || journalctl _COMM=cloudflared -f --no-pager
+                    ;;
+                0) break ;;
+                *) echo -e "${red}❌ 无效选择，请输入 0-11${plain}"; sleep 1 ;;
+            esac
+
+            # 只有非日志、非返回的操作才暂停
+            if [[ "$core_op" =~ ^[1-7]$ ]]; then
+                read -p "👉 按回车继续..."
+            fi
+        done
+        ;;
+        
+     8)
         echo -e "\n${blue}=== 🌐 WARP 与 Argo 隧道出站详情 (基因级侦测装甲) ===${plain}"
         echo -e "${yellow}正在调用底层雷达侦测网络出站链路，请稍候...${plain}\n"
         
@@ -1862,9 +2147,10 @@ EOF_F2B
             # 🚀 进阶子菜单：续签与卸载彻底分离
             echo -e "\n  ${green}1.${plain} 🚀 强制续签证书 (智能注入 Nginx 避让与节点重启守护)"
             echo -e "  ${red}2.${plain} 🗑️ 彻底删除证书 (焦土化清理无用域名残留)"
+            echo -e "  ${purple}3.${plain} ⏰ 证书到期 TG 预警 (部署/卸载每日探针)"
             echo -e "  ${yellow}0.${plain} 🔙 取消并返回主菜单"
             echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
-            read -p "👉 请选择进阶管理操作 [0-2]: " acme_choice
+            read -p "👉 请选择进阶管理操作 [0-3]: " acme_choice
             
             case $acme_choice in
                 1)
@@ -1872,7 +2158,6 @@ EOF_F2B
                     if [ -n "$renew_domain" ]; then
                         echo -e "\n${yellow}⏳ 正在向 Acme 底层注入端口避让与服务联动逻辑...${plain}"
                         
-                        # 核心防线：把停端口和启服务的命令，打包塞进 Acme 的钩子(Hook)里，实现断流秒连
                         PRE_HOOK="systemctl stop nginx apache2 >/dev/null 2>&1; fuser -k 80/tcp >/dev/null 2>&1"
                         POST_HOOK="systemctl restart nginx sing-box xray x-ui 3x-ui v2ray >/dev/null 2>&1"
                         
@@ -1895,7 +2180,6 @@ EOF_F2B
                     if [ -n "$del_domain" ]; then
                         echo -e "\n${yellow}⏳ 正在向 CA 机构请求吊销，并抹除续签守护...${plain}"
                         
-                        # 官方标准注销命令 (兼顾 ECC 和 RSA)
                         "$ACME_BIN" --remove -d "$del_domain" --ecc 2>/dev/null
                         "$ACME_BIN" --remove -d "$del_domain" 2>/dev/null
                         
@@ -1909,18 +2193,101 @@ EOF_F2B
                         echo -e "${red}❌ 域名输入为空，已取消删除操作。${plain}"
                     fi
                     ;;
+                3)
+                    echo -e "\n${blue}=== ⏰ 证书到期 TG 预警管理 ===${plain}"
+                    if crontab -l 2>/dev/null | grep -q "velox_cert_alert.sh"; then
+                        echo -e "当前状态: ${green}已部署 ✅${plain}"
+                    else
+                        echo -e "当前状态: ${yellow}未部署 ⚠️${plain}"
+                    fi
+                    echo -e "  ${green}1.${plain} 部署/重置每日预警探针 (每天 03:00 检查，剩余 ≤7 天发 TG)"
+                    echo -e "  ${red}2.${plain} 彻底卸载预警探针"
+                    echo -e "  ${yellow}0.${plain} 返回"
+                    read -p "👉 请选择 [0-2]: " cert_alert_op
+
+                    case $cert_alert_op in
+                        1)
+                            if [ ! -f "/etc/velox_tg.conf" ] || ! grep -q "GLOBAL_TG_TOKEN" /etc/velox_tg.conf 2>/dev/null; then
+                                echo -e "${red}❌ 未检测到全局 TG 凭证，请先去 [14] TG 报警中枢配置！${plain}"
+                            else
+                                cat << 'EOF_CERT' > /usr/local/bin/velox_cert_alert.sh
+#!/bin/bash
+source /etc/velox_tg.conf 2>/dev/null
+[ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ] && exit 0
+
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+export TZ="Asia/Shanghai"
+
+ACME_BIN=""
+[ -f "/root/.acme.sh/acme.sh" ] && ACME_BIN="/root/.acme.sh/acme.sh"
+[ -z "$ACME_BIN" ] && [ -f "$HOME/.acme.sh/acme.sh" ] && ACME_BIN="$HOME/.acme.sh/acme.sh"
+[ -z "$ACME_BIN" ] && exit 0
+
+ALERT_MSG=""
+while read -r line; do
+    domain=$(echo "$line" | awk '{print $1}')
+    [ -z "$domain" ] && continue
+
+    cert_file=""
+    [ -f "/root/.acme.sh/${domain}_ecc/fullchain.cer" ] && cert_file="/root/.acme.sh/${domain}_ecc/fullchain.cer"
+    [ -z "$cert_file" ] && [ -f "/root/.acme.sh/${domain}/fullchain.cer" ] && cert_file="/root/.acme.sh/${domain}/fullchain.cer"
+    [ -z "$cert_file" ] && continue
+
+    end_date=$(openssl x509 -enddate -noout -in "$cert_file" 2>/dev/null | cut -d= -f2)
+    [ -z "$end_date" ] && continue
+
+    end_ts=$(date -d "$end_date" +%s 2>/dev/null)
+    now_ts=$(date +%s)
+    days_left=$(( (end_ts - now_ts) / 86400 ))
+
+    if [ "$days_left" -le 7 ] && [ "$days_left" -ge 0 ]; then
+        ALERT_MSG="${ALERT_MSG}
+⚠️ 域名: <code>${domain}</code>
+剩余: <b>${days_left} 天</b>
+到期: ${end_date}"
+    fi
+done < <("$ACME_BIN" --list 2>/dev/null | tail -n +2)
+
+[ -z "$ALERT_MSG" ] && exit 0
+
+MSG="🚨 <b>[Velox Acme 域名证书到期预警]</b>
+主机: <code>$(hostname)</code>
+时间: $(date +'%Y-%m-%d %H:%M:%S')
+--------------------------------------
+以下 <b>Acme 域名证书</b> 将在 7 天内到期：
+${ALERT_MSG}
+--------------------------------------
+⚠️ 请及时检查 acme.sh 自动续签是否正常，或前往面板【21】执行强制续签！"
+
+curl -s -m 8 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" \
+    -d "chat_id=${GLOBAL_TG_CHATID}" \
+    -d "parse_mode=HTML" \
+    --data-urlencode "text=$MSG" >/dev/null 2>&1
+EOF_CERT
+                                chmod +x /usr/local/bin/velox_cert_alert.sh
+                                crontab -l 2>/dev/null | grep -v "velox_cert_alert.sh" | crontab -
+                                (crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/velox_cert_alert.sh") | crontab -
+                                echo -e "${green}✅ 证书到期预警已部署！每天 03:00 自动检查，剩余 ≤7 天将发送 TG 警报。${plain}"
+                            fi
+                            ;;
+                         2)
+                            read -p "⚠️ 确认彻底卸载证书预警探针？(y/n): " conf
+                            [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; continue; }
+                            rm -f /usr/local/bin/velox_cert_alert.sh
+                            crontab -l 2>/dev/null | grep -v "velox_cert_alert.sh" | crontab -
+                            echo -e "${green}✅ 证书预警探针已彻底卸载。${plain}"
+                            ;;
+                        0) ;;
+                        *) echo -e "${red}无效选择${plain}" ;;
+                    esac
+                    ;;
                 0)
                     echo -e "${yellow}已取消操作。${plain}"
                     ;;
                 *)
-                    echo -e "${red}❌ 无效选择，请输入 0、1 或 2。${plain}"
+                    echo -e "${red}❌ 无效选择，请输入 0、1、2 或 3。${plain}"
                     ;;
             esac
-        fi
-
-        echo -e "\n${yellow}------------------------------------------${plain}"
-        read -p "👉 按【回车键】返回主菜单..."
-        ;;
         
        22)
         while true; do
@@ -2333,13 +2700,14 @@ EOF_F2B
                 sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
                 systemctl disable --now tg_boot_alert.service >/dev/null 2>&1
                 rm -f /etc/systemd/system/tg_boot_alert.service
+                rm -rf /tmp/velox_status 2>/dev/null
                 systemctl daemon-reload 
                 echo -e "[${green}已彻底抹除${plain}]"
 
                 # 1.5 拆除全局 TG 凭证与血洗所有定时任务
                 echo -n "1.5 正在清洗全局 TG 凭证与所有相关定时任务... "
-                rm -f /etc/velox_tg.conf /usr/local/bin/velox_traffic_alert.sh
-                crontab -l 2>/dev/null | grep -vE "velox_traffic_alert.sh|velox_pulse_alert.sh|velox_watchdog.sh|warp|reboot" | crontab -
+                rm -f /etc/velox_tg.conf /usr/local/bin/velox_traffic_alert.sh /usr/local/bin/velox_cert_alert.sh
+                crontab -l 2>/dev/null | grep -vE "velox_traffic_alert.sh|velox_pulse_alert.sh|velox_watchdog.sh|velox_cert_alert.sh|warp|reboot" | crontab -
                 echo -e "[${green}已彻底清洗${plain}]"
 
                 # 1.6 彻底拔除 vnstat 底层监控与历史流量数据库 (🚀 智改：调用全域卸载装甲)
