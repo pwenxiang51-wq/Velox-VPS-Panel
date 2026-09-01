@@ -2288,6 +2288,7 @@ EOF_CERT
                     echo -e "${red}❌ 无效选择，请输入 0、1、2 或 3。${plain}"
                     ;;
             esac
+            ;;
         
        22)
         while true; do
