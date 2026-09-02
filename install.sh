@@ -283,36 +283,35 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "  ${green}3.${plain}  ⏱️  ${green}查看运行时间与负载${plain}"
     echo -e "  ${green}4.${plain}  📊 ${green}快速查看内存报告 (静态快照)${plain}"
     echo -e "  ${green}5.${plain}  📈 ${green}实时监控 CPU 与内存 (按 q 退出)${plain}"
-    echo -e "  ${green}6.${plain}  🔌 ${green}查看系统监听端口${plain}"
     
     # --- 第二板块：网络高阶调优 ---
     echo -e "\n${blue}[ 板块二：🚀 网络高阶调优 ]${plain}"
-    echo -e "  ${green}7.${plain}  📦 ${green}代理核心管理 (深度体检 + 启停手术 / TCP·UDP·DNAT)${plain} ${sb_stat}"
-    echo -e "  ${green}8.${plain}  🌐 ${green}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
-    echo -e "  ${green}9.${plain}  🚀 ${green}深度验证与管理 BBR 加速${plain} ${bbr_stat}"
-    echo -e "  ${green}10.${plain} 🧹 ${green}一键清理系统垃圾与强制释放内存${plain}"
-    echo -e "  ${green}11.${plain} 🔄 ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
+    echo -e "  ${green}6.${plain}  📦 ${green}代理核心管理 (深度体检 + 启停手术 / TCP·UDP·DNAT)${plain} ${sb_stat}"
+    echo -e "  ${green}7.${plain}  🌐 ${green}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
+    echo -e "  ${green}8.${plain}  🚀 ${green}深度验证与管理 BBR 加速${plain} ${bbr_stat}"
+    echo -e "  ${green}9.${plain} 🧹 ${green}一键清理系统垃圾与强制释放内存${plain}"
+    echo -e "  ${green}10.${plain} 🔄 ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
     
     # --- 第三板块：代理核心管理 ---
     echo -e "\n${blue}[ 板块三：🔌 代理核心管理 ]${plain}"
-    echo -e "  ${cyan}12.${plain} 🎬 ${cyan}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
-    echo -e "  ${cyan}13.${plain} 🛡️ ${cyan}IP 纯净度与欺诈风险体检 (精准排雷)${plain}"
-    echo -e "  ${cyan}14.${plain} 🚨 ${cyan}设置/管理 SSH 异地登录 TG 报警 (含开机秒报)${plain} ${tg_stat}"
+    echo -e "  ${cyan}11.${plain} 🎬 ${cyan}流媒体解锁检测 (Netflix/ChatGPT等)${plain}"
+    echo -e "  ${cyan}12.${plain} 🛡️ ${cyan}IP 纯净度与欺诈风险体检 (精准排雷)${plain}"
+    echo -e "  ${cyan}13.${plain} 🚨 ${cyan}设置/管理 SSH 异地登录 TG 报警 (含开机秒报)${plain} ${tg_stat}"
     
     # --- 第四板块：系统防御与自动化运维 ---
     echo -e "\n${blue}[ 板块四：⚙️ 系统防御与自动化运维 ]${plain}"
-    echo -e "  ${purple}15.${plain} 📈 ${purple}Velox 流量大管家 (防扣费/防停机/月账单)${plain} ${traffic_stat}"
-    echo -e "  ${purple}16.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
-    echo -e "  ${purple}17.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
-    echo -e "  ${purple}18.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
-    echo -e "  ${purple}19.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain} ${f2b_stat}"
+    echo -e "  ${purple}14.${plain} 📈 ${purple}Velox 流量大管家 (防扣费/防停机/月账单)${plain} ${traffic_stat}"
+    echo -e "  ${purple}15.${plain} 💽 ${purple}自定义管理虚拟内存 Swap (1G小鸡救星)${plain}"
+    echo -e "  ${purple}16.${plain} 📝 ${purple}修改服务器主机名 (给 VPS 轻松改名)${plain}"
+    echo -e "  ${purple}17.${plain} 🔄 ${purple}一键更新系统软件库 (智能适配全系统)${plain}"
+    echo -e "  ${purple}18.${plain} 🚨 ${purple}SSH 智能防盗门与防御中心 (机枪塔/Fail2Ban)${plain} ${f2b_stat}"
    
     # --- 第五板块：全域高维容灾与资产审计 ---
     echo -e "\n${blue}[ 板块五：📡 全域高维容灾与资产审计 ]${plain}"
-    echo -e "  ${yellow}20.${plain} ⏱️  ${yellow}时空调度中心 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
-    echo -e "  ${yellow}21.${plain} 🔐 ${yellow}Acme 证书管理 (硬核全自动避让 / 到期查询 / 强制续签)${plain}"
-    echo -e "  ${yellow}22.${plain} 🧳 ${yellow}模块化资产备份 (精准按需克隆 / 星际舰队 / TG 云端容灾)${plain}"
-    echo -e "  ${yellow}23.${plain} 🔍 ${yellow}全域资产雷达 (多维内核级 Socket 嗅探 / 隐藏进程爆破)${plain}"
+    echo -e "  ${yellow}19.${plain} ⏱️  ${yellow}时空调度中心 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
+    echo -e "  ${yellow}20.${plain} 🔐 ${yellow}Acme 证书管理 (硬核全自动避让 / 到期查询 / 强制续签)${plain}"
+    echo -e "  ${yellow}21.${plain} 🧳 ${yellow}模块化资产备份 (精准按需克隆 / 星际舰队 / TG 云端容灾)${plain}"
+    echo -e "  ${yellow}22.${plain} 🔍 ${yellow}全域资产雷达 (多维内核级 Socket 嗅探 / 隐藏进程爆破)${plain}"
     
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${purple}i.${plain} 🔄 ${purple}OTA 在线平滑升级 (获取 Velox 最新防弹装甲)${plain}"
@@ -320,7 +319,7 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
-    echo -ne "请选择操作 [${green}1${plain}-${yellow}23${plain}, ${purple}i${plain}, ${red}U${plain}, ${red}0${plain}]: "
+    echo -ne "请选择操作 [${green}1${plain}-${yellow}22${plain}, ${purple}i${plain}, ${red}U${plain}, ${red}0${plain}]: "
     read choice
     
     case $choice in
@@ -329,8 +328,7 @@ echo -e "${cyan}=======================================================${plain}"
         3) echo -e "\n${blue}--- 运行状态 ---${plain}"; uptime ;;
         4) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
         5) echo -e "\n${cyan}--- 正在启动任务管理器 ---${plain}"; sleep 1; top ;;
-        6) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
-           7)
+        6)
         # ================= 代理核心深度体检 + 智能手术台 =================
         send_tg_core() {
             local action="$1" core="$2"
@@ -492,7 +490,7 @@ echo -e "${cyan}=======================================================${plain}"
             echo -e "${yellow}当前北京时间：${green}$(date +"%Y-%m-%d %H:%M:%S")${plain}\n"
 
             for core in sing-box xray mihomo cloudflared; do
-                local display=""
+                display=""
                 case $core in
                     sing-box)    display="🚀 Sing-box" ;;
                     xray)        display="🛸 Xray" ;;
@@ -592,7 +590,7 @@ echo -e "${cyan}=======================================================${plain}"
         done
         ;;
         
-     8)
+     7)
         echo -e "\n${blue}=== 🌐 WARP 与 Argo 隧道出站详情 (基因级侦测装甲) ===${plain}"
         echo -e "${yellow}正在调用底层雷达侦测网络出站链路，请稍候...${plain}\n"
         
@@ -699,7 +697,7 @@ echo -e "${cyan}=======================================================${plain}"
         read -p "👉 按【回车键】继续..."
         ;;
         
-     9)
+     8)
         echo -e "\n${blue}=== 🚀 BBR 狂暴引擎与底层网络终极调优 (自适应防爆版) ===${plain}"
         
         check_virt_safe "底层网络协议栈修改" || { echo ""; read -p "👉 按【回车键】返回..."; continue; }
@@ -820,7 +818,7 @@ EOF_BBR
         echo ""; read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-     10)
+     9)
         echo -e "\n${blue}=== 🧹 焦土化系统清理与内存强制释放 ===${plain}"
         echo -e "${yellow}正在执行深度大扫除，清理底层无用依赖与碎片...${plain}\n"
 
@@ -847,14 +845,14 @@ EOF_BBR
         read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-     11) 
+     10) 
         echo -e "\n${red}⚠️ 警告：此操作将物理重启整台 VPS 服务器！${plain}"
         echo -e "${yellow}执行后，当前的 SSH 连接将会立即断开，请等待 1-2 分钟后再重新连接。${plain}"
         read -p "确定要整机重启吗？(y/n): " c
         [[ "$c" == "y" || "$c" == "Y" ]] && sudo reboot 
         ;;
         
-    12)
+    11)
         echo -e "\n${blue}=== 🎬 流媒体与 AI 解锁智能检测中心 ===${plain}"
         echo -e "${cyan}📡 正在启动底层网络雷达，侦测代理环境...${plain}"
         
@@ -903,7 +901,7 @@ EOF_BBR
         read -p "👉 测试完毕！按【回车键】返回主菜单..."
         ;;
         
-    13)
+    12)
         echo -e "\n${blue}=== 🛡️ 节点 IP 纯净度与欺诈风险体检 ===${plain}"
         echo -e "${yellow}正在向全球顶级权威数据库查询出站 IP 纯净度...${plain}\n"
 
@@ -956,7 +954,7 @@ EOF_BBR
         read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-        14)
+       13)
             while true; do
                 echo -e "\n${blue}=== 🚨 Telegram 全局防线与智能报警监控中枢 ===${plain}"
                 TG_CONF="/etc/velox_tg.conf"
@@ -1337,7 +1335,7 @@ EOF_WATCH
                 esac
             done
             ;;
-   15)
+   14)
         DEFAULT_IF=$(ip -4 route ls | grep default | grep -vE 'tun|warp|wg|tailscale' | awk '{print $5}' | head -n 1)
         [ -z "$DEFAULT_IF" ] && DEFAULT_IF=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
         
@@ -1592,7 +1590,7 @@ EOF_ALERT
         done
         ;;
         
-   16)
+   15)
         echo -e "\n${blue}--- 💽 自定义虚拟内存 (Swap) 管理 ---${plain}"
         check_virt_safe "Swap 虚拟内存硬盘挂载" || { read -p "👉 按【回车键】继续..."; continue; }
 
@@ -1631,7 +1629,7 @@ EOF_ALERT
         read -p "👉 按【回车键】继续..."
         ;;
         
-    17)
+    16)
         echo -e "\n${blue}--- 📝 修改服务器主机名 (VPS 物理改名/洗白) ---${plain}"
         echo -e "当前主机名: ${yellow}$(hostname)${plain}"
         echo -e "  ${green}1.${plain} 🔄 恢复系统默认主机名 (洗白为: localhost)"
@@ -1662,7 +1660,7 @@ EOF_ALERT
         fi
         ;;
         
-    18)
+    17)
         echo -e "\n${blue}=== 🔄 一键系统全能更新与焦土清理 (防卡死纯净版) ===${plain}"
         echo -e "${yellow}正在调用底层包管理器拉取最新防弹补丁，请耐心等待...${plain}\n"
         
@@ -1691,7 +1689,7 @@ EOF_ALERT
         read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-    19)
+    18)
         while true; do
             # --- 🕵️‍♂️ 史诗级智能侦测引擎 ---
             current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
@@ -2070,7 +2068,7 @@ EOF_F2B
         done
         ;;
     
-       20)
+       19)
         while true; do
             clear
             echo -e "\n${blue}=== ⏱️ Velox 高级定时任务与时空调度中心 ===${plain}"
@@ -2176,7 +2174,7 @@ EOF_F2B
         done
         ;;
         
-       21)
+       20)
         while true; do
             clear
             echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (极客全自动版) ===${plain}"
@@ -2335,7 +2333,7 @@ EOF_CERT
                                 if [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ]; then
                                     echo -e "${red}❌ 未配置 TG 凭证${plain}"
                                 else
-                                    TEST_MSG="🟢 <b>[Velox 证书预警测试]</b>
+                                    TEST_MSG="🟢 <b>[Velox Acme域名证书预警测试]</b>
 主机: <code>$(hostname)</code>
 时间: $(date +'%Y-%m-%d %H:%M:%S')
 --------------------------------------
@@ -2370,7 +2368,7 @@ EOF_CERT
         done
         ;;
         
-       22)
+       21)
         while true; do
             echo -e "\n${blue}=== 🛰️ 星际舰队与跨机容灾中心 ===${plain}"
             echo -e "  ${green}1.${plain} 📦 全域资产一键打包与跨机搬家 (真·动态路径克隆版)"
@@ -2672,7 +2670,7 @@ EOF_CERT
         done
         ;;
 
-     23)
+     22)
         clear
         echo -e "\n${blue}=== 🔍 VeloX 全域高维资产雷达与进程透视镜 ===${plain}"
         echo -e "${yellow}正在启动内核级深空雷达，强行爆破系统进程与高价值数据藏匿点...${plain}\n"
