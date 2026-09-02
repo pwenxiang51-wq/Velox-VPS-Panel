@@ -287,8 +287,7 @@ echo -e "${cyan}=======================================================${plain}"
     
     # --- 第二板块：网络高阶调优 ---
     echo -e "\n${blue}[ 板块二：🚀 网络高阶调优 ]${plain}"
-    echo -e "  ${green}7.${plain}  📦 ${green}查看代理服务运行状态 (深度体检与 IP 查询)${plain} ${sb_stat}"
-    echo -e "  ${cyan}7.5.${plain} 🛠️  ${cyan}代理核心手术台 (启停/日志/深度体检)${plain}"
+    echo -e "  ${green}7.${plain}  📦 ${green}代理核心管理 (深度体检 + 启停手术 / TCP·UDP·DNAT)${plain} ${sb_stat}"
     echo -e "  ${green}8.${plain}  🌐 ${green}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
     echo -e "  ${green}9.${plain}  🚀 ${green}深度验证与管理 BBR 加速${plain} ${bbr_stat}"
     echo -e "  ${green}10.${plain} 🧹 ${green}一键清理系统垃圾与强制释放内存${plain}"
@@ -331,206 +330,240 @@ echo -e "${cyan}=======================================================${plain}"
         4) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
         5) echo -e "\n${cyan}--- 正在启动任务管理器 ---${plain}"; sleep 1; top ;;
         6) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
-    7)
-        echo -e "\n${blue}=== 📦 代理核心深度体检 (全网脚本兼容版) ===${plain}"
-        echo -e "${yellow}当前北京时间：${green}$(date +"%Y-%m-%d %H:%M:%S")${plain}\n"
-
-        check_detail() {
-            local core_name=$1
-            local display=$2
-            
-            # 1. 底层雷达：全网搜寻核心可执行文件 (兼容所有第三方脚本的奇葩安装路径)
-            local bin_path=$(command -v "$core_name" 2>/dev/null)
-            [ -z "$bin_path" ] && [ -f "/usr/local/bin/$core_name" ] && bin_path="/usr/local/bin/$core_name"
-            [ -z "$bin_path" ] && [ -f "/usr/bin/$core_name" ] && bin_path="/usr/bin/$core_name"
-            [ -z "$bin_path" ] && [ -f "/opt/$core_name/$core_name" ] && bin_path="/opt/$core_name/$core_name"
-
-            # 2. 活体探针：直接问询 Linux 内核该进程是否存活 (绝对精准)
-            local is_running=false
-            if pgrep -x "$core_name" > /dev/null 2>&1 || ps -ef | grep -v grep | grep -wq "$core_name"; then
-                is_running=true
-            elif systemctl is-active --quiet "$core_name" 2>/dev/null; then
-                is_running=true
-            fi
-
-            # 3. 综合判定与数据提取
-            if [ -n "$bin_path" ] || [ "$is_running" = true ]; then
-                # 智能提取版本号 (硬核正则，完美过滤各种杂乱输出)
-                local version="未知"
-                if [ -n "$bin_path" ]; then
-                    version=$($bin_path version 2>/dev/null | head -n 1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n 1)
-                    [ -z "$version" ] && version=$($bin_path -version 2>/dev/null | head -n 1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n 1)
-                fi
-                [ -z "$version" ] && version="未知版本"
-
-                # 提取真实监听端口 (底层抓取，去重展示)
-                local ports=$(ss -tlnp 2>/dev/null | grep -w "$core_name" | awk '{print $4}' | awk -F':' '{print $NF}' | sort -n -u | tr '\n' ' ')
-                [ -z "$ports" ] && ports="无外部监听 (或端口复用)"
-
-                if [ "$is_running" = true ]; then
-                    echo -e " ${display} : ${green}运行中 ✅${plain}"
-                    echo -e "    └─ 版本: ${cyan}${version}${plain}  端口: ${cyan}${ports}${plain}"
-                else
-                    echo -e " ${display} : ${red}已停止/出故障 ❌${plain}"
-                fi
-            else
-                echo -e " ${display} : ${yellow}未安装/未启用 ⚠️${plain}"
-            fi
+       7)
+        # ================= 智能核心手术台（跨脚本兼容版） =================
+        send_tg_core() {
+            local action="$1"
+            local core="$2"
+            [ ! -f /etc/velox_tg.conf ] && return
+            source /etc/velox_tg.conf 2>/dev/null
+            [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ] && return
+            local MSG="🔧 <b>[Velox 核心操作通知]</b>
+主机: <code>$(hostname)</code>
+操作: <b>${action}</b>
+核心: <code>${core}</code>
+时间: $(date +'%Y-%m-%d %H:%M:%S')"
+            curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" \
+                -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" \
+                --data-urlencode "text=$MSG" >/dev/null 2>&1 &
         }
 
-        check_detail "sing-box" "🚀 Sing-box 核心"
-        check_detail "xray"     "🛸 Xray     核心"
+        # 获取某个核心的真实进程信息
+        get_core_info() {
+            local name="$1"
+            # 返回: PID|完整命令行
+            local info
+            info=$(ps -eo pid,args 2>/dev/null | grep -E "[/ ]${name}( |$)|${name} run|${name}-linux" | grep -v grep | head -n1)
+            if [ -z "$info" ] && [ "$name" = "mihomo" ]; then
+                info=$(ps -eo pid,args 2>/dev/null | grep -E "clash-meta|mihomo" | grep -v grep | head -n1)
+            fi
+            if [ -z "$info" ] && [ "$name" = "cloudflared" ]; then
+                info=$(ps -eo pid,args 2>/dev/null | grep -E "cloudflared|argo" | grep -v grep | head -n1)
+            fi
+            echo "$info"
+        }
 
-        echo -e "\n${blue}--- 🌍 服务器当前公网出口详情 ---${plain}"
-        curl -sS --max-time 3 https://ip.gs || echo -e "${yellow}获取 IP 失败，请检查网络连接${plain}"
-
-        echo -e "\n${blue}--- 📡 关键节点延迟侦测 ---${plain}"
-        for target in "谷歌 8.8.8.8" "CF 1.1.1.1" "微软 13.107.42.14"; do
-            name=$(echo $target | awk '{print $1}')
-            ip=$(echo $target | awk '{print $2}')
-            result=$(ping -c 3 -W 2 $ip 2>/dev/null | awk -F'/' '/^rtt/{printf "%.1f ms", $5}')
-            [ -z "$result" ] && result="⚠️ 超时/不可达"
-            printf "  🌐 %-8s (%s) : ${cyan}%s${plain}\n" "$name" "$ip" "$result"
-        done
-        
-        echo -e "\n${yellow}------------------------------------------${plain}"
-        read -p "👉 按【回车键】返回主菜单..."
-        ;;
-
-      7.5)
         while true; do
             clear
-            echo -e "\n${blue}=== 🛠️ 代理核心手术台 ===${plain}"
+            echo -e "\n${blue}=== 📦 代理核心深度体检 + 智能手术台 ===${plain}"
             echo -e "${yellow}当前北京时间：${green}$(date +"%Y-%m-%d %H:%M:%S")${plain}\n"
 
-            check_core() {
-                local name=$1
-                local display=$2
-                local bin=""
-                local running=false
-                local version="未知"
-                local ports="无"
+            # ---------- 逐个核心检测 ----------
+            for core in "sing-box" "xray" "mihomo" "cloudflared"; do
+                local display=""
+                case $core in
+                    sing-box)    display="🚀 Sing-box" ;;
+                    xray)        display="🛸 Xray" ;;
+                    mihomo)      display="⚔️  Mihomo" ;;
+                    cloudflared) display="🚇 Cloudflared/Argo" ;;
+                esac
 
-                bin=$(command -v "$name" 2>/dev/null)
-                [ -z "$bin" ] && [ -f "/usr/local/bin/$name" ] && bin="/usr/local/bin/$name"
-                [ -z "$bin" ] && [ -f "/usr/bin/$name" ] && bin="/usr/bin/$name"
-                [ -z "$bin" ] && [ -f "/opt/$name/$name" ] && bin="/opt/$name/$name"
-                if [ "$name" = "mihomo" ]; then
-                    [ -z "$bin" ] && [ -f "/usr/local/bin/clash-meta" ] && bin="/usr/local/bin/clash-meta"
-                    [ -z "$bin" ] && [ -f "/usr/bin/clash-meta" ] && bin="/usr/bin/clash-meta"
-                fi
+                info=$(get_core_info "$core")
+                if [ -n "$info" ]; then
+                    pid=$(echo "$info" | awk '{print $1}')
+                    cmd=$(echo "$info" | sed "s/^[[:space:]]*${pid}[[:space:]]*//")
+                    version="未知"
+                    bin=$(echo "$cmd" | awk '{print $1}')
+                    if [ -x "$bin" ]; then
+                        version=$($bin version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n1)
+                        [ -z "$version" ] && version=$($bin -v 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n1)
+                        [ -z "$version" ] && version="未知"
+                    fi
 
-                if pgrep -x "$name" >/dev/null 2>&1 || pgrep -x "clash-meta" >/dev/null 2>&1 || systemctl is-active --quiet "$name" 2>/dev/null; then
-                    running=true
-                fi
+                    # TCP + UDP 端口
+                    tcp_ports=$(ss -tlnp 2>/dev/null | grep "pid=$pid" | awk '{print $4}' | awk -F: '{print $NF}' | sort -n -u | tr '\n' ' ')
+                    udp_ports=$(ss -ulnp 2>/dev/null | grep "pid=$pid" | awk '{print $4}' | awk -F: '{print $NF}' | sort -n -u | tr '\n' ' ')
+                    [ -z "$tcp_ports" ] && tcp_ports="无"
+                    [ -z "$udp_ports" ] && udp_ports="无"
 
-                if [ -n "$bin" ]; then
-                    version=$($bin version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n1)
-                    [ -z "$version" ] && version=$($bin -v 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n1)
-                    [ -z "$version" ] && version=$($bin -version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n1)
-                    [ -z "$version" ] && version="未知版本"
-                fi
-
-                ports=$(ss -tlnp 2>/dev/null | grep -E "($name|clash-meta)" | awk '{print $4}' | awk -F':' '{print $NF}' | sort -n -u | tr '\n' ' ')
-                [ -z "$ports" ] && ports="无外部监听"
-
-                if [ "$running" = true ]; then
-                    echo -e " ${display} : ${green}运行中 ✅${plain}  版本: ${cyan}${version}${plain}  端口: ${cyan}${ports}${plain}"
-                elif [ -n "$bin" ]; then
-                    echo -e " ${display} : ${red}已停止 ❌${plain}  版本: ${cyan}${version}${plain}"
+                    echo -e " ${display} : ${green}运行中 ✅${plain}  PID: ${cyan}${pid}${plain}  版本: ${cyan}${version}${plain}"
+                    echo -e "    └─ TCP : ${cyan}${tcp_ports}${plain}"
+                    echo -e "    └─ UDP : ${cyan}${udp_ports}${plain}"
+                    # 显示关键启动参数（配置文件路径）
+                    conf_path=$(echo "$cmd" | grep -oE '\-c[[:space:]]+[^[:space:]]+|config\.json|/etc/[^[:space:]]+\.json' | head -n1)
+                    [ -n "$conf_path" ] && echo -e "    └─ 配置: ${yellow}${conf_path}${plain}"
                 else
-                    echo -e " ${display} : ${yellow}未安装 ⚠️${plain}"
+                    # 检查是否安装但未运行
+                    bin=""
+                    bin=$(command -v "$core" 2>/dev/null)
+                    [ -z "$bin" ] && [ -f "/usr/local/bin/$core" ] && bin="/usr/local/bin/$core"
+                    if [ "$core" = "mihomo" ]; then
+                        [ -z "$bin" ] && [ -f "/usr/local/bin/clash-meta" ] && bin="/usr/local/bin/clash-meta"
+                    fi
+                    if [ -n "$bin" ]; then
+                        echo -e " ${display} : ${red}已停止 ❌${plain}（已安装）"
+                    else
+                        echo -e " ${display} : ${yellow}未安装 ⚠️${plain}"
+                    fi
                 fi
-            }
+            done
 
-            check_core "sing-box"   "🚀 Sing-box"
-            check_core "xray"       "🛸 Xray"
-            check_core "mihomo"     "⚔️  Mihomo (Clash Meta)"
-            check_core "cloudflared" "🚇 Cloudflared (Argo)"
+            # ---------- 端口跳跃 DNAT ----------
+            echo -e "\n${cyan}--- 🔄 端口跳跃侦测 (DNAT) ---${plain}"
+            ipv4_dnat=$(iptables -t nat -nL PREROUTING 2>/dev/null | grep DNAT)
+            ipv6_dnat=$(ip6tables -t nat -nL PREROUTING 2>/dev/null | grep DNAT)
+            if [ -n "$ipv4_dnat" ]; then
+                echo -e "${green}IPv4:${plain}"
+                echo "$ipv4_dnat" | sed 's/^/  /'
+            else
+                echo -e "  IPv4: ${cyan}无${plain}"
+            fi
+            if [ -n "$ipv6_dnat" ]; then
+                echo -e "${green}IPv6:${plain}"
+                echo "$ipv6_dnat" | sed 's/^/  /'
+            else
+                echo -e "  IPv6: ${cyan}无${plain}"
+            fi
+
+            # ---------- 出口 IP ----------
+            echo -e "\n${cyan}--- 🌍 当前公网出口 ---${plain}"
+            curl -sS --max-time 3 https://ip.gs 2>/dev/null || echo -e "${yellow}获取失败${plain}"
 
             echo -e "\n${cyan}------------------------------------------------${plain}"
             echo -e "  ${green}1.${plain} 重启 Sing-box"
-            echo -e "  ${green}2.${plain} 停止 Sing-box"
+            echo -e "  ${red}2.${plain} 停止 Sing-box"
             echo -e "  ${green}3.${plain} 重启 Xray"
-            echo -e "  ${green}4.${plain} 停止 Xray"
+            echo -e "  ${red}4.${plain} 停止 Xray"
             echo -e "  ${green}5.${plain} 重启 Mihomo"
-            echo -e "  ${green}6.${plain} 停止 Mihomo"
-            echo -e "  ${green}7.${plain} 重启 Cloudflared / Argo"
-            echo -e "  ${cyan}8.${plain} 实时查看 Sing-box 日志 (Ctrl+C 退出)"
-            echo -e "  ${cyan}9.${plain} 实时查看 Xray 日志 (Ctrl+C 退出)"
-            echo -e "  ${cyan}10.${plain} 实时查看 Mihomo 日志 (Ctrl+C 退出)"
-            echo -e "  ${cyan}11.${plain} 实时查看 Cloudflared 日志 (Ctrl+C 退出)"
+            echo -e "  ${red}6.${plain} 停止 Mihomo"
+            echo -e "  ${green}7.${plain} 重启 Cloudflared/Argo ${yellow}(临时隧道会变URL)${plain}"
+            echo -e "  ${cyan}8.${plain} 查看 Sing-box 相关日志"
             echo -e "  ${yellow}0.${plain} 返回主菜单"
             echo -e "${cyan}------------------------------------------------${plain}"
-            read -p "👉 请选择操作 [0-11]: " core_op
+            read -p "👉 请选择 [0-8]: " core_op
+
+            do_stop() {
+                local name="$1"
+                local info=$(get_core_info "$name")
+                if [ -z "$info" ]; then
+                    echo -e "${yellow}⚠️ 未发现运行中的 ${name}${plain}"
+                    return 1
+                fi
+                local pid=$(echo "$info" | awk '{print $1}')
+                echo -e "${cyan}正在终止 PID ${pid} ...${plain}"
+                kill -9 "$pid" 2>/dev/null
+                sleep 1
+                if get_core_info "$name" >/dev/null; then
+                    # 再补一刀
+                    pkill -9 -f "$name" 2>/dev/null
+                    sleep 1
+                fi
+                if get_core_info "$name" >/dev/null; then
+                    echo -e "${red}❌ 停止失败，进程仍在${plain}"
+                    return 1
+                else
+                    echo -e "${green}✅ ${name} 已彻底停止${plain}"
+                    send_tg_core "停止" "$name"
+                    return 0
+                fi
+            }
+
+            do_restart() {
+                local name="$1"
+                local info=$(get_core_info "$name")
+                local old_cmd=""
+                if [ -n "$info" ]; then
+                    old_cmd=$(echo "$info" | sed "s/^[[:space:]]*[0-9]\+[[:space:]]*//")
+                    do_stop "$name"
+                fi
+
+                # 优先用原来的完整命令拉起
+                if [ -n "$old_cmd" ]; then
+                    echo -e "${cyan}使用原命令重新拉起...${plain}"
+                    nohup $old_cmd >/dev/null 2>&1 &
+                    sleep 2
+                    if get_core_info "$name" >/dev/null; then
+                        echo -e "${green}✅ ${name} 已成功重启${plain}"
+                        send_tg_core "重启" "$name"
+                        return 0
+                    fi
+                fi
+
+                # 回退方案：常见路径 + 你当前的 vx_vne
+                if [ "$name" = "sing-box" ]; then
+                    if [ -f /etc/vx_vne/config.json ] && [ -x /usr/local/bin/sing-box ]; then
+                        nohup /usr/local/bin/sing-box run -c /etc/vx_vne/config.json >/dev/null 2>&1 &
+                        sleep 2
+                        if get_core_info sing-box >/dev/null; then
+                            echo -e "${green}✅ Sing-box 已用 /etc/vx_vne/config.json 拉起${plain}"
+                            send_tg_core "重启" "sing-box"
+                            return 0
+                        fi
+                    fi
+                fi
+
+                # 最后尝试 systemctl
+                systemctl restart "$name" 2>/dev/null && sleep 1 && get_core_info "$name" >/dev/null && {
+                    echo -e "${green}✅ 通过 systemctl 重启成功${plain}"
+                    send_tg_core "重启" "$name"
+                    return 0
+                }
+
+                echo -e "${red}❌ 自动重启失败，请手动启动${plain}"
+                return 1
+            }
 
             case $core_op in
                 1)
                     read -p "⚠️ 确认重启 Sing-box？(y/n): " conf
-                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
-                    systemctl restart sing-box 2>/dev/null || pkill -9 sing-box 2>/dev/null
-                    sleep 1; echo -e "${green}✅ Sing-box 重启指令已下发${plain}"
+                    [[ "${conf,,}" == "y" ]] && do_restart "sing-box"
                     ;;
                 2)
                     read -p "⚠️ 确认停止 Sing-box？(y/n): " conf
-                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
-                    systemctl stop sing-box 2>/dev/null || pkill -9 sing-box 2>/dev/null
-                    echo -e "${yellow}✅ Sing-box 已停止${plain}"
+                    [[ "${conf,,}" == "y" ]] && do_stop "sing-box"
                     ;;
                 3)
                     read -p "⚠️ 确认重启 Xray？(y/n): " conf
-                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
-                    systemctl restart xray 2>/dev/null || systemctl restart x-ui 2>/dev/null || pkill -9 xray 2>/dev/null
-                    sleep 1; echo -e "${green}✅ Xray 重启指令已下发${plain}"
+                    [[ "${conf,,}" == "y" ]] && do_restart "xray"
                     ;;
                 4)
                     read -p "⚠️ 确认停止 Xray？(y/n): " conf
-                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
-                    systemctl stop xray 2>/dev/null || systemctl stop x-ui 2>/dev/null || pkill -9 xray 2>/dev/null
-                    echo -e "${yellow}✅ Xray 已停止${plain}"
+                    [[ "${conf,,}" == "y" ]] && do_stop "xray"
                     ;;
                 5)
                     read -p "⚠️ 确认重启 Mihomo？(y/n): " conf
-                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
-                    systemctl restart mihomo 2>/dev/null || systemctl restart clash-meta 2>/dev/null || pkill -9 mihomo 2>/dev/null || pkill -9 clash-meta 2>/dev/null
-                    sleep 1; echo -e "${green}✅ Mihomo 重启指令已下发${plain}"
+                    [[ "${conf,,}" == "y" ]] && do_restart "mihomo"
                     ;;
                 6)
                     read -p "⚠️ 确认停止 Mihomo？(y/n): " conf
-                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
-                    systemctl stop mihomo 2>/dev/null || systemctl stop clash-meta 2>/dev/null || pkill -9 mihomo 2>/dev/null || pkill -9 clash-meta 2>/dev/null
-                    echo -e "${yellow}✅ Mihomo 已停止${plain}"
+                    [[ "${conf,,}" == "y" ]] && do_stop "mihomo"
                     ;;
                 7)
+                    echo -e "${yellow}⚠️ 注意：如果是临时 Argo 隧道，重启后 URL 会变化！${plain}"
                     read -p "⚠️ 确认重启 Cloudflared/Argo？(y/n): " conf
-                    [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; sleep 1; continue; }
-                    systemctl restart cloudflared 2>/dev/null || systemctl restart velox-argo 2>/dev/null || systemctl restart argo 2>/dev/null || pkill -9 cloudflared 2>/dev/null
-                    sleep 1; echo -e "${green}✅ Argo 重启指令已下发${plain}"
+                    [[ "${conf,,}" == "y" ]] && do_restart "cloudflared"
                     ;;
                 8)
-                    echo -e "${cyan}正在抓取 Sing-box 实时日志 (Ctrl+C 退出)...${plain}"
-                    journalctl -u sing-box -f --no-pager 2>/dev/null || journalctl _COMM=sing-box -f --no-pager
-                    ;;
-                9)
-                    echo -e "${cyan}正在抓取 Xray 实时日志 (Ctrl+C 退出)...${plain}"
-                    journalctl -u xray -u x-ui -f --no-pager 2>/dev/null || journalctl _COMM=xray -f --no-pager
-                    ;;
-                10)
-                    echo -e "${cyan}正在抓取 Mihomo 实时日志 (Ctrl+C 退出)...${plain}"
-                    journalctl -u mihomo -u clash-meta -f --no-pager 2>/dev/null || journalctl _COMM=mihomo -f --no-pager || journalctl _COMM=clash-meta -f --no-pager
-                    ;;
-                11)
-                    echo -e "${cyan}正在抓取 Cloudflared 实时日志 (Ctrl+C 退出)...${plain}"
-                    journalctl -u cloudflared -u velox-argo -u argo -f --no-pager 2>/dev/null || journalctl _COMM=cloudflared -f --no-pager
+                    echo -e "${cyan}尝试抓取日志（无 systemd 时可能为空）...${plain}"
+                    journalctl -u sing-box -n 50 --no-pager 2>/dev/null || \
+                    journalctl _COMM=sing-box -n 50 --no-pager 2>/dev/null || \
+                    echo -e "${yellow}未找到可用日志。你的 sing-box 为直接启动，日志可能被重定向到 /dev/null 或面板目录。${plain}"
                     ;;
                 0) break ;;
-                *) echo -e "${red}❌ 无效选择，请输入 0-11${plain}"; sleep 1 ;;
+                *) echo -e "${red}无效选择${plain}"; sleep 1 ;;
             esac
 
-            # 只有非日志、非返回的操作才暂停
-            if [[ "$core_op" =~ ^[1-7]$ ]]; then
-                read -p "👉 按回车继续..."
-            fi
+            [[ "$core_op" =~ ^[1-8]$ ]] && read -p "👉 按回车继续..."
         done
         ;;
         
@@ -2118,118 +2151,135 @@ EOF_F2B
         done
         ;;
         
-     21)
-        echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (极客全自动版) ===${plain}"
-        
-        if ! command -v fuser >/dev/null 2>&1; then
-            echo -e "${yellow}⚙️ 正在向底层注入缺失装甲: psmisc...${plain}"
-            $PKG_INSTALL psmisc >/dev/null 2>&1
-        fi
-        
-        ACME_BIN=""
-        if [ -f "/root/.acme.sh/acme.sh" ]; then ACME_BIN="/root/.acme.sh/acme.sh"
-        elif [ -f "$HOME/.acme.sh/acme.sh" ]; then ACME_BIN="$HOME/.acme.sh/acme.sh"; fi
+       21)
+        while true; do
+            clear
+            echo -e "\n${blue}=== 🔐 Acme 域名证书深度体检与管理 (极客全自动版) ===${plain}"
+            
+            if ! command -v fuser >/dev/null 2>&1; then
+                echo -e "${yellow}⚙️ 正在向底层注入缺失装甲: psmisc...${plain}"
+                $PKG_INSTALL psmisc >/dev/null 2>&1
+            fi
+            
+            ACME_BIN=""
+            if [ -f "/root/.acme.sh/acme.sh" ]; then ACME_BIN="/root/.acme.sh/acme.sh"
+            elif [ -f "$HOME/.acme.sh/acme.sh" ]; then ACME_BIN="$HOME/.acme.sh/acme.sh"; fi
 
-        if [ -z "$ACME_BIN" ]; then
-            echo -e "${yellow}⚠️ 未检测到 Acme.sh 安装路径。${plain}"
-            echo -e "可能原因：当前 VPS 未申请过本地证书，或使用了其他证书管理工具。"
-        else
-            echo -e "${cyan}👇 当前 VPS 本地已申请的证书列表与到期时间如下：${plain}"
-            echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
-            "$ACME_BIN" --list
-            echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
+            if [ -z "$ACME_BIN" ]; then
+                echo -e "${yellow}⚠️ 未检测到 Acme.sh 安装路径。${plain}"
+                echo -e "可能原因：当前 VPS 未申请过本地证书，或使用了其他证书管理工具。"
+            else
+                echo -e "${cyan}👇 当前 VPS 本地已申请的证书列表与到期时间如下：${plain}"
+                echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
+                "$ACME_BIN" --list
+                echo -e "${yellow}--------------------------------------------------------------------------------${plain}"
+            fi
             
             echo -e "\n${green}💡 极客科普：${plain}"
             echo -e "正常的 Acme 脚本会自动在后台续签。若发现节点突然断流，且距离到期不足 10 天，请手动强制续签！"
             
-            echo -e "\n  ${green}1.${plain} 🚀 强制续签证书 (智能注入 Nginx 避让与节点重启守护)"
-            echo -e "  ${red}2.${plain} 🗑️ 彻底删除证书 (焦土化清理无用域名残留)"
-            echo -e "  ${purple}3.${plain} ⏰ 证书到期 TG 预警 (部署/卸载每日探针)"
-            echo -e "  ${yellow}0.${plain} 🔙 取消并返回主菜单"
+            echo -e "\n  ${green}1.${plain} 🚀 强制续签证书"
+            echo -e "  ${red}2.${plain} 🗑️ 彻底删除证书"
+            echo -e "  ${purple}3.${plain} ⏰ 证书到期 TG 预警管理"
+            echo -e "  ${yellow}0.${plain} 🔙 返回主菜单"
             echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
-            read -p "👉 请选择进阶管理操作 [0-3]: " acme_choice
+            read -p "👉 请选择操作 [0-3]: " acme_choice
             
             case $acme_choice in
                 1)
-                    read -p "✍️ 请输入需要续签的【主域名 Main_Domain】 (例如 node.123.xyz): " renew_domain
+                    [ -z "$ACME_BIN" ] && { echo -e "${red}未安装 Acme.sh，无法续签${plain}"; read -p "按回车继续..."; continue; }
+                    read -p "✍️ 请输入需要续签的【主域名】: " renew_domain
                     if [ -n "$renew_domain" ]; then
-                        echo -e "\n${yellow}⏳ 正在向 Acme 底层注入端口避让与服务联动逻辑...${plain}"
                         PRE_HOOK="systemctl stop nginx apache2 >/dev/null 2>&1; fuser -k 80/tcp >/dev/null 2>&1"
                         POST_HOOK="systemctl restart nginx sing-box xray x-ui 3x-ui v2ray >/dev/null 2>&1"
-                        echo -e "${cyan}⏳ 正在向 CA 签发机构请求续签 [ ${renew_domain} ]，请耐心等待...${plain}"
+                        echo -e "${cyan}⏳ 正在续签 ${renew_domain} ...${plain}"
                         "$ACME_BIN" --renew -d "$renew_domain" --force --ecc --pre-hook "$PRE_HOOK" --post-hook "$POST_HOOK"
-                        if [ $? -ne 0 ]; then
-                            echo -e "\n${yellow}⚠️ ECC 模式续签失败，正在尝试切换为 RSA 模式强行重试...${plain}"
-                            "$ACME_BIN" --renew -d "$renew_domain" --force --pre-hook "$PRE_HOOK" --post-hook "$POST_HOOK"
-                        fi
-                        echo -e "\n${green}✅ 操作完毕！Web 容器与代理服务已满血复活！${plain}"
-                        echo -e "💡 ${cyan}提示：避让逻辑已刻入底层配置。以后的后台自动续签将【100%防炸全自动】完成，无需手动干预！${plain}"
+                        [ $? -ne 0 ] && "$ACME_BIN" --renew -d "$renew_domain" --force --pre-hook "$PRE_HOOK" --post-hook "$POST_HOOK"
+                        echo -e "${green}✅ 续签流程已执行完毕${plain}"
                     else
-                        echo -e "${red}❌ 域名输入为空，已取消续签操作。${plain}"
+                        echo -e "${red}域名不能为空${plain}"
                     fi
+                    read -p "👉 按回车继续..."
                     ;;
                 2)
-                    read -p "✍️ 请输入需要彻底物理吊销的【旧域名 Main_Domain】: " del_domain
+                    [ -z "$ACME_BIN" ] && { echo -e "${red}未安装 Acme.sh${plain}"; read -p "按回车继续..."; continue; }
+                    read -p "✍️ 请输入要删除的【主域名】（直接回车取消）: " del_domain
                     if [ -n "$del_domain" ]; then
-                        echo -e "\n${yellow}⏳ 正在向 CA 机构请求吊销，并抹除续签守护...${plain}"
-                        "$ACME_BIN" --remove -d "$del_domain" --ecc 2>/dev/null
-                        "$ACME_BIN" --remove -d "$del_domain" 2>/dev/null
-                        echo -n "正在物理粉碎本地残留的证书实体文件... "
-                        rm -rf ~/.acme.sh/"$del_domain"
-                        rm -rf ~/.acme.sh/"${del_domain}_ecc"
-                        echo -e "[${green}已彻底焦土化${plain}]"
-                        echo -e "\n✅ ${green}操作完毕！该域名证书已被完全销毁，系统将不再触发失效续签报错！${plain}"
+                        read -p "⚠️ 确认彻底删除 ${del_domain} 的证书？(y/n): " conf
+                        if [[ "${conf,,}" == "y" ]]; then
+                            "$ACME_BIN" --remove -d "$del_domain" --ecc 2>/dev/null
+                            "$ACME_BIN" --remove -d "$del_domain" 2>/dev/null
+                            rm -rf ~/.acme.sh/"$del_domain" ~/.acme.sh/"${del_domain}_ecc"
+                            echo -e "${green}✅ 已删除${plain}"
+                        else
+                            echo -e "${yellow}已取消${plain}"
+                        fi
                     else
-                        echo -e "${red}❌ 域名输入为空，已取消删除操作。${plain}"
+                        echo -e "${yellow}已取消${plain}"
                     fi
+                    read -p "👉 按回车继续..."
                     ;;
                 3)
-                    echo -e "\n${blue}=== ⏰ 证书到期 TG 预警管理 ===${plain}"
-                    if crontab -l 2>/dev/null | grep -q "velox_cert_alert.sh"; then
-                        echo -e "当前状态: ${green}已部署 ✅${plain}"
-                    else
-                        echo -e "当前状态: ${yellow}未部署 ⚠️${plain}"
-                    fi
-                    echo -e "  ${green}1.${plain} 部署/重置每日预警探针 (每天 03:00 检查，剩余 ≤7 天发 TG)"
-                    echo -e "  ${red}2.${plain} 彻底卸载预警探针"
-                    echo -e "  ${yellow}0.${plain} 返回"
-                    read -p "👉 请选择 [0-2]: " cert_alert_op
-
-                    case $cert_alert_op in
-                        1)
-                            if [ ! -f "/etc/velox_tg.conf" ] || ! grep -q "GLOBAL_TG_TOKEN" /etc/velox_tg.conf 2>/dev/null; then
-                                echo -e "${red}❌ 未检测到全局 TG 凭证，请先去 [14] TG 报警中枢配置！${plain}"
+                    while true; do
+                        clear
+                        echo -e "\n${blue}=== ⏰ 证书到期 TG 预警管理 ===${plain}"
+                        
+                        # 显示凭证（打码）
+                        if [ -f "/etc/velox_tg.conf" ]; then
+                            source /etc/velox_tg.conf 2>/dev/null
+                            if [ -n "$GLOBAL_TG_TOKEN" ]; then
+                                MASKED_TOKEN="${GLOBAL_TG_TOKEN:0:8}********${GLOBAL_TG_TOKEN: -4}"
+                                MASKED_CHAT="${GLOBAL_TG_CHATID:0:3}****${GLOBAL_TG_CHATID: -2}"
+                                echo -e "当前 Token : ${green}${MASKED_TOKEN}${plain}"
+                                echo -e "当前 ChatID: ${green}${MASKED_CHAT}${plain}"
                             else
-                                cat << 'EOF_CERT' > /usr/local/bin/velox_cert_alert.sh
+                                echo -e "${yellow}未配置全局 TG 凭证${plain}"
+                            fi
+                        else
+                            echo -e "${yellow}未配置全局 TG 凭证${plain}"
+                        fi
+
+                        if crontab -l 2>/dev/null | grep -q "velox_cert_alert.sh"; then
+                            echo -e "探针状态  : ${green}已部署 ✅（每天 03:00 检查）${plain}"
+                        else
+                            echo -e "探针状态  : ${yellow}未部署 ⚠️${plain}"
+                        fi
+
+                        echo -e "------------------------------------------------"
+                        echo -e "  ${green}1.${plain} 部署/重置每日预警探针"
+                        echo -e "  ${cyan}2.${plain} 立刻手动测试一次（发送测试消息到 TG）"
+                        echo -e "  ${red}3.${plain} 彻底卸载预警探针"
+                        echo -e "  ${yellow}0.${plain} 返回上一级"
+                        read -p "👉 请选择 [0-3]: " cert_op
+
+                        case $cert_op in
+                            1)
+                                if [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ]; then
+                                    echo -e "${red}❌ 请先去 14 号配置 TG 凭证${plain}"
+                                else
+                                    cat << 'EOF_CERT' > /usr/local/bin/velox_cert_alert.sh
 #!/bin/bash
 source /etc/velox_tg.conf 2>/dev/null
 [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ] && exit 0
-
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 export TZ="Asia/Shanghai"
-
 ACME_BIN=""
 [ -f "/root/.acme.sh/acme.sh" ] && ACME_BIN="/root/.acme.sh/acme.sh"
 [ -z "$ACME_BIN" ] && [ -f "$HOME/.acme.sh/acme.sh" ] && ACME_BIN="$HOME/.acme.sh/acme.sh"
 [ -z "$ACME_BIN" ] && exit 0
-
 ALERT_MSG=""
 while read -r line; do
     domain=$(echo "$line" | awk '{print $1}')
     [ -z "$domain" ] && continue
-
     cert_file=""
     [ -f "/root/.acme.sh/${domain}_ecc/fullchain.cer" ] && cert_file="/root/.acme.sh/${domain}_ecc/fullchain.cer"
     [ -z "$cert_file" ] && [ -f "/root/.acme.sh/${domain}/fullchain.cer" ] && cert_file="/root/.acme.sh/${domain}/fullchain.cer"
     [ -z "$cert_file" ] && continue
-
     end_date=$(openssl x509 -enddate -noout -in "$cert_file" 2>/dev/null | cut -d= -f2)
     [ -z "$end_date" ] && continue
-
     end_ts=$(date -d "$end_date" +%s 2>/dev/null)
     now_ts=$(date +%s)
     days_left=$(( (end_ts - now_ts) / 86400 ))
-
     if [ "$days_left" -le 7 ] && [ "$days_left" -ge 0 ]; then
         ALERT_MSG="${ALERT_MSG}
 ⚠️ 域名: <code>${domain}</code>
@@ -2237,9 +2287,7 @@ while read -r line; do
 到期: ${end_date}"
     fi
 done < <("$ACME_BIN" --list 2>/dev/null | tail -n +2)
-
 [ -z "$ALERT_MSG" ] && exit 0
-
 MSG="🚨 <b>[Velox Acme 域名证书到期预警]</b>
 主机: <code>$(hostname)</code>
 时间: $(date +'%Y-%m-%d %H:%M:%S')
@@ -2248,40 +2296,53 @@ MSG="🚨 <b>[Velox Acme 域名证书到期预警]</b>
 ${ALERT_MSG}
 --------------------------------------
 ⚠️ 请及时检查 acme.sh 自动续签是否正常，或前往面板【21】执行强制续签！"
-
 curl -s -m 8 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" \
-    -d "chat_id=${GLOBAL_TG_CHATID}" \
-    -d "parse_mode=HTML" \
-    --data-urlencode "text=$MSG" >/dev/null 2>&1
+    -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" --data-urlencode "text=$MSG" >/dev/null 2>&1
 EOF_CERT
-                                chmod +x /usr/local/bin/velox_cert_alert.sh
-                                crontab -l 2>/dev/null | grep -v "velox_cert_alert.sh" | crontab -
-                                (crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/velox_cert_alert.sh") | crontab -
-                                echo -e "${green}✅ 证书到期预警已部署！每天 03:00 自动检查，剩余 ≤7 天将发送 TG 警报。${plain}"
-                            fi
-                            ;;
-                        2)
-                            read -p "⚠️ 确认彻底卸载证书预警探针？(y/n): " conf
-                            [[ "${conf,,}" != "y" ]] && { echo -e "${yellow}已取消${plain}"; }
-                            rm -f /usr/local/bin/velox_cert_alert.sh
-                            crontab -l 2>/dev/null | grep -v "velox_cert_alert.sh" | crontab -
-                            echo -e "${green}✅ 证书预警探针已彻底卸载。${plain}"
-                            ;;
-                        0) ;;
-                        *) echo -e "${red}无效选择${plain}" ;;
-                    esac
+                                    chmod +x /usr/local/bin/velox_cert_alert.sh
+                                    crontab -l 2>/dev/null | grep -v "velox_cert_alert.sh" | crontab -
+                                    (crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/velox_cert_alert.sh") | crontab -
+                                    echo -e "${green}✅ 已部署，每天 03:00 自动检查${plain}"
+                                fi
+                                read -p "按回车继续..."
+                                ;;
+                            2)
+                                if [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ]; then
+                                    echo -e "${red}❌ 未配置 TG 凭证${plain}"
+                                else
+                                    TEST_MSG="🟢 <b>[Velox 证书预警测试]</b>
+主机: <code>$(hostname)</code>
+时间: $(date +'%Y-%m-%d %H:%M:%S')
+--------------------------------------
+这是一条手动测试消息。
+如果你能收到，说明证书到期预警通道正常。"
+                                    curl -s -m 8 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" \
+                                        -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" \
+                                        --data-urlencode "text=$TEST_MSG" >/dev/null 2>&1
+                                    echo -e "${green}✅ 测试消息已发送，请检查 Telegram${plain}"
+                                fi
+                                read -p "按回车继续..."
+                                ;;
+                            3)
+                                read -p "⚠️ 确认卸载证书预警探针？(y/n): " conf
+                                if [[ "${conf,,}" == "y" ]]; then
+                                    rm -f /usr/local/bin/velox_cert_alert.sh
+                                    crontab -l 2>/dev/null | grep -v "velox_cert_alert.sh" | crontab -
+                                    echo -e "${green}✅ 已卸载${plain}"
+                                else
+                                    echo -e "${yellow}已取消${plain}"
+                                fi
+                                read -p "按回车继续..."
+                                ;;
+                            0) break ;;
+                            *) echo -e "${red}无效选择${plain}"; sleep 1 ;;
+                        esac
+                    done
                     ;;
-                0)
-                    echo -e "${yellow}已取消操作。${plain}"
-                    ;;
-                *)
-                    echo -e "${red}❌ 无效选择，请输入 0、1、2 或 3。${plain}"
-                    ;;
+                0) break ;;
+                *) echo -e "${red}无效选择${plain}"; sleep 1 ;;
             esac
-        fi
-
-        echo -e "\n${yellow}------------------------------------------${plain}"
-        read -p "👉 按【回车键】返回主菜单..."
+        done
         ;;
         
        22)
