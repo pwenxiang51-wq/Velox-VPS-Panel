@@ -360,12 +360,16 @@ echo -e "${cyan}=======================================================${plain}"
             echo "$pid $full_cmd"
         }
 
-        find_unit_by_pid() {
+       find_unit_by_pid() {
             local pid="$1"
             [ -z "$pid" ] && return
             local unit=$(cat /proc/$pid/cgroup 2>/dev/null | grep -oE 'system\.slice/[^/]+\.service' | head -n1 | sed 's|system.slice/||')
-            [ -n "$unit" ] && echo "$unit" && return
-            unit=$(systemctl status "$pid" 2>/dev/null | head -n1 | grep -oE '[a-zA-Z0-9@_.-]+\.service' | head -n1)
+            [ -z "$unit" ] && unit=$(systemctl status "$pid" 2>/dev/null | head -n1 | grep -oE '[a-zA-Z0-9@_.-]+\.service' | head -n1)
+            
+            # 🚀 注入免死金牌：遇到 cron/systemd/docker 等系统骨干，强行切断查杀链
+            if echo "$unit" | grep -qiE 'cron|systemd|init|session|user@|docker|containerd'; then
+                return
+            fi
             [ -n "$unit" ] && echo "$unit"
         }
 
@@ -511,10 +515,17 @@ echo -e "${cyan}=======================================================${plain}"
                     fi
                     echo -e " ${display} : ${green}运行中 ✅${plain}  PID:${cyan}${pid}${plain}  版本:${cyan}${version}${plain}"
                     [ -n "$unit" ] && echo -e "    └─ 服务: ${yellow}${unit}${plain}"
-                else
-                    if command -v "$core" >/dev/null 2>&1 || [ -f "/usr/local/bin/$core" ] || \
-                       { [ "$core" = "mihomo" ] && [ -f /usr/local/bin/clash-meta ]; } || \
-                       { [ "$core" = "cloudflared" ] && [ -f /usr/local/bin/cloudflared ]; }; then
+               else
+                    # 🚀 注入全网奇葩路径特征库（注意：不要加 local，防 Bash 报错）
+                    is_installed=0
+                    if command -v "$core" >/dev/null 2>&1 || [ -f "/usr/local/bin/$core" ]; then is_installed=1
+                    elif [ "$core" = "xray" ] && { [ -f "/usr/local/x-ui/bin/xray-linux-amd64" ] || [ -f "/usr/local/x-ui/bin/xray" ] || systemctl list-unit-files 2>/dev/null | grep -qi "x-ui.service"; }; then is_installed=1
+                    elif [ "$core" = "sing-box" ] && { [ -f "/etc/s-box/sing-box" ] || systemctl list-unit-files 2>/dev/null | grep -qiE "sing-box|s-box|vx-core"; }; then is_installed=1
+                    elif [ "$core" = "mihomo" ] && { [ -f "/usr/local/bin/clash-meta" ] || [ -f "/usr/local/bin/mihomo" ] || systemctl list-unit-files 2>/dev/null | grep -qiE "mihomo|clash"; }; then is_installed=1
+                    elif [ "$core" = "cloudflared" ] && { [ -f "/usr/local/bin/cloudflared" ] || command -v cloudflared >/dev/null 2>&1; }; then is_installed=1
+                    fi
+
+                    if [ "$is_installed" -eq 1 ]; then
                         echo -e " ${display} : ${red}已停止 ❌${plain}"
                     else
                         echo -e " ${display} : ${yellow}未安装 ⚠️${plain}"
