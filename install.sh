@@ -330,11 +330,10 @@ echo -e "${cyan}=======================================================${plain}"
         4) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
         5) echo -e "\n${cyan}--- 正在启动任务管理器 ---${plain}"; sleep 1; top ;;
         6) echo -e "\n${blue}--- 监听端口 ---${plain}"; ss -tuln ;;
-       7)
-        # ================= 智能核心手术台（跨脚本兼容版） =================
+           7)
+        # ================= 代理核心深度体检 + 智能手术台 =================
         send_tg_core() {
-            local action="$1"
-            local core="$2"
+            local action="$1" core="$2"
             [ ! -f /etc/velox_tg.conf ] && return
             source /etc/velox_tg.conf 2>/dev/null
             [ -z "$GLOBAL_TG_TOKEN" ] || [ -z "$GLOBAL_TG_CHATID" ] && return
@@ -348,19 +347,143 @@ echo -e "${cyan}=======================================================${plain}"
                 --data-urlencode "text=$MSG" >/dev/null 2>&1 &
         }
 
-        # 获取某个核心的真实进程信息
         get_core_info() {
+            local name="$1" pid=""
+            if [ "$name" = "mihomo" ]; then
+                pid=$(pgrep -f "mihomo|clash-meta" 2>/dev/null | head -n1)
+            elif [ "$name" = "cloudflared" ]; then
+                pid=$(pgrep -f "cloudflared|cloudflared.*tunnel" 2>/dev/null | head -n1)
+            else
+                pid=$(pgrep -f "[/ ]${name}( |$)|${name} run|${name}-linux" 2>/dev/null | head -n1)
+            fi
+            [ -z "$pid" ] && return
+            [ ! -r "/proc/$pid/cmdline" ] && return
+            local full_cmd=$(tr '\0' ' ' < /proc/$pid/cmdline 2>/dev/null | sed 's/ $//')
+            echo "$pid $full_cmd"
+        }
+
+        find_unit_by_pid() {
+            local pid="$1"
+            [ -z "$pid" ] && return
+            local unit=$(cat /proc/$pid/cgroup 2>/dev/null | grep -oE 'system\.slice/[^/]+\.service' | head -n1 | sed 's|system.slice/||')
+            [ -n "$unit" ] && echo "$unit" && return
+            unit=$(systemctl status "$pid" 2>/dev/null | head -n1 | grep -oE '[a-zA-Z0-9@_.-]+\.service' | head -n1)
+            [ -n "$unit" ] && echo "$unit"
+        }
+
+        collect_related_units() {
             local name="$1"
-            # 返回: PID|完整命令行
-            local info
-            info=$(ps -eo pid,args 2>/dev/null | grep -E "[/ ]${name}( |$)|${name} run|${name}-linux" | grep -v grep | head -n1)
-            if [ -z "$info" ] && [ "$name" = "mihomo" ]; then
-                info=$(ps -eo pid,args 2>/dev/null | grep -E "clash-meta|mihomo" | grep -v grep | head -n1)
+            local units="" info pid unit
+            info=$(get_core_info "$name")
+            if [ -n "$info" ]; then
+                pid=$(echo "$info" | awk '{print $1}')
+                unit=$(find_unit_by_pid "$pid")
+                [ -n "$unit" ] && units="$unit"
             fi
-            if [ -z "$info" ] && [ "$name" = "cloudflared" ]; then
-                info=$(ps -eo pid,args 2>/dev/null | grep -E "cloudflared|argo" | grep -v grep | head -n1)
+            case "$name" in
+                sing-box)    units="$units vx-core sing-box s-box singbox" ;;
+                xray)        units="$units xray x-ui 3x-ui" ;;
+                mihomo)      units="$units mihomo clash-meta clash" ;;
+                cloudflared) units="$units cloudflared vx-argo velox-argo argo" ;;
+            esac
+            echo "$units" | tr ' ' '\n' | sort -u | tr '\n' ' '
+        }
+
+        do_stop() {
+            local name="$1"
+            echo -e "${cyan}>>> 正在停止 [${name}] ...${plain}"
+
+            local units=$(collect_related_units "$name")
+            local u
+            for u in $units; do
+                systemctl stop "$u" 2>/dev/null
+            done
+            sleep 1
+
+            local info=$(get_core_info "$name")
+            if [ -n "$info" ]; then
+                local pid=$(echo "$info" | awk '{print $1}')
+                kill -9 "$pid" 2>/dev/null
+                pkill -9 -f "$name" 2>/dev/null
+                [ "$name" = "mihomo" ] && pkill -9 -f "clash-meta" 2>/dev/null
+                sleep 1
             fi
-            echo "$info"
+
+            if [ -n "$(get_core_info "$name")" ]; then
+                echo -e "${red}❌ 停止失败，仍有进程残留${plain}"
+                return 1
+            else
+                echo -e "${green}✅ [${name}] 已停止${plain}"
+                send_tg_core "停止" "$name"
+                return 0
+            fi
+        }
+
+        do_restart() {
+            local name="$1"
+            echo -e "${cyan}>>> 正在重启 [${name}] ...${plain}"
+
+            # 关键：杀之前先保存完整启动命令
+            local info=$(get_core_info "$name")
+            local old_cmd=""
+            if [ -n "$info" ]; then
+                old_cmd=$(echo "$info" | sed -E "s/^[[:space:]]*[0-9]+[[:space:]]+//")
+            fi
+
+            local units=$(collect_related_units "$name")
+            local u
+
+            for u in $units; do
+                systemctl stop "$u" 2>/dev/null
+            done
+            sleep 0.5
+            pkill -9 -f "$name" 2>/dev/null
+            [ "$name" = "mihomo" ] && pkill -9 -f "clash-meta" 2>/dev/null
+            sleep 0.5
+
+            # 优先 systemd 拉起
+            for u in $units; do
+                if systemctl list-unit-files 2>/dev/null | grep -qi "^${u}.service"; then
+                    systemctl restart "$u" 2>/dev/null && break
+                fi
+            done
+            sleep 1
+
+            if [ -n "$(get_core_info "$name")" ]; then
+                echo -e "${green}✅ [${name}] 重启成功 (Systemd)${plain}"
+                send_tg_core "重启" "$name"
+                return 0
+            fi
+
+            # 游击队模式：用原命令硬拉
+            if [ -n "$old_cmd" ]; then
+                echo -e "${yellow}⚠️ Systemd 唤醒失败，使用原命令拉起...${plain}"
+                nohup $old_cmd >/dev/null 2>&1 &
+                sleep 2
+                if [ -n "$(get_core_info "$name")" ]; then
+                    echo -e "${green}✅ [${name}] 已通过原命令复活${plain}"
+                    send_tg_core "重启" "$name"
+                    return 0
+                fi
+            fi
+
+            # sing-box 专属路径兜底
+            if [ "$name" = "sing-box" ]; then
+                for conf in /etc/vx_vne/config.json /etc/sing-box/config.json /usr/local/etc/sing-box/config.json; do
+                    if [ -f "$conf" ] && [ -x /usr/local/bin/sing-box ]; then
+                        nohup /usr/local/bin/sing-box run -c "$conf" >/dev/null 2>&1 &
+                        sleep 2
+                        if [ -n "$(get_core_info sing-box)" ]; then
+                            echo -e "${green}✅ Sing-box 已用 $conf 拉起${plain}"
+                            send_tg_core "重启" "sing-box"
+                            return 0
+                        fi
+                    fi
+                done
+            fi
+
+            echo -e "${red}❌ 重启失败${plain}"
+            return 1
         }
 
         while true; do
@@ -368,8 +491,7 @@ echo -e "${cyan}=======================================================${plain}"
             echo -e "\n${blue}=== 📦 代理核心深度体检 + 智能手术台 ===${plain}"
             echo -e "${yellow}当前北京时间：${green}$(date +"%Y-%m-%d %H:%M:%S")${plain}\n"
 
-            # ---------- 逐个核心检测 ----------
-            for core in "sing-box" "xray" "mihomo" "cloudflared"; do
+            for core in sing-box xray mihomo cloudflared; do
                 local display=""
                 case $core in
                     sing-box)    display="🚀 Sing-box" ;;
@@ -381,63 +503,44 @@ echo -e "${cyan}=======================================================${plain}"
                 info=$(get_core_info "$core")
                 if [ -n "$info" ]; then
                     pid=$(echo "$info" | awk '{print $1}')
-                    cmd=$(echo "$info" | sed "s/^[[:space:]]*${pid}[[:space:]]*//")
+                    unit=$(find_unit_by_pid "$pid")
                     version="未知"
-                    bin=$(echo "$cmd" | awk '{print $1}')
+                    bin=$(echo "$info" | awk '{print $2}')
                     if [ -x "$bin" ]; then
                         version=$($bin version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n1)
                         [ -z "$version" ] && version=$($bin -v 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*' | head -n1)
                         [ -z "$version" ] && version="未知"
                     fi
-
-                    # TCP + UDP 端口
-                    tcp_ports=$(ss -tlnp 2>/dev/null | grep "pid=$pid" | awk '{print $4}' | awk -F: '{print $NF}' | sort -n -u | tr '\n' ' ')
-                    udp_ports=$(ss -ulnp 2>/dev/null | grep "pid=$pid" | awk '{print $4}' | awk -F: '{print $NF}' | sort -n -u | tr '\n' ' ')
-                    [ -z "$tcp_ports" ] && tcp_ports="无"
-                    [ -z "$udp_ports" ] && udp_ports="无"
-
-                    echo -e " ${display} : ${green}运行中 ✅${plain}  PID: ${cyan}${pid}${plain}  版本: ${cyan}${version}${plain}"
-                    echo -e "    └─ TCP : ${cyan}${tcp_ports}${plain}"
-                    echo -e "    └─ UDP : ${cyan}${udp_ports}${plain}"
-                    # 显示关键启动参数（配置文件路径）
-                    conf_path=$(echo "$cmd" | grep -oE '\-c[[:space:]]+[^[:space:]]+|config\.json|/etc/[^[:space:]]+\.json' | head -n1)
-                    [ -n "$conf_path" ] && echo -e "    └─ 配置: ${yellow}${conf_path}${plain}"
+                    echo -e " ${display} : ${green}运行中 ✅${plain}  PID:${cyan}${pid}${plain}  版本:${cyan}${version}${plain}"
+                    [ -n "$unit" ] && echo -e "    └─ 服务: ${yellow}${unit}${plain}"
                 else
-                    # 检查是否安装但未运行
-                    bin=""
-                    bin=$(command -v "$core" 2>/dev/null)
-                    [ -z "$bin" ] && [ -f "/usr/local/bin/$core" ] && bin="/usr/local/bin/$core"
-                    if [ "$core" = "mihomo" ]; then
-                        [ -z "$bin" ] && [ -f "/usr/local/bin/clash-meta" ] && bin="/usr/local/bin/clash-meta"
-                    fi
-                    if [ -n "$bin" ]; then
-                        echo -e " ${display} : ${red}已停止 ❌${plain}（已安装）"
+                    if command -v "$core" >/dev/null 2>&1 || [ -f "/usr/local/bin/$core" ] || \
+                       { [ "$core" = "mihomo" ] && [ -f /usr/local/bin/clash-meta ]; } || \
+                       { [ "$core" = "cloudflared" ] && [ -f /usr/local/bin/cloudflared ]; }; then
+                        echo -e " ${display} : ${red}已停止 ❌${plain}"
                     else
                         echo -e " ${display} : ${yellow}未安装 ⚠️${plain}"
                     fi
                 fi
             done
 
-            # ---------- 端口跳跃 DNAT ----------
-            echo -e "\n${cyan}--- 🔄 端口跳跃侦测 (DNAT) ---${plain}"
-            ipv4_dnat=$(iptables -t nat -nL PREROUTING 2>/dev/null | grep DNAT)
-            ipv6_dnat=$(ip6tables -t nat -nL PREROUTING 2>/dev/null | grep DNAT)
-            if [ -n "$ipv4_dnat" ]; then
-                echo -e "${green}IPv4:${plain}"
-                echo "$ipv4_dnat" | sed 's/^/  /'
+            echo -e "\n${cyan}📡 [核心进程监听 TCP/UDP]${plain}"
+            ss_out=$(ss -tunlp 2>/dev/null | grep -E 'sing-box|xray|mihomo|clash|cloudflared' || true)
+            if [ -n "$ss_out" ]; then
+                echo "$ss_out"
             else
-                echo -e "  IPv4: ${cyan}无${plain}"
-            fi
-            if [ -n "$ipv6_dnat" ]; then
-                echo -e "${green}IPv6:${plain}"
-                echo "$ipv6_dnat" | sed 's/^/  /'
-            else
-                echo -e "  IPv6: ${cyan}无${plain}"
+                echo -e "${yellow}无监听${plain}"
             fi
 
-            # ---------- 出口 IP ----------
-            echo -e "\n${cyan}--- 🌍 当前公网出口 ---${plain}"
-            curl -sS --max-time 3 https://ip.gs 2>/dev/null || echo -e "${yellow}获取失败${plain}"
+            echo -e "\n${cyan}🔄 [IPv4 端口跳跃 DNAT]${plain}"
+            dnat4=$(iptables -t nat -nL PREROUTING 2>/dev/null | grep DNAT || true)
+            [ -n "$dnat4" ] && echo "$dnat4" || echo -e "${yellow}干净无残留${plain}"
+
+            echo -e "\n${cyan}🔄 [IPv6 端口跳跃 DNAT]${plain}"
+            dnat6=$(ip6tables -t nat -nL PREROUTING 2>/dev/null | grep DNAT || true)
+            [ -n "$dnat6" ] && echo "$dnat6" || echo -e "${yellow}干净无残留${plain}"
+
+            echo -e "\n${cyan}🌍 公网出口: ${green}$(curl -sS --max-time 3 https://ip.gs 2>/dev/null || echo '获取失败')${plain}"
 
             echo -e "\n${cyan}------------------------------------------------${plain}"
             echo -e "  ${green}1.${plain} 重启 Sing-box"
@@ -447,81 +550,9 @@ echo -e "${cyan}=======================================================${plain}"
             echo -e "  ${green}5.${plain} 重启 Mihomo"
             echo -e "  ${red}6.${plain} 停止 Mihomo"
             echo -e "  ${green}7.${plain} 重启 Cloudflared/Argo ${yellow}(临时隧道会变URL)${plain}"
-            echo -e "  ${cyan}8.${plain} 查看 Sing-box 相关日志"
             echo -e "  ${yellow}0.${plain} 返回主菜单"
             echo -e "${cyan}------------------------------------------------${plain}"
-            read -p "👉 请选择 [0-8]: " core_op
-
-            do_stop() {
-                local name="$1"
-                local info=$(get_core_info "$name")
-                if [ -z "$info" ]; then
-                    echo -e "${yellow}⚠️ 未发现运行中的 ${name}${plain}"
-                    return 1
-                fi
-                local pid=$(echo "$info" | awk '{print $1}')
-                echo -e "${cyan}正在终止 PID ${pid} ...${plain}"
-                kill -9 "$pid" 2>/dev/null
-                sleep 1
-                if get_core_info "$name" >/dev/null; then
-                    # 再补一刀
-                    pkill -9 -f "$name" 2>/dev/null
-                    sleep 1
-                fi
-                if get_core_info "$name" >/dev/null; then
-                    echo -e "${red}❌ 停止失败，进程仍在${plain}"
-                    return 1
-                else
-                    echo -e "${green}✅ ${name} 已彻底停止${plain}"
-                    send_tg_core "停止" "$name"
-                    return 0
-                fi
-            }
-
-            do_restart() {
-                local name="$1"
-                local info=$(get_core_info "$name")
-                local old_cmd=""
-                if [ -n "$info" ]; then
-                    old_cmd=$(echo "$info" | sed "s/^[[:space:]]*[0-9]\+[[:space:]]*//")
-                    do_stop "$name"
-                fi
-
-                # 优先用原来的完整命令拉起
-                if [ -n "$old_cmd" ]; then
-                    echo -e "${cyan}使用原命令重新拉起...${plain}"
-                    nohup $old_cmd >/dev/null 2>&1 &
-                    sleep 2
-                    if get_core_info "$name" >/dev/null; then
-                        echo -e "${green}✅ ${name} 已成功重启${plain}"
-                        send_tg_core "重启" "$name"
-                        return 0
-                    fi
-                fi
-
-                # 回退方案：常见路径 + 你当前的 vx_vne
-                if [ "$name" = "sing-box" ]; then
-                    if [ -f /etc/vx_vne/config.json ] && [ -x /usr/local/bin/sing-box ]; then
-                        nohup /usr/local/bin/sing-box run -c /etc/vx_vne/config.json >/dev/null 2>&1 &
-                        sleep 2
-                        if get_core_info sing-box >/dev/null; then
-                            echo -e "${green}✅ Sing-box 已用 /etc/vx_vne/config.json 拉起${plain}"
-                            send_tg_core "重启" "sing-box"
-                            return 0
-                        fi
-                    fi
-                fi
-
-                # 最后尝试 systemctl
-                systemctl restart "$name" 2>/dev/null && sleep 1 && get_core_info "$name" >/dev/null && {
-                    echo -e "${green}✅ 通过 systemctl 重启成功${plain}"
-                    send_tg_core "重启" "$name"
-                    return 0
-                }
-
-                echo -e "${red}❌ 自动重启失败，请手动启动${plain}"
-                return 1
-            }
+            read -p "👉 请选择 [0-7]: " core_op
 
             case $core_op in
                 1)
@@ -549,21 +580,15 @@ echo -e "${cyan}=======================================================${plain}"
                     [[ "${conf,,}" == "y" ]] && do_stop "mihomo"
                     ;;
                 7)
-                    echo -e "${yellow}⚠️ 注意：如果是临时 Argo 隧道，重启后 URL 会变化！${plain}"
+                    echo -e "${yellow}⚠️ 临时 Argo 隧道重启后 URL 会变化${plain}"
                     read -p "⚠️ 确认重启 Cloudflared/Argo？(y/n): " conf
                     [[ "${conf,,}" == "y" ]] && do_restart "cloudflared"
-                    ;;
-                8)
-                    echo -e "${cyan}尝试抓取日志（无 systemd 时可能为空）...${plain}"
-                    journalctl -u sing-box -n 50 --no-pager 2>/dev/null || \
-                    journalctl _COMM=sing-box -n 50 --no-pager 2>/dev/null || \
-                    echo -e "${yellow}未找到可用日志。你的 sing-box 为直接启动，日志可能被重定向到 /dev/null 或面板目录。${plain}"
                     ;;
                 0) break ;;
                 *) echo -e "${red}无效选择${plain}"; sleep 1 ;;
             esac
 
-            [[ "$core_op" =~ ^[1-8]$ ]] && read -p "👉 按回车继续..."
+            [[ "$core_op" =~ ^[1-7]$ ]] && read -p "👉 按回车继续..."
         done
         ;;
         
