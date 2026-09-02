@@ -391,9 +391,15 @@ echo -e "${cyan}=======================================================${plain}"
             echo "$units" | tr ' ' '\n' | sort -u | tr '\n' ' '
         }
 
-        do_stop() {
+      do_stop() {
             local name="$1"
             echo -e "${cyan}>>> 正在停止 [${name}] ...${plain}"
+
+            # 🚀 注入记忆留存：拔管前，提取并刻录最后遗言
+            local info=$(get_core_info "$name")
+            if [ -n "$info" ]; then
+                echo "$info" | sed -E "s/^[[:space:]]*[0-9]+[[:space:]]+//" > "/tmp/.velox_${name}_cmd.cache"
+            fi
 
             local units=$(collect_related_units "$name")
             local u
@@ -425,11 +431,14 @@ echo -e "${cyan}=======================================================${plain}"
             local name="$1"
             echo -e "${cyan}>>> 正在重启 [${name}] ...${plain}"
 
-            # 关键：杀之前先保存完整启动命令
+            # 🚀 读取记忆：活人取口供，死人读遗书
             local info=$(get_core_info "$name")
             local old_cmd=""
             if [ -n "$info" ]; then
                 old_cmd=$(echo "$info" | sed -E "s/^[[:space:]]*[0-9]+[[:space:]]+//")
+                echo "$old_cmd" > "/tmp/.velox_${name}_cmd.cache"
+            else
+                [ -f "/tmp/.velox_${name}_cmd.cache" ] && old_cmd=$(cat "/tmp/.velox_${name}_cmd.cache")
             fi
 
             local units=$(collect_related_units "$name")
@@ -518,7 +527,7 @@ echo -e "${cyan}=======================================================${plain}"
                else
                     # 🚀 注入全网奇葩路径特征库（注意：不要加 local，防 Bash 报错）
                     is_installed=0
-                    if command -v "$core" >/dev/null 2>&1 || [ -f "/usr/local/bin/$core" ]; then is_installed=1
+                    if command -v "$core" >/dev/null 2>&1 || [ -f "/usr/local/bin/$core" ] || [ -f "/tmp/.velox_${core}_cmd.cache" ]; then is_installed=1
                     elif [ "$core" = "xray" ] && { [ -f "/usr/local/x-ui/bin/xray-linux-amd64" ] || [ -f "/usr/local/x-ui/bin/xray" ] || systemctl list-unit-files 2>/dev/null | grep -qi "x-ui.service"; }; then is_installed=1
                     elif [ "$core" = "sing-box" ] && { [ -f "/etc/s-box/sing-box" ] || systemctl list-unit-files 2>/dev/null | grep -qiE "sing-box|s-box|vx-core"; }; then is_installed=1
                     elif [ "$core" = "mihomo" ] && { [ -f "/usr/local/bin/clash-meta" ] || [ -f "/usr/local/bin/mihomo" ] || systemctl list-unit-files 2>/dev/null | grep -qiE "mihomo|clash"; }; then is_installed=1
