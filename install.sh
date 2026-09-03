@@ -58,8 +58,8 @@ check_virt_safe() {
 if [ "$1" == "restore" ]; then
     echo -e "\n${blue}=== 🛰️ Velox 星际资产恢复程序 ===${plain}"
     
-    local has_enc=0
-    local has_plain=0
+    has_enc=0
+    has_plain=0
     [ -f "/root/Velox_Assets_Backup.tar.gz.enc" ] && has_enc=1
     [ -f "/root/Velox_Assets_Backup.tar.gz" ] && has_plain=1
 
@@ -2964,7 +2964,7 @@ EOF_CERT
     
     # 🚀 智改：彻底修复“双重回车”的恶心卡顿 Bug！
     # 只有 1 到 6 这几个基础信息查询命令，才需要在此处暂停。其他模块均已自带防闪退雷达。
-    if [[ "$choice" =~ ^[1-6]$ ]]; then
+    if [[ "$choice" =~ ^[1-5]$ ]]; then
         echo -e "\n${cyan}按回车键继续...${plain}"; read
     fi
 done
