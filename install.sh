@@ -180,8 +180,9 @@ refresh_status_async() {
                 echo "not_set" > "$STATUS_DIR/traffic.stat"
             fi
 
-            # OTA 版本（最慢，放最后）
-            local remote=$(curl -fsL -m 2 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/version.txt?t=$RANDOM" 2>/dev/null || echo "$LOCAL_VERSION")
+           # 🚀 OTA 智能雷达：抛弃 txt，直接从 GitHub 的 install.sh 源码中暴搜版本号！
+            local remote=$(curl -fsL -m 2 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/install.sh?t=$RANDOM" 2>/dev/null | grep -E '^LOCAL_VERSION=' | awk -F'"' '{print $2}')
+            [ -z "$remote" ] && remote="$LOCAL_VERSION"
             remote=$(echo "$remote" | tr -d '\n' | tr -d '\r')
             echo "$remote" > "$STATUS_DIR/version.stat"
 
