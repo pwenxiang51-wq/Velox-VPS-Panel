@@ -181,7 +181,7 @@ refresh_status_async() {
             fi
 
            # 🚀 OTA 智能雷达：抛弃 txt，直接从 GitHub 的 install.sh 源码中暴搜版本号！
-            local remote=$(curl -fsL -m 2 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/install.sh?t=$RANDOM" 2>/dev/null | grep -E '^LOCAL_VERSION=' | awk -F'"' '{print $2}')
+            local remote=$(curl -fsL -m 5 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/install.sh?t=$RANDOM" 2>/dev/null | grep -m 1 "LOCAL_VERSION=" | cut -d '"' -f2)
             [ -z "$remote" ] && remote="$LOCAL_VERSION"
             remote=$(echo "$remote" | tr -d '\n' | tr -d '\r')
             echo "$remote" > "$STATUS_DIR/version.stat"
@@ -2971,5 +2971,5 @@ done
 EOF
 
 chmod +x /usr/local/bin/velox
-echo -e "\033[1;32m✅ Velox V6.2.1 (全域兼容满血终极版) 部署完毕！请输入 velox 欣赏！\033[0m"
+echo -e "\033[1;32m✅ Velox V${LOCAL_VERSION} (全域兼容满血终极版) 部署完毕！请输入 velox 欣赏！\033[0m"
 velox
