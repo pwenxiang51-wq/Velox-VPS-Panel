@@ -2835,6 +2835,8 @@ EOF_CERT
                 # 1. 拆除核心面板与所有关联报警组件
                 echo -n "1. 正在清理面板本体、备份包裹与所有监控/报警脚本... "
                 rm -f /usr/local/bin/velox /root/velox.sh 2>/dev/null
+                # 👇 极客补枪：清扫最新加入的游击队日志与进程记忆缓存
+                rm -f /tmp/velox_argo_guerilla.log /tmp/.velox_* 2>/dev/null
                 rm -f /root/Velox_Assets_Backup.tar.gz /root/crontab_backup.txt 2>/dev/null
                 rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh
                 rm -f /usr/local/bin/velox_pulse_alert.sh /usr/local/bin/velox_watchdog.sh /tmp/*_dead.flag
@@ -2871,10 +2873,10 @@ EOF_CERT
                 rm -f /root/.velox_fleet_nodes.txt ~/.ssh/velox_fleet_rsa ~/.ssh/velox_fleet_rsa.pub
                 echo -e "[${green}已彻底抹除${plain}]"
 
-                # 4. 恢复网络底层默认参数
-                echo -n "4. 正在抹除底层网络调优 (TCP/UDP/BBR) 并恢复出厂状态... "
-                # 👇 极客补枪：把极简版、狂暴版、自适应版的配置文件残骸一波全带走
-                rm -f /etc/sysctl.d/99-velox-network.conf /etc/sysctl.d/99-velox-bbr.conf /etc/sysctl.d/99-velox-bbr-extreme.conf /etc/modules-load.d/velox-bbr.conf 2>/dev/null
+               # 4. 恢复网络底层默认参数
+               echo -n "4. 正在抹除底层网络调优 (TCP/UDP/BBR) 并恢复出厂状态... "
+               # 🚀 降维打击：直接动用通配符，不管未来出了什么版，只要是 velox 开头的内核配置，一律物理粉碎！
+               rm -f /etc/sysctl.d/99-velox-*.conf /etc/modules-load.d/velox-*.conf 2>/dev/null
         
                 sed -i '/rmem_max/d; /wmem_max/d; /tcp_rmem/d; /tcp_wmem/d; /udp_rmem_min/d; /udp_wmem_min/d; /default_qdisc/d; /tcp_congestion_control/d; /tcp_fastopen/d; /file-max/d; /ip_local_port_range/d' /etc/sysctl.conf
                 sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
