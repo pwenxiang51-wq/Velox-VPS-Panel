@@ -309,7 +309,7 @@ echo -e "${cyan}=======================================================${plain}"
    
     # --- 第五板块：全域高维容灾与资产审计 ---
     echo -e "\n${blue}[ 板块五：📡 全域高维容灾与资产审计 ]${plain}"
-    echo -e "  ${yellow}19.${plain} ⏱️  ${yellow}时空调度中心 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
+    echo -e "  ${yellow}19.${plain} ⏱️ ${yellow}时空调度中心 (设定 VPS 半夜自动重启 / 自动刷新 WARP)${plain}"
     echo -e "  ${yellow}20.${plain} 🔐 ${yellow}Acme 证书管理 (硬核全自动避让 / 到期查询 / 强制续签)${plain}"
     echo -e "  ${yellow}21.${plain} 🧳 ${yellow}模块化资产备份 (精准按需克隆 / 星际舰队 / TG 云端容灾)${plain}"
     echo -e "  ${yellow}22.${plain} 🔍 ${yellow}全域资产雷达 (多维内核级 Socket 嗅探 / 隐藏进程爆破)${plain}"
@@ -513,7 +513,7 @@ echo -e "${cyan}=======================================================${plain}"
                 case $core in
                     sing-box)    display="🚀 Sing-box" ;;
                     xray)        display="🛸 Xray" ;;
-                    mihomo)      display="⚔️  Mihomo" ;;
+                    mihomo)      display="⚔️ Mihomo" ;;
                     cloudflared) display="🚇 Cloudflared/Argo" ;;
                 esac
 
