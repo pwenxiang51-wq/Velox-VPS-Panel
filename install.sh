@@ -281,7 +281,7 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "${blue}[ 板块一：🛡️ 系统核心运维 ]${plain}"
     echo -e "  ${green}1.${plain}  📊 ${green}查看系统基础信息${plain}"
     echo -e "  ${green}2.${plain}  💾 ${green}查看磁盘空间占用${plain}"
-    echo -e "  ${green}3.${plain}  ⏱️  ${green}查看运行时间与负载${plain}"
+    echo -e "  ${green}3.${plain}  ⏱️ ${green}查看运行时间与负载${plain}"
     echo -e "  ${green}4.${plain}  📊 ${green}快速查看内存报告 (静态快照)${plain}"
     echo -e "  ${green}5.${plain}  📈 ${green}实时监控 CPU 与内存 (按 q 退出)${plain}"
     
@@ -290,7 +290,7 @@ echo -e "${cyan}=======================================================${plain}"
     echo -e "  ${green}6.${plain}  📦 ${green}代理核心管理 (深度体检 + 启停手术 / TCP·UDP·DNAT)${plain} ${sb_stat}"
     echo -e "  ${green}7.${plain}  🌐 ${green}查看 WARP 与 Argo 出站详情 (独立管理中心)${plain}"
     echo -e "  ${green}8.${plain}  🚀 ${green}深度验证与管理 BBR 加速${plain} ${bbr_stat}"
-    echo -e "  ${green}9.${plain} 🧹 ${green}一键清理系统垃圾与强制释放内存${plain}"
+    echo -e "  ${green}9.${plain}  🧹 ${green}一键清理系统垃圾与强制释放内存${plain}"
     echo -e "  ${green}10.${plain} 🔄 ${green}重启 VPS 主机 (整机物理重启，SSH 会掉线)${plain}"
     
     # --- 第三板块：代理核心管理 ---
@@ -316,8 +316,8 @@ echo -e "${cyan}=======================================================${plain}"
     
     echo -e "${cyan}  ---------------------------------------------------${plain}"
     echo -e "  ${purple}i.${plain} 🔄 ${purple}OTA 在线平滑升级 (获取 Velox 最新防弹装甲)${plain}"
-    echo -e "  ${red}U.${plain}  🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
-    echo -e "  ${red}0.${plain}  ❌ ${red}退出面板${plain}"
+    echo -e "  ${red}U.${plain} 🗑️  ${red}一键卸载本面板 (清理无痕)${plain}"
+    echo -e "  ${red}0.${plain} ❌ ${red}退出面板${plain}"
     echo -e "${cyan}=====================================================${plain}"
     
     echo -ne "请选择操作 [${green}1${plain}-${yellow}22${plain}, ${purple}i${plain}, ${red}U${plain}, ${red}0${plain}]: "
