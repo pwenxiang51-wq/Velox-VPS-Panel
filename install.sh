@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V6.2.2 全域兼容满血终极版 - 智能嗅探 + 原子防护)
+# 自动生成并运行 Velox 面板 (V6.2.3 全域兼容满血终极版 - 智能嗅探 + 原子防护)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
@@ -11,7 +11,7 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
-LOCAL_VERSION="6.2.2"
+LOCAL_VERSION="6.2.3"
 if command -v apt-get >/dev/null 2>&1; then
     PKG_INSTALL="apt-get install -yqq"
     PKG_REMOVE="apt-get remove --purge -yqq"
@@ -469,7 +469,12 @@ echo -e "${cyan}=======================================================${plain}"
             # 游击队模式：用原命令硬拉
             if [ -n "$old_cmd" ]; then
                 echo -e "${yellow}⚠️ Systemd 唤醒失败，使用原命令拉起...${plain}"
-                nohup $old_cmd >/dev/null 2>&1 &
+                # 🚀 降维修复：如果是临时 Argo，把输出引流到临时文件，拒绝黑洞！
+                if [ "$name" = "cloudflared" ]; then
+                    nohup $old_cmd > /tmp/velox_argo_guerilla.log 2>&1 &
+                else
+                    nohup $old_cmd >/dev/null 2>&1 &
+                fi
                 sleep 2
                 if [ -n "$(get_core_info "$name")" ]; then
                     echo -e "${green}✅ [${name}] 已通过原命令复活${plain}"
@@ -701,6 +706,8 @@ echo -e "${cyan}=======================================================${plain}"
                     # 神级嗅探 3：确认是临时穿透隧道，精准捕获 URL
                     argo_url=$(journalctl _COMM=cloudflared --no-pager -n 100 2>/dev/null | grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
                     [ -z "$argo_url" ] && [ -n "$ACTIVE_ARGO_SVC" ] && argo_url=$(journalctl -u "$ACTIVE_ARGO_SVC" --no-pager -n 100 2>/dev/null | grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
+                    # 🚀 极客补枪：如果系统日志里没有，去查游击队的复活日志！
+                    [ -z "$argo_url" ] && [ -f /tmp/velox_argo_guerilla.log ] && argo_url=$(grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" /tmp/velox_argo_guerilla.log | tail -n 1 | sed 's/https:\/\///')
                     
                     if [ -n "$argo_url" ]; then
                         echo -e " 🔗 链路模式 : ${cyan}https://${argo_url}${plain} ${yellow}(临时穿透隧道)${plain}"
@@ -838,31 +845,65 @@ EOF_BBR
         echo ""; read -p "👉 按【回车键】返回主菜单..."
         ;;
         
-     9)
-        echo -e "\n${blue}=== 🧹 焦土化系统清理与内存强制释放 ===${plain}"
-        echo -e "${yellow}正在执行深度大扫除，清理底层无用依赖与碎片...${plain}\n"
+    9)
+        while true; do
+            clear
+            echo -e "\n${blue}=== 🧹 焦土化清理与系统瘦身中心 ===${plain}"
+            echo -e "  ${green}1.${plain} 🧹 常规全域清理 (您原版的清理：释放内存/清日志/去冗余)"
+            echo -e "  ${yellow}2.${plain} 🛑 软性封锁 WARP (仅停机休眠，释放180MB内存，不删配置)"
+            echo -e "  ${red}3.${plain} 🗑️ 物理强拆 WARP 装甲 (连根拔起，彻底卸载客户端)"
+            echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
+            echo -e "${cyan}---------------------------------------------------${plain}"
+            read -p "👉 请选择清理模式 [0-3]: " clean_choice
 
-        # 绝杀 1：触发全局包管理器清理大招 (依赖咱们刚写的智能路由)
-        echo -n " 🗑️  1. 剥离无用依赖与内核包... "
-        $PKG_CLEAN >/dev/null 2>&1
-        echo -e "[${green}物理清理完毕 ✅${plain}]"
-
-        # 绝杀 2：系统日志瘦身 (防爆盘机制，强制只保留最近 3 天的日志)
-        echo -n " 📝  2. 焦土化清理 Systemd 历史日志... "
-        if command -v journalctl >/dev/null 2>&1; then
-            journalctl --vacuum-time=3d >/dev/null 2>&1
-            journalctl --vacuum-size=100M >/dev/null 2>&1
-        fi
-        echo -e "[${green}日志瘦身完毕 ✅${plain}]"
-
-        # 绝杀 3：强行物理释放内存 (Drop Caches)
-        echo -n " ⚡  3. 物理拔管强制释放缓存内存... "
-        sync; echo 3 > /proc/sys/vm/drop_caches
-        echo -e "[${green}内存满血复苏 ✅${plain}]"
-
-        echo -e "\n${green}🎉 机器已剥离所有多余脂肪，进入极致干练状态！${plain}"
-        echo -e "${blue}---------------------------------------------------${plain}"
-        read -p "👉 按【回车键】返回主菜单..."
+            case $clean_choice in
+                1)
+                    echo -e "\n${yellow}正在执行深度大扫除，清理底层无用依赖与碎片...${plain}"
+                    echo -n " 🗑️  1. 剥离无用依赖与内核包... "
+                    $PKG_CLEAN >/dev/null 2>&1
+                    echo -e "[${green}物理清理完毕 ✅${plain}]"
+                    echo -n " 📝  2. 焦土化清理 Systemd 历史日志... "
+                    if command -v journalctl >/dev/null 2>&1; then
+                        journalctl --vacuum-time=3d >/dev/null 2>&1
+                        journalctl --vacuum-size=100M >/dev/null 2>&1
+                    fi
+                    echo -e "[${green}日志瘦身完毕 ✅${plain}]"
+                    echo -n " ⚡  3. 物理拔管强制释放缓存内存... "
+                    sync; echo 3 > /proc/sys/vm/drop_caches
+                    echo -e "[${green}内存满血复苏 ✅${plain}]"
+                    echo -e "\n${green}🎉 机器已剥离所有多余脂肪，进入极致干练状态！${plain}"
+                    read -p "👉 按【回车键】继续..."
+                    ;;
+                2)
+                    echo -e "\n${yellow}>>> 正在软性封锁 WARP 释放内存...${plain}"
+                    systemctl stop warp-svc 2>/dev/null && systemctl disable warp-svc 2>/dev/null
+                    pkill -9 warp-svc 2>/dev/null
+                    sync; echo 3 > /proc/sys/vm/drop_caches
+                    echo -e "${green}✅ WARP 进程已被软性击毙，内存当场回血！您的配置未受损。${plain}"
+                    read -p "👉 按【回车键】继续..."
+                    ;;
+                3)
+                    read -p "⚠️ 确认物理强拆 WARP 吗？(y/n): " confirm_warp
+                    if [[ "${confirm_warp,,}" == "y" ]]; then
+                        echo -e "\n${cyan}>>> 正在执行物理断网与焦土化卸载...${plain}"
+                        warp-cli disconnect 2>/dev/null
+                        systemctl stop warp-svc 2>/dev/null; systemctl disable warp-svc 2>/dev/null
+                        pkill -9 -f "warp-svc" 2>/dev/null
+                        $PKG_REMOVE cloudflare-warp 2>/dev/null
+                        rm -rf /var/lib/cloudflare-warp /etc/cloudflare-warp ~/.local/share/cloudflare-warp
+                        if ! ping -c 1 -W 2 1.1.1.1 >/dev/null 2>&1; then echo "nameserver 8.8.8.8" > /etc/resolv.conf; fi
+                        swapoff -a 2>/dev/null && swapon -a 2>/dev/null
+                        sync; echo 3 > /proc/sys/vm/drop_caches
+                        echo -e "${green}✅ WARP 装甲已被彻底焦土化粉碎！${plain}"
+                    else
+                        echo -e "${yellow}已取消。${plain}"
+                    fi
+                    read -p "👉 按【回车键】继续..."
+                    ;;
+                0) break ;;
+                *) echo -e "\n${red}❌ 无效选择。${plain}"; sleep 1 ;;
+            esac
+        done
         ;;
         
      10) 
