@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V6.2.5 全域兼容满血终极版 - 智能嗅探 + 原子防护)
+# 自动生成并运行 Velox 面板 (V6.2.6 全域兼容满血终极版 - 智能嗅探 + 原子防护)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
@@ -11,7 +11,7 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
-LOCAL_VERSION="6.2.5"
+LOCAL_VERSION="6.2.6"
 if command -v apt-get >/dev/null 2>&1; then
     PKG_INSTALL="apt-get install -yqq"
     PKG_REMOVE="apt-get remove --purge -yqq"
@@ -133,9 +133,16 @@ refresh_status_async() {
     if mkdir "$lock" 2>/dev/null; then
         (
             # 代理核心
-            if pgrep -x "sing-box" >/dev/null 2>&1 || pgrep -x "xray" >/dev/null 2>&1; then
+            if pgrep -x "sing-box" >/dev/null 2>&1 \
+               || pgrep -x "xray" >/dev/null 2>&1 \
+               || pgrep -x "mihomo" >/dev/null 2>&1 \
+               || pgrep -f "clash-meta" >/dev/null 2>&1; then
                 echo "running" > "$STATUS_DIR/sb.stat"
-            elif command -v sing-box >/dev/null 2>&1 || command -v xray >/dev/null 2>&1; then
+            elif command -v sing-box >/dev/null 2>&1 \
+               || command -v xray >/dev/null 2>&1 \
+               || command -v mihomo >/dev/null 2>&1 \
+               || [ -f /usr/local/bin/clash-meta ] \
+               || [ -f /usr/local/bin/mihomo ]; then
                 echo "stopped" > "$STATUS_DIR/sb.stat"
             else
                 echo "not_installed" > "$STATUS_DIR/sb.stat"
@@ -1136,12 +1143,14 @@ sleep 30
 if systemctl is-active --quiet sing-box 2>/dev/null || pgrep -x "sing-box" >/dev/null 2>&1; then SB_STAT="运行中 ✅"; else SB_STAT="未运行/未安装 ⚠️"; fi
 if systemctl is-active --quiet xray 2>/dev/null || systemctl is-active --quiet x-ui 2>/dev/null || pgrep -x "xray" >/dev/null 2>&1; then XR_STAT="运行中 ✅"; else XR_STAT="未运行/未安装 ⚠️"; fi
 if pgrep -x "cloudflared" >/dev/null 2>&1 || systemctl is-active --quiet velox-argo 2>/dev/null || systemctl is-active --quiet argo 2>/dev/null; then ARGO_STAT="运行中 ✅"; else ARGO_STAT="未运行/无自启 ⚠️"; fi
+if pgrep -x "mihomo" >/dev/null 2>&1 || pgrep -f "clash-meta" >/dev/null 2>&1; then MH_STAT="运行中 ✅"; elif command -v mihomo >/dev/null 2>&1 || [ -f /usr/local/bin/mihomo ] || [ -f /usr/local/bin/clash-meta ]; then MH_STAT="未运行 ⚠️"; else MH_STAT="未安装 ⚠️"; fi
 if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null || systemctl is-active --quiet warp-svc 2>/dev/null || ip link show wg0 >/dev/null 2>&1 || ip link show warp >/dev/null 2>&1; then WARP_STAT="已就绪 ✅"; else WARP_STAT="未开启/未安装 ⚠️"; fi
 MSG="🟢 <b>[Velox 系统复苏通知]</b>
 Sir，您的服务器 <code>$(hostname)</code> 已完成重启并成功连网！
 📊 <b>【核心体检报告】</b>
 🚀 Sing-box : $SB_STAT
-🛸 Xray 核心: $XR_STAT
+🛸 Xray     : $XR_STAT
+⚔️ Mihomo   : $MH_STAT
 🚇 Argo 隧道: $ARGO_STAT
 🛡️ WARP 出站: $WARP_STAT
 ⏰ 北京时间: $(date +'%Y-%m-%d %H:%M:%S')"
@@ -1235,6 +1244,8 @@ core_radar() {
 # 调用雷达，瞬间返回极简状态
 SB_LIVE=$(core_radar "sing-box")
 XR_LIVE=$(core_radar "xray")
+MH_LIVE=$(core_radar "mihomo")
+[ "$MH_LIVE" == "⚪ 未安装" ] && MH_LIVE=$(core_radar "clash-meta")
 
 IP_ADDR=$(curl -s4m3 api.ipify.org || curl -s4m3 icanhazip.com || echo "未知")
 UP_TIME=$(uptime -p | sed 's/up //')
@@ -1259,7 +1270,8 @@ MSG="📊 <b>[Velox 每日体检晨报]</b>
 
 🛡️ <b>[节点核心存活状态]</b>
 🚀 Sing-box : ${SB_LIVE}
-🛸 Xray 核心: ${XR_LIVE}
+🛸 Xray     : ${XR_LIVE}
+⚔️ Mihomo   : ${MH_LIVE}
 --------------------------------------
 <i>(此消息为每日例行存活打卡)</i>"
 curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" --data-urlencode "text=$MSG" > /dev/null 2>&1
@@ -1282,7 +1294,7 @@ EOF_P
                         cat << 'EOF_WATCH' > /usr/local/bin/velox_watchdog.sh
 #!/bin/bash
 source /etc/velox_tg.conf
-declare -a CORE_TARGETS=("sing-box" "xray" "cloudflared" "velox-argo")
+declare -a CORE_TARGETS=("sing-box" "xray" "cloudflared" "velox-argo" "mihomo" "clash-meta")
 
 for PROC in "${CORE_TARGETS[@]}"; do
     # 只有系统中确实存在该实体命令，才将其纳入秒级监控雷达
@@ -2783,7 +2795,7 @@ EOF_CERT
         fi
 
         echo -e "\n${green}🎉 矩阵扫描完毕！全域资产已完全曝光。${plain}"
-        echo -e "💡 ${yellow}提示：现在您可以退出并进入 22 号容灾中心，复制上述暴露的路径，实施精准抽离！${plain}"
+        echo -e "💡 ${yellow}提示：现在您可以退出并进入 21 号容灾中心，复制上述暴露的路径，实施精准抽离！${plain}"
         
         echo -e "\n${yellow}------------------------------------------${plain}"
         read -p "👉 按【回车键】返回主菜单..."
@@ -2826,7 +2838,7 @@ EOF_CERT
             echo -e "${red}                ⚠️ 终极卸载与物理粉碎程序                ${plain}"
             echo -e "${red}=======================================================${plain}"
             echo -e "${yellow}💡 提示：此操作为【焦土化卸载】，将彻底拔除 Velox 面板、底层监控及所有定时任务。${plain}"
-            echo -e "${green}🛡️ 定心丸：您的代理核心(Sing-box/Xray)、伪装网页(Nginx)及穿透隧道【绝对安全】，本次仅焦土化卸载面板及监控！${plain}\n"
+            echo -e "${green}🛡️ 定心丸：您的代理核心(Sing-box/Xray/Mihomo)、伪装网页(Nginx)及穿透隧道【绝对安全】，本次仅焦土化卸载面板及监控！${plain}\n"
             
             read -p "👉 确定要彻底卸载本面板并【焦土化抹除】监控数据吗？(y/n): " confirm_uninstall
             if [[ "${confirm_uninstall,,}" == "y" ]]; then
@@ -2837,7 +2849,7 @@ EOF_CERT
                 rm -f /usr/local/bin/velox /root/velox.sh 2>/dev/null
                 # 👇 极客补枪：清扫最新加入的游击队日志与进程记忆缓存
                 rm -f /tmp/velox_argo_guerilla.log /tmp/.velox_* 2>/dev/null
-                rm -f /root/Velox_Assets_Backup.tar.gz /root/crontab_backup.txt 2>/dev/null
+                rm -f /root/Velox_Assets_Backup.tar.gz /root/Velox_Assets_Backup.tar.gz.enc /root/crontab_backup.txt 2>/dev/null
                 rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh
                 rm -f /usr/local/bin/velox_pulse_alert.sh /usr/local/bin/velox_watchdog.sh /tmp/*_dead.flag
                 sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
