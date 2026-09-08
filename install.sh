@@ -1148,11 +1148,11 @@ if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quie
 MSG="🟢 <b>[Velox 系统复苏通知]</b>
 Sir，您的服务器 <code>$(hostname)</code> 已完成重启并成功连网！
 📊 <b>【核心体检报告】</b>
-<pre>🚀 Sing-box : $SB_STAT
+🚀 Sing-box : $SB_STAT
 🛸 Xray     : $XR_STAT
 ⚔️ Mihomo   : $MH_STAT
 🚇 Argo 隧道: $ARGO_STAT
-🛡️ WARP 出站: $WARP_STAT<pre>
+🛡️ WARP 出站: $WARP_STAT
 ⏰ 北京时间: $(date +'%Y-%m-%d %H:%M:%S')"
 MAIN_IF=$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print $5}' | head -n 1)
 if [ -n "$MAIN_IF" ]; then curl --interface "$MAIN_IF" -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" --data-urlencode chat_id="${GLOBAL_TG_CHATID}" --data-urlencode text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1
@@ -1269,9 +1269,9 @@ MSG="📊 <b>[Velox 每日体检晨报]</b>
 💽 <b>磁盘:</b> <code>${DISK_USED} / ${DISK_TOTAL} (已用 ${DISK_PCT})</code>
 
 🛡️ <b>[节点核心存活状态]</b>
-<pre>🚀 Sing-box : ${SB_LIVE}
+🚀 Sing-box : ${SB_LIVE}
 🛸 Xray     : ${XR_LIVE}
-⚔️ Mihomo   : ${MH_LIVE}</pre>
+⚔️ Mihomo   : ${MH_LIVE}
 --------------------------------------
 <i>(此消息为每日例行存活打卡)</i>"
 curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" --data-urlencode "text=$MSG" > /dev/null 2>&1
