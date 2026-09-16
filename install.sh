@@ -335,7 +335,12 @@ echo -e "${cyan}=======================================================${plain}"
         2) echo -e "\n${blue}--- 磁盘空间 ---${plain}"; df -h ;;
         3) echo -e "\n${blue}--- 运行状态 ---${plain}"; uptime ;;
         4) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
-        5) echo -e "\n${cyan}--- 正在启动任务管理器 ---${plain}"; sleep 1; top ;;
+        5)
+           echo -e "\n${cyan}--- 实时监控 CPU / 内存 (top) ---${plain}"
+           echo -e "${yellow}提示: Shift+M 按内存排序防抖 | d → 输入秒数(如5) → 回车 改刷新间隔 | i 隐藏空闲进程 | q 退出${plain}"
+           read -p "👉 按【回车键】进入 top 监控 (进入后按 q 退出)..."
+           top
+           ;;
         6)
         # ================= 代理核心深度体检 + 智能手术台 =================
         send_tg_core() {
@@ -2636,7 +2641,23 @@ EOF_CERT
                         fi
                        # ================= 👆 TG 云端容灾结束 👆 =================
                         
-                      echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (全系统平台智能适配版)：${plain}"
+                        echo -e "\n${yellow}💡 【跨机无缝恢复教学】 (全系统平台智能适配版)：${plain}"
+                        echo -e "--------------------------------------------------------"
+                        echo -e "${red}⚠️ 【分发中枢专属实战提醒】（强烈建议看完再操作）：${plain}"
+                        echo -e "  1. 新机器必须先预装：${green}apt update && apt install nginx lrzsz -y && rm -f /etc/nginx/sites-enabled/default${plain}"
+                        echo -e "  2. 上传备份包推荐方式："
+                        echo -e "     ${cyan}# Windows PowerShell / CMD（最稳）：${plain}"
+                        echo -e "     scp -P 端口 Velox_Assets_Backup.tar.gz.enc root@新IP:/root/"
+                        echo -e "     ${cyan}# 支持 ZMODEM 的客户端（MobaXterm等）可先执行 rz -y 再拖拽${plain}"
+                        echo -e "  3. 解压后务必检查端口是否一致："
+                        echo -e "     ${cyan}grep listen /etc/nginx/conf.d/stealth.conf${plain}"
+                        echo -e "     不一致就 sed 改成脚本实际端口后再重启 nginx"
+                        echo -e "  4. 本地验证（必须通过）："
+                        echo -e "     ${cyan}curl -k -I https://127.0.0.1:端口/stealth_8x9q2z/core.sh${plain}"
+                        echo -e "  5. 立即手动测试同步（不用等5分钟）："
+                        echo -e "     ${cyan}/root/sync_github.sh && ls -lh /var/www/stealth_8x9q2z/{core.sh,changelog.txt}${plain}"
+                        echo -e "  6. 外部验证："
+                        echo -e "     ${cyan}dig +short 你的域名 && curl -k -I https://你的域名:端口/stealth_8x9q2z/core.sh${plain}"
                         echo -e "--------------------------------------------------------"
                         
                         # 📡 智能感知雷达：判断原包是否已被焦土化
