@@ -2031,7 +2031,7 @@ EOF_ALERT
                     echo -e "\n${blue}--- ⚙️ 极客联动：切换密钥登录装甲 ---${plain}"
                     if [[ "${key_auth,,}" == "no" ]]; then
                         echo -e "${yellow}正在【开启】密钥登录，并为您【物理切断】密码登录...${plain}"
-                        ed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
+                        sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
                         sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
                                     
                         mkdir -p /etc/ssh/sshd_config.d 2>/dev/null
