@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V6.2.6 全域兼容满血终极版 - 智能嗅探 + 原子防护)
+# 自动生成并运行 Velox 面板 (V6.2.7 全域兼容满血终极版 - 智能嗅探 + 原子防护)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
@@ -11,7 +11,7 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
-LOCAL_VERSION="6.2.6"
+LOCAL_VERSION="6.2.7"
 if command -v apt-get >/dev/null 2>&1; then
     PKG_INSTALL="apt-get install -yqq"
     PKG_REMOVE="apt-get remove --purge -yqq"
@@ -130,6 +130,16 @@ trap cleanup_velox_status EXIT
 
 refresh_status_async() {
     local lock="$STATUS_DIR/refresh.lock"
+    
+    # === 💥 注入僵尸探测器：超 5 秒强制物理强拆 ===
+    if [ -d "$lock" ]; then
+        local lock_ts
+        lock_ts=$(stat -c %Y "$lock" 2>/dev/null || echo 0)
+        if [ $(($(date +%s) - lock_ts)) -gt 5 ]; then
+            rm -rf "$lock" 2>/dev/null
+        fi
+    fi
+
     if mkdir "$lock" 2>/dev/null; then
         (
             # 代理核心
@@ -336,11 +346,27 @@ echo -e "${cyan}=======================================================${plain}"
         3) echo -e "\n${blue}--- 运行状态 ---${plain}"; uptime ;;
         4) echo -e "\n${blue}--- 📊 静态内存报告 ---${plain}"; free -h --si ;;
         5)
-           echo -e "\n${cyan}--- 实时监控 CPU / 内存 (top) ---${plain}"
-           echo -e "${yellow}提示: Shift+M 按内存排序防抖 | d → 输入秒数(如5) → 回车 改刷新间隔 | i 隐藏空闲进程 | q 退出${plain}"
-           read -p "👉 按【回车键】进入 top 监控 (进入后按 q 退出)..."
-           top
-           ;;
+            while true; do
+                echo -e "\n${cyan}--- 实时监控 CPU / 内存 (top) ---${plain}"
+                echo -e "${yellow}提示: Shift+M 按内存排序防抖 | d → 输入秒数(如5) → 回车 改刷新间隔 | i 隐藏空闲进程 | q 退出${plain}"
+                read -p "👉 按【回车键】进入 top 监控，或输入【0】返回主菜单: " top_choice
+                
+                if [[ -z "$top_choice" ]]; then
+                    # 捕捉到纯回车，直接放行进入 top
+                    top
+                    break
+                elif [[ "$top_choice" == "0" ]]; then
+                    # 捕捉到 0，安全撤离
+                    echo -e "${green}>>> 安全撤退。${plain}"
+                    sleep 0.5
+                    break
+                else
+                    # 致命拦截：乱敲键盘直接红色警告并重新循环
+                    echo -e "${red}❌ 致命拦截：输入无效！请直接按回车，或输入 0！${plain}"
+                    sleep 1.2
+                fi
+            done
+            ;;
         6)
         # ================= 代理核心深度体检 + 智能手术台 =================
         send_tg_core() {
@@ -1566,8 +1592,8 @@ IFACE="$DEFAULT_IF"
 LIMIT_GB="$limit_gb"
 MODE_NAME="$MODE_NAME"
 
-# 🚀 极致性能：纯 awk 内核级计算，全面淘汰 bc！(无缝兼容 Vnstat V1/V2 版本)
-USAGE_GB=\$(vnstat -i "\$IFACE" --oneline b 2>/dev/null | awk -F';' -v mode="\$MODE_NAME" '{
+# 🚀 极致性能：纯 awk 内核级计算，全面淘汰 bc！(注入防科学计数法的高精度装甲)
+USAGE_GB=\$(vnstat -i "\$IFACE" --oneline b 2>/dev/null | awk -F';' -v mode="\$MODE_NAME" 'BEGIN{CONVFMT="%f"; OFMT="%f"} {
     if (\$1 == "1") { bytes = (mode == "出站上传(TX)") ? \$10 : \$11 }
     else if (\$1 == "2") { bytes = (mode == "出站上传(TX)") ? \$11 : \$12 }
     else { bytes = 0 }
@@ -1923,16 +1949,19 @@ EOF_ALERT
                     if [[ "${key_auth,,}" == "no" ]]; then
                         echo -e "\n${red}❌ 致命拦截：当前密钥登录处于【关闭】状态！${plain}"
                         echo -e "${yellow}强制关闭密码将导致您物理失联，操作已被安全防线熔断！${plain}"
-                    elif [[ "${pwd_auth,,}" == "no" ]]; then
-                        sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                   elif [[ "${pwd_auth,,}" == "no" ]]; then
+                        rm -f /etc/ssh/sshd_config.d/99-velox-sec.conf 2>/dev/null
+                        sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+                        systemctl reload sshd 2>/dev/null || systemctl reload ssh 2>/dev/null
                         echo -e "\n${yellow}🔓 密码登录已【重新开启】！(防线已降级)${plain}"
                     else
                         read -p "⚠️ 确认关闭密码登录？(请确保已配置密钥，否则可能失联！) (y/n): " confirm_key
                         if [[ "${confirm_key,,}" == "y" ]]; then
                             sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
-                            grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
-                            systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                            mkdir -p /etc/ssh/sshd_config.d 2>/dev/null
+                            echo -e "PasswordAuthentication no\nPubkeyAuthentication yes" > /etc/ssh/sshd_config.d/99-velox-sec.conf
+                            chmod 600 /etc/ssh/sshd_config.d/99-velox-sec.conf 2>/dev/null
+                            systemctl reload sshd 2>/dev/null || systemctl reload ssh 2>/dev/null
                             echo -e "\n${green}✅ 密码登录已【永久关闭】！(防线已锁死)${plain}"
                         fi
                     fi
@@ -1977,10 +2006,12 @@ EOF_ALERT
                         if [[ "$lock_pwd" == "y" || "$lock_pwd" == "Y" ]]; then
                             sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
                             sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
-                            grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
-                            grep -q "^PubkeyAuthentication yes" /etc/ssh/sshd_config || echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
-                            
-                            systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                                    
+                            mkdir -p /etc/ssh/sshd_config.d 2>/dev/null
+                            echo -e "PasswordAuthentication no\nPubkeyAuthentication yes" > /etc/ssh/sshd_config.d/99-velox-sec.conf
+                            chmod 600 /etc/ssh/sshd_config.d/99-velox-sec.conf 2>/dev/null
+                                    
+                            systemctl reload sshd 2>/dev/null || systemctl reload ssh 2>/dev/null
                             echo -e "\n${green}✅ 密码登录已彻底物理切断，防弹装甲部署完毕，防御力拉满！${plain}"
                             echo -e "\n${purple}================= 🚨 终极保命警告 (必读) 🚨 =================${plain}"
                             echo -e "${yellow}您的服务器现已化身为【只认密钥】的防弹铁疙瘩！${plain}"
@@ -2000,29 +2031,25 @@ EOF_ALERT
                     echo -e "\n${blue}--- ⚙️ 极客联动：切换密钥登录装甲 ---${plain}"
                     if [[ "${key_auth,,}" == "no" ]]; then
                         echo -e "${yellow}正在【开启】密钥登录，并为您【物理切断】密码登录...${plain}"
-                        sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
-                        grep -q "^PubkeyAuthentication yes" /etc/ssh/sshd_config || echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
-                        
-                        # 联动关闭密码
+                        ed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
                         sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
-                        grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config || echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
-                        
-                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                                    
+                        mkdir -p /etc/ssh/sshd_config.d 2>/dev/null
+                        echo -e "PasswordAuthentication no\nPubkeyAuthentication yes" > /etc/ssh/sshd_config.d/99-velox-sec.conf
+                        chmod 600 /etc/ssh/sshd_config.d/99-velox-sec.conf 2>/dev/null
+                                    
+                        systemctl reload sshd 2>/dev/null || systemctl reload ssh 2>/dev/null
                         echo -e "${green}✅ 操作完成！已恢复【纯密钥防弹模式】，密码已锁死！${plain}"
                     else
                         echo -e "${red}🚨 警告：您正在请求【关闭】密钥登录防线！${plain}"
                         echo -e "${yellow}为防止物理失联，系统将强制为您【开启】密码登录通道作为逃生舱。${plain}"
                         read -p "👉 确定要关闭密钥登录吗？(y/n): " confirm_off_key
                         if [[ "$confirm_off_key" == "y" || "$confirm_off_key" == "Y" ]]; then
-                            # 先强行开启密码防失联
+                            rm -f /etc/ssh/sshd_config.d/99-velox-sec.conf 2>/dev/null
                             sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-                            grep -q "^PasswordAuthentication yes" /etc/ssh/sshd_config || echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
-                            
-                            # 再关闭密钥
                             sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication no/g' /etc/ssh/sshd_config
-                            grep -q "^PubkeyAuthentication no" /etc/ssh/sshd_config || echo "PubkeyAuthentication no" >> /etc/ssh/sshd_config
-                            
-                            systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                                        
+                            systemctl reload sshd 2>/dev/null || systemctl reload ssh 2>/dev/null
                             echo -e "${cyan}✅ 操作完成！密钥登录已物理阻断，系统已降级为【纯密码登录】。${plain}"
                         else
                             echo -e "${yellow}操作已取消，保持防弹装甲。${plain}"
@@ -2057,6 +2084,17 @@ eval "$LOG_CMD" | awk '/Failed password/ {print $(NF-3)}' | while read IP; do
             if ! $FW_CMD -C INPUT -s "$IP" -j DROP &>/dev/null; then 
                 $FW_CMD -I INPUT -s "$IP" -j DROP
                 echo "$(date +'%Y-%m-%d %H:%M:%S') - 💥 击毙爆破 IP: $IP" >> /var/log/velox-defender.log
+                
+                # 👇 注入全平台兼容的物理刻录装甲 (防止重启后黑客越狱)
+                if command -v netfilter-persistent >/dev/null 2>&1; then
+                    # Ubuntu/Debian 体系
+                    netfilter-persistent save >/dev/null 2>&1
+                elif command -v iptables-save >/dev/null 2>&1; then
+                    # RHEL/CentOS 体系兜底
+                    iptables-save > /etc/sysconfig/iptables 2>/dev/null
+                    # Arch/部分魔改系统兜底
+                    [ -d /etc/iptables ] && iptables-save > /etc/iptables/iptables.rules 2>/dev/null
+                fi
             fi
             sed -i "/^$IP$/d" /tmp/velox_ip_counts.txt 2>/dev/null
         else 
@@ -2952,15 +2990,16 @@ EOF_CERT
 
                 # 8. 终极逃生舱：SSH 防线降级询问
                 echo -n "8. 正在探测系统 SSH 防盗门状态... "
-                if grep -qi "^PasswordAuthentication no" /etc/ssh/sshd_config; then
+                if grep -qi "^PasswordAuthentication no" /etc/ssh/sshd_config || [ -f /etc/ssh/sshd_config.d/99-velox-sec.conf ]; then
                     echo -e "[${yellow}雷达显示：密码登录已锁死${plain}]"
                     echo -e "\n${red}🚨 关键抉择：您当前的 VPS 已物理切断密码登录。${plain}"
                     echo -e "${yellow}如果您卸载面板后不慎丢失了本地私钥，将永远无法进入服务器！${plain}"
                     read -p "👉 是否需要为您【重新开启密码登录】作为安全逃生后路？(y/n): " restore_pwd
                     
-                    if [[ "${restore_pwd,,}" == "y" ]]; then
+                   if [[ "${restore_pwd,,}" == "y" ]]; then
+                        rm -f /etc/ssh/sshd_config.d/99-velox-sec.conf 2>/dev/null
                         sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-                        systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+                        systemctl reload sshd 2>/dev/null || systemctl reload ssh 2>/dev/null
                         echo -e "${green}✅ 逃生舱已激活！SSH 密码登录已为您重新开启！${plain}"
                     else
                         echo -e "${cyan}🛡️ 指挥官确认：保持最高警戒！密码登录依然处于物理切断状态。${plain}"
@@ -2997,7 +3036,7 @@ EOF_CERT
     
     # 🚀 智改：彻底修复“双重回车”的恶心卡顿 Bug！
     # 只有 1 到 6 这几个基础信息查询命令，才需要在此处暂停。其他模块均已自带防闪退雷达。
-    if [[ "$choice" =~ ^[1-5]$ ]]; then
+    if [[ "$choice" =~ ^[1-4]$ ]]; then
         echo -e "\n${cyan}按回车键继续...${plain}"; read
     fi
 done
