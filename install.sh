@@ -888,7 +888,7 @@ EOF_BBR
         while true; do
             clear
             echo -e "\n${blue}=== 🧹 焦土化清理与系统瘦身中心 ===${plain}"
-            echo -e "  ${green}1.${plain} 🧹 常规全域清理 (您原版的清理：释放内存/清日志/去冗余)"
+            echo -e "  ${green}1.${plain} 🧹 深度全域清理 (卸载冗余守护进程 / 释放内存 / 清除碎片 / 清日志)"
             echo -e "  ${yellow}2.${plain} 🛑 软性封锁 WARP (仅停机休眠，释放180MB内存，不删配置)"
             echo -e "  ${red}3.${plain} 🗑️ 物理强拆 WARP 装甲 (连根拔起，彻底卸载客户端)"
             echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
@@ -896,12 +896,14 @@ EOF_BBR
             read -p "👉 请选择清理模式 [0-3]: " clean_choice
 
             case $clean_choice in
-                1)
+               1)
                     echo -e "\n${yellow}正在执行深度大扫除，清理底层无用依赖与碎片...${plain}"
                     
-                    # 💡 极客注释：fwupd 是实体机刷 BIOS 的进程，在 VPS 虚拟机上纯属浪费 160MB 左右内存的内鬼。
-                    # 采用幂等操作，杀过一次就永久绝育，重复执行只走个过场，防新机内存泄漏。
-                    echo -e -n " 🗑️  1. 刺杀 [${red}云端无用固件更新器 fwupd${plain}] 并剥离冗余依赖... "
+                    # 💡 极客战术投影：直接在 UI 屏幕上打出高亮科普和操作逻辑
+                    echo -e "   ${cyan}[极客科普] fwupd 为物理硬件固件更新引擎，VPS 虚拟机环境中纯属冗余。${plain}"
+                    echo -e "   ${cyan}[战术动作] 当前执行物理拔管并永久屏蔽，可无损释放约 160MB 左右物理内存。${plain}"
+                    
+                    echo -e -n " 🗑️  1. 正在强拆 [${red}fwupd 无效守护进程${plain}] 并剥离冗余依赖... "
                     systemctl stop fwupd 2>/dev/null
                     systemctl disable fwupd 2>/dev/null
                     systemctl mask fwupd 2>/dev/null
