@@ -968,29 +968,60 @@ EOF_BBR
 
         if [[ -n "$proxy_port" ]]; then
             echo -e "\n${yellow}💡 雷达嗅探到系统正运行 SOCKS5 局部代理 (端口: $proxy_port)${plain}"
-            echo -e "  ${green}1.${plain} 🎯 穿透测试 【代理 IP】 解锁情况 (极客推荐)"
+           echo -e "  ${green}1.${plain} 🎯 穿透测试 【代理 IP】 解锁情况 (极客推荐)"
             echo -e "  ${cyan}2.${plain} 🌍 常规测试 【VPS 原生 IP】 解锁情况"
-            read -p "👉 请选择测速链路 [1-2, 回车默认1]: " test_choice
+            echo -e "  ${yellow}0.${plain} 🔙 放弃测试，返回主菜单"
+            read -p "👉 请选择测速链路 [0-2, 回车默认1]: " test_choice
             
-            echo -e "\n${cyan}🚀 正在拉取测速组件，请耐心等待...${plain}"
-            if [[ "${test_choice:-1}" == "1" ]]; then
-                ALL_PROXY="socks5h://127.0.0.1:$proxy_port" bash <(curl -x socks5h://127.0.0.1:$proxy_port -sL media.ispvps.com)
-            else
-                bash <(curl -sL media.ispvps.com)
-            fi
+            case "${test_choice:-1}" in
+                0) 
+                    echo -e "\n${yellow}已取消测速，正在返回...${plain}"
+                    sleep 0.5
+                    continue 
+                    ;;
+                1) 
+                    echo -e "\n${cyan}🚀 正在拉取测速组件，请耐心等待...${plain}"
+                    ALL_PROXY="socks5h://127.0.0.1:$proxy_port" bash <(curl -x socks5h://127.0.0.1:$proxy_port -sL media.ispvps.com) 
+                    ;;
+                2) 
+                    echo -e "\n${cyan}🚀 正在拉取测速组件，请耐心等待...${plain}"
+                    bash <(curl -sL media.ispvps.com) 
+                    ;;
+                *) 
+                    echo -e "\n${red}❌ 防呆拦截：无效输入！请直接回车或输入 0-2。${plain}"
+                    sleep 1
+                    continue 
+                    ;;
+            esac
 
         elif [[ -n "$warp_iface" ]]; then
             echo -e "\n${yellow}💡 雷达嗅探到系统部署了 WARP 虚拟网卡 ($warp_iface)${plain}"
             echo -e "  ${green}1.${plain} 🎯 穿透测试 【WARP 虚拟网卡】 解锁情况"
             echo -e "  ${cyan}2.${plain} 🌍 常规测试 【VPS 原生 IP】 解锁情况"
-            read -p "👉 请选择测速链路 [1-2, 回车默认1]: " test_choice
+            echo -e "  ${yellow}0.${plain} 🔙 放弃测试，返回主菜单"
+            read -p "👉 请选择测速链路 [0-2, 回车默认1]: " test_choice
             
-            echo -e "\n${cyan}🚀 正在拉取测速组件，请耐心等待...${plain}"
-            if [[ "${test_choice:-1}" == "1" ]]; then
-                bash <(curl -sL media.ispvps.com) -I "$warp_iface"
-            else
-                bash <(curl -sL media.ispvps.com)
-            fi
+            case "${test_choice:-1}" in
+                0) 
+                    echo -e "\n${yellow}已取消测速，正在返回...${plain}"
+                    sleep 0.5
+                    continue 
+                    ;;
+                1) 
+                    echo -e "\n${cyan}🚀 正在拉取测速组件，请耐心等待...${plain}"
+                    bash <(curl -sL media.ispvps.com) -I "$warp_iface" 
+                    ;;
+                2) 
+                    echo -e "\n${cyan}🚀 正在拉取测速组件，请耐心等待...${plain}"
+                    bash <(curl -sL media.ispvps.com) 
+                    ;;
+                *) 
+                    echo -e "\n${red}❌ 防呆拦截：无效输入！请直接回车或输入 0-2。${plain}"
+                    sleep 1
+                    continue 
+                    ;;
+            esac
+            
         else
             echo -e "\n${green}>>> 未检测到局部代理，正在为您测试当前 VPS 原生 IP 解锁情况...${plain}"
             echo -e "${cyan}🚀 正在拉取测速组件，请耐心等待...${plain}"
@@ -1213,11 +1244,13 @@ EOF3
                         fi
                         
                         echo -e "\n${yellow}💡 提示：系统已锚定北京时间，请使用 24 小时制输入。${plain}"
-                        read -p "👉 请输入每日播报的小时 (如填 8 代表早上8点，填 20 代表晚上8点) [默认 8]: " p_hour
-                        
+                        read -p "👉 请输入每日播报的【小时】(24小时制，0-23) [回车默认 8]: " p_hour
                         p_hour=${p_hour:-8}
-                        if ! [[ "$p_hour" =~ ^[0-9]+$ ]] || [ "$p_hour" -lt 0 ] || [ "$p_hour" -gt 23 ]; then
-                            echo -e "${red}❌ 格式致命错误！只能输入 0 到 23 之间的纯数字。${plain}"
+                        read -p "👉 请输入每日播报的【分钟】(0-59) [回车默认 15，避开整点拥堵]: " p_min
+                        p_min=${p_min:-15}
+                        
+                        if ! [[ "$p_hour" =~ ^[0-9]+$ && "$p_min" =~ ^[0-9]+$ ]] || [ "$p_hour" -lt 0 ] || [ "$p_hour" -gt 23 ] || [ "$p_min" -lt 0 ] || [ "$p_min" -gt 59 ]; then
+                            echo -e "${red}❌ 格式致命错误！请输入正确的时间范围。${plain}"
                             read -p "👉 按【回车键】继续..."; continue
                         fi
                         
@@ -1309,7 +1342,7 @@ curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage
 EOF_P
                         chmod +x /usr/local/bin/velox_pulse_alert.sh
                         crontab -l 2>/dev/null | grep -v "velox_pulse_alert.sh" | crontab -
-                        (crontab -l 2>/dev/null; echo "0 $p_hour * * * /usr/local/bin/velox_pulse_alert.sh") | crontab -
+                        (crontab -l 2>/dev/null; echo "$p_min $p_hour * * * /usr/local/bin/velox_pulse_alert.sh") | crontab -
                         echo -e "\n${green}✅ 部署成功！系统将于每天北京时间 ${p_hour}:00 定时播报节点生死报告。${plain}"
                         read -p "👉 按【回车键】继续..."
                         ;;
@@ -1843,7 +1876,8 @@ EOF_ALERT
                     echo -e "\n${blue}--- 🕵️ 查看当前在线 SSH 用户 ---${plain}"
                     w
                     echo -e "${cyan}---------------------------------------------------${plain}"
-                    read -p "👉 请输入要制裁的终端号 (例如 pts/1，完整输入): " target_pts
+                    read -p "👉 请输入要制裁的终端号 (例如 pts/1，输入 0 返回): " target_pts
+                    if [[ "$target_pts" == "0" || -z "$target_pts" ]]; then continue; fi
                     if [[ -n "$target_pts" && "$target_pts" =~ ^pts/[0-9]+$ ]]; then
                         if w | grep -q "$target_pts"; then
                             target_ip=$(w | grep "$target_pts" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
@@ -1851,8 +1885,10 @@ EOF_ALERT
                             
                             echo -e "\n${yellow}🎯 已锁定目标: 终端 [$target_pts] | 来源 IP: [$target_ip]${plain}"
                             echo -e "  ${cyan}1.${plain} 🥾 强行踢出\n  ${cyan}2.${plain} 🧱 永久拉黑\n  ${cyan}3.${plain} 👻 极客恶搞"
-                            read -p "👉 选择制裁套餐 [1-3]: " punish_choice
+                            echo -e "  ${yellow}0.${plain} 🔙 取消返回"
+                            read -p "👉 选择制裁套餐 [0-3]: " punish_choice
                             case $punish_choice in
+                                0) echo -e "${yellow}已取消。${plain}" ;;
                                 1) sudo pkill -9 -t "${target_pts#*/}" 2>/dev/null || sudo skill -9 "$target_pts"; echo -e "${green}✅ 已踢出！${plain}" ;;
                                 2)
                                     [ "$target_ip" != "未知IP或隐藏来源" ] && sudo iptables -A INPUT -s "$target_ip" -j DROP
@@ -1894,7 +1930,8 @@ EOF_ALERT
                     rm -f /tmp/velox_attacks.tmp
                     ;;
              3)
-            read -p "✍️ 请输入新的 SSH 端口号 (1000-65535, 输入 22 恢复默认): " new_port
+            read -p "✍️ 请输入新的 SSH 端口号 (1000-65535, 恢复 22, 输入 0 返回): " new_port
+            if [[ "$new_port" == "0" || -z "$new_port" ]]; then continue; fi
             
             # 1. 强力防呆引信：非数字、空输入、或者长度直接跨入 6 位数（超过 5 位），一枪爆头
             if [[ ! "$new_port" =~ ^[0-9]+$ ]] || [ "${#new_port}" -gt 5 ]; then
@@ -2063,9 +2100,10 @@ EOF_ALERT
                     echo -e "  ${purple}3.${plain} 🛡️ [工业正规军] 安装 Fail2Ban (全面防护，适度占内存)"
                     echo -e "  ${purple}4.${plain} 🗑️ ${red}[工业正规军] 完全卸载 Fail2Ban${plain}"
                     echo -e "  ${yellow}5.${plain} 📜 查看武器库防御战果与拦截名单"
-                    read -p "👉 请选择武器库操作 [1-5]: " def_choice
+                    echo -e "  ${yellow}0.${plain} 🔙 返回上一级"
+                    read -p "👉 请选择武器库操作 [0-5]: " def_choice
                     
-                    if [ "$def_choice" == "1" ]; then
+                   if [[ "$def_choice" == "0" ]]; then continue; fi
                         echo -e "\n${yellow}正在手搓 Bash 底层守护进程并注入 Systemd...${plain}"
                         
                         cat << 'EOF_DEFENDER' > /usr/local/bin/velox-defender.sh
@@ -2328,7 +2366,8 @@ EOF_F2B
             case $acme_choice in
                 1)
                     [ -z "$ACME_BIN" ] && { echo -e "${red}未安装 Acme.sh，无法续签${plain}"; read -p "按回车继续..."; continue; }
-                    read -p "✍️ 请输入需要续签的【主域名】: " renew_domain
+                    read -p "✍️ 请输入需要续签的【主域名】(直接按回车返回): " renew_domain
+                    [ -z "$renew_domain" ] && continue
                     if [ -n "$renew_domain" ]; then
                         PRE_HOOK="systemctl stop nginx apache2 >/dev/null 2>&1; fuser -k 80/tcp >/dev/null 2>&1"
                         POST_HOOK="systemctl restart nginx sing-box xray x-ui 3x-ui v2ray >/dev/null 2>&1"
@@ -2742,7 +2781,8 @@ EOF_CERT
                         chmod 600 ~/.ssh/velox_fleet_rsa ~/.ssh/velox_fleet_rsa.pub 2>/dev/null
                     fi
                     
-                    read -p "👉 请输入目标僚机 IP 地址: " target_ip
+                    read -p "👉 请输入目标僚机 IP 地址 (直接按回车取消): " target_ip
+                    [ -z "$target_ip" ] && continue
                     if [ -n "$target_ip" ]; then
                         read -p "👉 请输入目标机器 SSH 端口 (默认 22): " target_port
                         [ -z "$target_port" ] && target_port=22
@@ -2768,7 +2808,8 @@ EOF_CERT
                         awk -F: '{print " - 🟢 IP: "$1" (端口: "$2")"}' /root/.velox_fleet_nodes.txt
                         echo -e "${cyan}--------------------------------------------------------${plain}"
                         echo -e "💡 你可以输入类似 ${yellow}apt update -y${plain} 或者 ${yellow}reboot${plain}"
-                        read -p "👉 请输入要对所有僚机下达的 Linux 指令: " fleet_cmd
+                        read -p "👉 请输入指令 (直接回车取消): " fleet_cmd
+                        [ -z "$fleet_cmd" ] && continue
                         
                         if [ -n "$fleet_cmd" ]; then
                             echo -e "\n${purple}📡 正在向全频段广播指令...${plain}"
@@ -3035,7 +3076,7 @@ EOF_CERT
     esac
     
     # 🚀 智改：彻底修复“双重回车”的恶心卡顿 Bug！
-    # 只有 1 到 6 这几个基础信息查询命令，才需要在此处暂停。其他模块均已自带防闪退雷达。
+    # 只有 1 到 4 这几个基础信息查询命令，才需要在此处暂停。其他模块均已自带防闪退雷达。
     if [[ "$choice" =~ ^[1-4]$ ]]; then
         echo -e "\n${cyan}按回车键继续...${plain}"; read
     fi
