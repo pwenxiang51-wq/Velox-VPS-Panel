@@ -1108,8 +1108,14 @@ EOF_BBR
                 # 动态侦测每日脉搏晨报状态
                 P_CRON=$(crontab -l 2>/dev/null | grep "velox_pulse_alert.sh")
                 if [ -n "$P_CRON" ]; then
-                    P_TIME=$(echo "$P_CRON" | awk '{print $2}')
-                    PULSE_STAT="${green}运行中 ✅ (每天 ${P_TIME}:00 播报)${plain}"
+                    P_MIN_RAW=$(echo "$P_CRON" | awk '{print $1}')
+                    P_HOUR_RAW=$(echo "$P_CRON" | awk '{print $2}')
+                    
+                    # 极客格式化：补齐前导零 (8:5 -> 08:05)
+                    P_MIN_FMT=$(printf "%02d" "$P_MIN_RAW")
+                    P_HOUR_FMT=$(printf "%02d" "$P_HOUR_RAW")
+                    
+                    PULSE_STAT="${green}运行中 ✅ (每天 ${P_HOUR_FMT}:${P_MIN_FMT} 播报)${plain}"
                 else
                     PULSE_STAT="${yellow}未部署 ⚠️${plain}"
                 fi
@@ -1343,7 +1349,9 @@ EOF_P
                         chmod +x /usr/local/bin/velox_pulse_alert.sh
                         crontab -l 2>/dev/null | grep -v "velox_pulse_alert.sh" | crontab -
                         (crontab -l 2>/dev/null; echo "$p_min $p_hour * * * /usr/local/bin/velox_pulse_alert.sh") | crontab -
-                        echo -e "\n${green}✅ 部署成功！系统将于每天北京时间 ${p_hour}:00 定时播报节点生死报告。${plain}"
+                        # 格式化分钟，确保输入 5 显示 05
+                        formatted_min=$(printf "%02d" $p_min)
+                        echo -e "\n${green}✅ 部署成功！系统将于每天北京时间 ${p_hour}:${formatted_min} 定时播报节点生死报告。${plain}"
                         read -p "👉 按【回车键】继续..."
                         ;;
 
@@ -1829,12 +1837,18 @@ EOF_ALERT
         
     18)
         while true; do
-            # --- 🕵️‍♂️ 史诗级智能侦测引擎 ---
-            current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
+           # --- 🕵️‍♂️ 史诗级智能侦测引擎 (提审 SSH 内存态) ---
+           # 🚀 降维侦测：直接让 SSH 进程交出内存里的真实配置 (无视任何 Include 覆写)
+            current_port=$(sshd -T 2>/dev/null | awk '/^port /{print $2; exit}')
+            [ -z "$current_port" ] && current_port=$(grep -iE "^Port " /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
             [ -z "$current_port" ] && current_port="22 (默认)"
 
-            pwd_auth=$(grep -i "^PasswordAuthentication" /etc/ssh/sshd_config | awk '{print $2}' | tr -d '\r' | head -n 1)
-            key_auth=$(grep -i "^PubkeyAuthentication" /etc/ssh/sshd_config | awk '{print $2}' | tr -d '\r' | head -n 1)
+            pwd_auth=$(sshd -T 2>/dev/null | awk '/^passwordauthentication/{print $2; exit}')
+            key_auth=$(sshd -T 2>/dev/null | awk '/^pubkeyauthentication/{print $2; exit}')
+            
+            # 兜底引擎：如果 sshd -T 意外失效，退回文本暴力提取
+            [ -z "$pwd_auth" ] && pwd_auth=$(grep -i "^PasswordAuthentication" /etc/ssh/sshd_config | awk '{print $2}' | tr -d '\r' | head -n 1)
+            [ -z "$key_auth" ] && key_auth=$(grep -i "^PubkeyAuthentication" /etc/ssh/sshd_config | awk '{print $2}' | tr -d '\r' | head -n 1)
             
             # 默认情况下 Pubkey 都是开启的
             [ -z "$key_auth" ] && key_auth="yes"
