@@ -2104,6 +2104,7 @@ EOF_ALERT
                     read -p "👉 请选择武器库操作 [0-5]: " def_choice
                     
                    if [[ "$def_choice" == "0" ]]; then continue; fi
+                   if [ "$def_choice" == "1" ]; then
                         echo -e "\n${yellow}正在手搓 Bash 底层守护进程并注入 Systemd...${plain}"
                         
                         cat << 'EOF_DEFENDER' > /usr/local/bin/velox-defender.sh
