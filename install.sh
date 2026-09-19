@@ -898,18 +898,30 @@ EOF_BBR
             case $clean_choice in
                 1)
                     echo -e "\n${yellow}正在执行深度大扫除，清理底层无用依赖与碎片...${plain}"
-                    echo -n " 🗑️  1. 剥离无用依赖与内核包... "
+                    
+                    # 💡 极客注释：fwupd 是实体机刷 BIOS 的进程，在 VPS 虚拟机上纯属浪费 160MB 左右内存的内鬼。
+                    # 采用幂等操作，杀过一次就永久绝育，重复执行只走个过场，防新机内存泄漏。
+                    echo -e -n " 🗑️  1. 刺杀 [${red}云端无用固件更新器 fwupd${plain}] 并剥离冗余依赖... "
+                    systemctl stop fwupd 2>/dev/null
+                    systemctl disable fwupd 2>/dev/null
+                    systemctl mask fwupd 2>/dev/null
+                    $PKG_REMOVE fwupd >/dev/null 2>&1
+                    
+                    # 常规全域清理
                     $PKG_CLEAN >/dev/null 2>&1
                     echo -e "[${green}物理清理完毕 ✅${plain}]"
+                    
                     echo -n " 📝  2. 焦土化清理 Systemd 历史日志... "
                     if command -v journalctl >/dev/null 2>&1; then
                         journalctl --vacuum-time=3d >/dev/null 2>&1
                         journalctl --vacuum-size=100M >/dev/null 2>&1
                     fi
                     echo -e "[${green}日志瘦身完毕 ✅${plain}]"
+                    
                     echo -n " ⚡  3. 物理拔管强制释放缓存内存... "
                     sync; echo 3 > /proc/sys/vm/drop_caches
                     echo -e "[${green}内存满血复苏 ✅${plain}]"
+                    
                     echo -e "\n${green}🎉 机器已剥离所有多余脂肪，进入极致干练状态！${plain}"
                     read -p "👉 按【回车键】继续..."
                     ;;
