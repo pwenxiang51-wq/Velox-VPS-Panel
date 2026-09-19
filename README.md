@@ -1,10 +1,10 @@
-# 🛰️ VeloX VPS Panel v6.2.5 (全域兼容满血终极版)
+# 🛰️ VeloX VPS Panel v6.2.7 (全域兼容满血终极版)
 
 [![Linux](https://img.shields.io/badge/OS-Ubuntu%20%7C%20Debian%20%7C%20CentOS-orange.svg)]()
 [![Bash](https://img.shields.io/badge/Language-Pure%20Bash-blue.svg)]()
 [![Armor](https://img.shields.io/badge/Armor-Idiot--Proof%20%7C%20Anti--Explosion-red.svg)]()
 
-> **大佬专属座驾**：拒绝臃肿的传统 Web 面板，在纯血 Bash 终端里加载“四层防弹装甲”。引入智能路由、防爆盘机制、内存级管道及纯 C / AWK 底层高性能计算，打造降维打击级别的 VPS 集群调度中枢。
+> **Velox专属座驾**：拒绝臃肿的传统 Web 面板，在纯血 Bash 终端里加载“四层防弹装甲”。引入智能路由、防爆盘机制、内存级管道及纯 C / AWK 底层高性能计算，打造降维打击级别的 VPS 集群调度中枢。
 
 ---
 
