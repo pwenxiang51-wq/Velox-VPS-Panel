@@ -1100,104 +1100,111 @@ EOF_BBR
         read -p "👉 按【回车键】返回主菜单..."
         ;;
 
-           13)
-                    clear
-                    echo -e "\n${blue}=== 🛰️ 线路质量雷达 (NextTrace) ===${plain}"
-                    echo -e "${yellow}💡 说明：静态探测工具 · 不常驻内存 · 测完即自动释放${plain}"
-                    echo -e "${cyan}--------------------------------------------------------${plain}"
+          13)
+                    while true; do
+                        clear
+                        echo -e "\n${blue}=== 🛰️ 线路质量雷达 (NextTrace) ===${plain}"
+                        echo -e "${yellow}💡 说明：静态探测工具 · 不常驻内存 · 测完即自动释放${plain}"
+                        echo -e "${cyan}--------------------------------------------------------${plain}"
 
-                    # --- 雷达组件生命周期管理 ---
-                    ensure_nexttrace() {
-                        if command -v nexttrace >/dev/null 2>&1; then return 0; fi
-                        echo -e "\n${yellow}⚠️ 未检测到 NextTrace 路由追踪组件。${plain}"
-                        echo -e "${yellow}将执行官方脚本安装: ${plain}curl -sL https://nxtrace.org/nt | bash"
-                        read -p " 👉 是否允许系统自动安装？(y/n): " _nt_install
-                        if [[ "${_nt_install,,}" != "y" ]]; then
-                            echo -e "${yellow}已取消安装。${plain}"
+                        ensure_nexttrace() {
+                            if command -v nexttrace >/dev/null 2>&1; then return 0; fi
+                            echo -e "\n${yellow}⚠️ 未检测到 NextTrace 路由追踪组件。${plain}"
+                            echo -e "${yellow}将执行官方脚本安装: ${plain}curl -sL https://nxtrace.org/nt | bash"
+                            read -p " 👉 是否允许系统自动安装？(y/n): " _nt_install
+                            if [[ "${_nt_install,,}" != "y" ]]; then
+                                echo -e "${yellow}已取消安装。${plain}"
+                                return 1
+                            fi
+                            echo -e "${cyan}⏳ 正在安装 NextTrace...${plain}"
+                            if curl -sL https://nxtrace.org/nt | bash; then
+                                hash -r 2>/dev/null
+                                export PATH="$PATH:/usr/local/bin:/usr/bin"
+                                if command -v nexttrace >/dev/null 2>&1; then
+                                    echo -e "${green}✅ 安装成功！${plain}"
+                                    return 0
+                                fi
+                            fi
+                            echo -e "${red}❌ 安装失败，请检查网络后重试。${plain}"
                             return 1
+                        }
+
+                        CLIENT_IP=$(echo "${SSH_CLIENT:-}" | awk '{print $1}')
+                        VPS_IP=$(curl -4 -fsS --max-time 3 https://ifconfig.me 2>/dev/null || echo "获取失败")
+
+                        echo -e "  📡 你的本地网络 IP (SSH 来源): ${cyan}${CLIENT_IP:-未侦测到}${plain}"
+                        echo -e "  🖥️  当前 VPS 公网 IP (仅供参考): ${cyan}${VPS_IP}${plain}"
+                        echo -e "${cyan}--------------------------------------------------------${plain}"
+                        echo -e "  ${green}1.${plain} 🌐 快速骨干扫描 (一键测试从本 VPS 到国内三网的路由)"
+                        if [ -n "$CLIENT_IP" ]; then
+                            echo -e "  ${green}2.${plain} 🎯 一键回程验户 (追踪从本 VPS 到你本地 IP: ${cyan}$CLIENT_IP${plain} 的路由)"
+                        else
+                            echo -e "  ${yellow}2.${plain} 🎯 一键回程验户 (${red}未捕获到本地 IP，请使用选项 3 手动输入${plain})"
                         fi
-                        echo -e "${cyan}⏳ 正在安装 NextTrace...${plain}"
-                        if curl -sL https://nxtrace.org/nt | bash; then
-                            hash -r 2>/dev/null
-                            export PATH="$PATH:/usr/local/bin:/usr/bin"
-                            if command -v nexttrace >/dev/null 2>&1; then
-                                echo -e "${green}✅ 安装成功！${plain}"
-                                return 0
-                            fi
-                        fi
-                        echo -e "${red}❌ 安装失败，请检查网络后重试。${plain}"
-                        return 1
-                    }
+                        echo -e "  ${green}3.${plain} 📍 手动输入目标 IP (追踪从本 VPS 出发到该 IP 的路由)"
+                        echo -e "  ${purple}0.${plain} 🔙 返回主菜单"
+                        echo -e "${cyan}--------------------------------------------------------${plain}"
+                        read -p " 👉 请选择雷达模式 [0-3]: " trace_choice
 
-                    # --- 提取本地与公网 IP ---
-                    CLIENT_IP=$(echo "${SSH_CLIENT:-}" | awk '{print $1}')
-                    VPS_IP=$(curl -4 -fsS --max-time 3 https://ifconfig.me 2>/dev/null || echo "获取失败")
-
-                    echo -e "  📡 你的本地网络 IP (SSH 来源): ${cyan}${CLIENT_IP:-未侦测到}${plain}"
-                    echo -e "  🖥️  当前 VPS 公网 IP (仅供参考): ${cyan}${VPS_IP}${plain}"
-                    echo -e "${cyan}--------------------------------------------------------${plain}"
-                    echo -e "  ${green}1.${plain} 🌐 快速骨干扫描 (一键测试 VPS 到国内三网的回程路由)"
-                    if [ -n "$CLIENT_IP" ]; then
-                        echo -e "  ${green}2.${plain} 🎯 一键回程验户 (自动追踪到你的本地 IP: ${cyan}$CLIENT_IP${plain})"
-                    else
-                        echo -e "  ${yellow}2.${plain} 🎯 一键回程验户 (${red}未捕获到本地 IP，请使用选项 3 手动输入${plain})"
-                    fi
-                    echo -e "  ${green}3.${plain} 📍 手动输入目标 IP (查询指定的去程或回程节点)"
-                    echo -e "  ${purple}0.${plain} 🔙 返回主菜单"
-                    echo -e "${cyan}--------------------------------------------------------${plain}"
-                    read -p " 👉 请选择雷达模式 [0-3]: " trace_choice
-
-                    case $trace_choice in
-                        1)
-                            ensure_nexttrace || { read -p "👉 按【回车键】返回..."; continue; }
-                            echo -e "\n${cyan}正在执行快速骨干扫描...${plain}"
-                            echo -e "${yellow}💡 提示：电信/联通/移动回程若出现 59.43.x.x 等节点，通常代表 CN2 线路。${plain}"
-                            echo -e "${yellow}💡 结束后可复制终端底部的 MapTrace 链接，在浏览器查看路由地图。${plain}\n"
-                            nexttrace --fast-trace
-                            echo -e "\n${green}✅ 扫描结束。${plain}"
-                            read -p "👉 按【回车键】返回主菜单..."
-                            ;;
-                        2)
-                            if [ -z "$CLIENT_IP" ]; then
-                                echo -e "${red}❌ 环境异常：未检测到标准 SSH 来源 IP，请使用选项 3 手动输入。${plain}"
-                                read -p "👉 按【回车键】返回..."
+                        case $trace_choice in
+                            1)
+                                ensure_nexttrace || { read -p "👉 按【回车键】返回..."; continue; }
+                                echo -e "\n${cyan}正在执行快速骨干扫描...${plain}"
+                                echo -e "${yellow}💡 提示：电信/联通/移动回程若出现 59.43.x.x 等节点，通常代表 CN2 线路。${plain}"
+                                echo -e "${yellow}💡 结束后可复制终端底部的 MapTrace 链接，在浏览器查看路由地图。${plain}\n"
+                                nexttrace --fast-trace
+                                echo -e "\n${green}✅ 扫描结束。${plain}"
+                                read -p "👉 按【回车键】返回本菜单..."
                                 continue
-                            fi
-                            ensure_nexttrace || { read -p "👉 按【回车键】返回..."; continue; }
-                            echo -e "\n${cyan}=== 追踪回程：VPS -> ${CLIENT_IP} ===${plain}"
-                            echo -e "${yellow}💡 提示：若路径中大量出现 London / Frankfurt 或 AS1299，说明存在绕路现象。${plain}\n"
-                            nexttrace "$CLIENT_IP"
-                            echo -e "\n${green}✅ 探测结束。${plain}"
-                            read -p "👉 按【回车键】返回主菜单..."
-                            ;;
-                        3)
-                            ensure_nexttrace || { read -p "👉 按【回车键】返回..."; continue; }
-                            echo -e "\n${cyan}=== 手动输入目标 IP ===${plain}"
-                            read -p " 📡 请输入你要查询的 IP (IPv4/IPv6，直接回车取消): " target_ip
-                            target_ip=$(echo "$target_ip" | tr -d '[:space:]')
-                            if [ -z "$target_ip" ]; then
-                                echo -e "${yellow}已取消查询。${plain}"
-                                read -p "👉 按【回车键】返回..."
+                                ;;
+                            2)
+                                if [ -z "$CLIENT_IP" ]; then
+                                    echo -e "${red}❌ 环境异常：未检测到标准 SSH 来源 IP，请使用选项 3 手动输入。${plain}"
+                                    read -p "👉 按【回车键】返回..."
+                                    continue
+                                fi
+                                ensure_nexttrace || { read -p "👉 按【回车键】返回..."; continue; }
+                                echo -e "\n${cyan}=== 追踪回程：VPS -> ${CLIENT_IP} ===${plain}"
+                                echo -e "${yellow}💡 提示：若路径中大量出现 London / Frankfurt 或 AS1299，说明存在绕路现象。${plain}\n"
+                                nexttrace "$CLIENT_IP"
+                                echo -e "\n${green}✅ 探测结束。${plain}"
+                                read -p "👉 按【回车键】返回本菜单..."
                                 continue
-                            fi
-                            # 终极正则防呆盾
-                            if ! [[ "$target_ip" =~ ^[0-9a-fA-F:.]+$ ]]; then
-                                echo -e "${red}❌ 格式错误：请输入正确的 IP 地址。${plain}"
-                                read -p "👉 按【回车键】返回..."
+                                ;;
+                            3)
+                                ensure_nexttrace || { read -p "👉 按【回车键】返回..."; continue; }
+                                echo -e "\n${cyan}=== 📍 手动输入目标 IP ===${plain}"
+                                echo -e "${yellow}📌 战术科普：本项在 VPS 上执行，探测路径为【本 VPS -> 目标 IP】。${plain}"
+                                echo -e "${yellow}📌 若要探测【您家网络 -> 目标 IP】的真实去程，请在本地电脑执行：${plain}"
+                                echo -e "${yellow}   💻 Windows (CMD/PowerShell) :  tracert -d 目标IP${plain}"
+                                echo -e "${yellow}   🍎 macOS/Linux (终端)       :  traceroute -n 目标IP${plain}"
+                                read -p " 📡 请输入你要查询的 IP (IPv4/IPv6，直接回车取消): " target_ip
+                                target_ip=$(echo "$target_ip" | tr -d '[:space:]')
+                                if [ -z "$target_ip" ]; then
+                                    echo -e "${yellow}已取消查询。${plain}"
+                                    read -p "👉 按【回车键】返回..."
+                                    continue
+                                fi
+                                if ! [[ "$target_ip" =~ ^[0-9a-fA-F:.]+$ ]]; then
+                                    echo -e "${red}❌ 格式错误：请输入正确的 IP 地址。${plain}"
+                                    read -p "👉 按【回车键】返回..."
+                                    continue
+                                fi
+                                echo -e "\n${cyan}正在追踪从本 VPS 到目标 IP: [$target_ip] 的路由...${plain}\n"
+                                nexttrace "$target_ip"
+                                echo -e "\n${green}✅ 探测结束。${plain}"
+                                read -p "👉 按【回车键】返回本菜单..."
                                 continue
-                            fi
-                            echo -e "\n${cyan}正在追踪目标 IP: [$target_ip]...${plain}\n"
-                            nexttrace "$target_ip"
-                            echo -e "\n${green}✅ 探测结束。${plain}"
-                            read -p "👉 按【回车键】返回主菜单..."
-                            ;;
-                        0)
-                            ;;
-                        *)
-                            echo -e "${red}❌ 指令错误，请输入 0-3。${plain}"
-                            sleep 1
-                            ;;
-                    esac
+                                ;;
+                            0)
+                                break
+                                ;;
+                            *)
+                                echo -e "${red}❌ 指令错误，请输入 0-3。${plain}"
+                                sleep 1
+                                ;;
+                        esac
+                    done
                     ;;
         
        14)
@@ -1922,108 +1929,130 @@ EOF_ALERT
         ;;
         
            18)
-                    clear
-                    echo -e "\n${blue}=== 🛡️ 系统全域维护与内核调度中心 ===${plain}"
-                    echo -e "  ${green}1.${plain} 🟢 常规安全维护 (全系系统兼容 | 仅更新软件，100% 绝对防弹)"
-                    echo -e "  ${red}2.${plain} 🔴 高维内核换心 (仅限 Debian/Ubuntu | 深度突破限制，强升内核)"
-                    echo -e "  ${purple}0.${plain} 🔙 返回主菜单"
-                    echo -e "--------------------------------------------------------"
-                    read -p " 👉 请选择维护级别 [0-2]: " update_choice
-                    
-                    case $update_choice in
-                       1)
-                            echo -e "\n${yellow}正在执行常规防弹升级（软件/库，尽量不动内核）...${plain}"
-                            if command -v apt-get >/dev/null 2>&1; then
-                                echo -e "${cyan}📦 Ubuntu/Debian 极限更新...${plain}"
-                                export DEBIAN_FRONTEND=noninteractive
+                    while true; do
+                        clear
+                        echo -e "\n${blue}=== 🛡️ 系统全域维护与内核调度中心 ===${plain}"
+                        echo -e "  ${green}1.${plain} 🟢 常规安全维护 (全系系统兼容 | 仅更新软件，100% 绝对防弹)"
+                        echo -e "  ${red}2.${plain} 🔴 高维内核换心 (仅限 Debian/Ubuntu | 深度突破限制，强升内核)"
+                        echo -e "  ${purple}0.${plain} 🔙 返回主菜单"
+                        echo -e "--------------------------------------------------------"
+                        read -p " 👉 请选择维护级别 [0-2]: " update_choice
+                        
+                        case $update_choice in
+                            1)
+                                echo -e "\n${yellow}正在执行常规防弹升级（软件/库，尽量不动内核）...${plain}"
+                                if command -v apt-get >/dev/null 2>&1; then
+                                    echo -e "${cyan}📦 Ubuntu/Debian 极限更新...${plain}"
+                                    export DEBIAN_FRONTEND=noninteractive
+                                    apt-get update -yqq
+                                    apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -yqq
+                                elif command -v dnf >/dev/null 2>&1; then
+                                    echo -e "${cyan}📦 RHEL/Fedora 极限更新...${plain}"
+                                    dnf check-update -q
+                                    dnf upgrade -yq --exclude=kernel*
+                                elif command -v yum >/dev/null 2>&1; then
+                                    echo -e "${cyan}📦 CentOS 极限更新...${plain}"
+                                    yum check-update -q
+                                    yum upgrade -yq --exclude=kernel* --exclude=kernel-*-*
+                                fi
+                                echo -e "\n${cyan}🧹 焦土化清理...${plain}"
+                                $PKG_CLEAN >/dev/null 2>&1
+                                echo -e "\n${green}✅ 常规维护完毕，冗余包已清理。${plain}"
+                                read -p "👉 按【回车键】返回本菜单..."
+                                continue
+                                ;;
+                            2)
+                                echo -e "\n${red}================================================================${plain}"
+                                echo -e "${red} ⚠️ [最高级别警报] 您正在请求执行系统级【内核换心手术】！${plain}"
+                                echo -e "${yellow} * 真换核请务必在【云面板能开 VNC/串口】的机器上操作；无救援通道的机器禁止使用！${plain}"
+                                echo -e "${yellow} * 当前运行内核：${cyan}$(uname -r)${plain}"
+                                echo -e "${yellow} * 此操作仅限资深极客！失败可能导致机器无法开机（Kernel Panic）。${plain}"
+                                echo -e "${yellow} * 灾难抢救预案：登录云厂商网页 VNC 控制台 -> 疯狂按 ESC 进 GRUB -> Advanced -> 选旧内核开机！${plain}"
+                                echo -e "${red}================================================================${plain}"
+                                
+                                read -p " 💀 若您已熟知抢救预案并执意执行，请大写输入 YES 放行: " confirm_upgrade
+                                if [[ "$confirm_upgrade" != "YES" ]]; then
+                                    echo -e "\n${green}指令已撤销。敬畏底层，这不丢人。✅${plain}"
+                                    read -p "👉 按【回车键】返回本菜单..."
+                                    continue
+                                fi
+                                
+                                echo -e "\n${cyan}正在启动高维架构环境雷达侦测...${plain}"
+                                
+                                if ! command -v apt-get >/dev/null 2>&1; then
+                                    echo -e " ❌ ${red}雷达拦截：当前手术仅支持 Debian/Ubuntu (apt) 阵营，其他系统已封锁！${plain}"
+                                    read -p "👉 按【回车键】安全撤离..."
+                                    continue
+                                fi
+                                
+                                VIRT_TYPE=$(systemd-detect-virt 2>/dev/null || echo "unknown")
+                                # 🚀 补枪：把 microsoft 架构 (WSL) 加入拦截黑名单
+                                if [[ "$VIRT_TYPE" == "lxc" || "$VIRT_TYPE" == "openvz" || "$VIRT_TYPE" == "wsl" || "$VIRT_TYPE" == "microsoft" ]]; then
+                                    echo -e " ❌ ${red}雷达拦截：检测到共享或套壳架构 [$VIRT_TYPE]！无独立内核权限，强升必死！${plain}"
+                                    read -p "👉 按【回车键】安全撤离..."
+                                    continue
+                                fi
+                                
+                                DISK_FREE=$(df -m / | awk 'NR==2 {print $4}')
+                                if [ -n "$DISK_FREE" ] && [ "$DISK_FREE" -lt 1024 ]; then
+                                    echo -e " ❌ ${red}雷达拦截：根目录可用空间严重不足 (仅剩 ${DISK_FREE}MB)！强制写入极易爆盘卡死！${plain}"
+                                    read -p "👉 按【回车键】安全撤离..."
+                                    continue
+                                fi
+                                
+                                echo -e " ✅ ${green}雷达绿灯：环境评估满分通过 (架构: $VIRT_TYPE | 磁盘余量: ${DISK_FREE}MB)${plain}"
+                                
+                                # --- 🚀 换核预检防呆：拒绝智商税空跑！ ---
+                                echo -e "\n${cyan}正在连线官方源，扫描是否有新内核可供移植...${plain}"
                                 apt-get update -yqq
-                                apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -yqq
-                            elif command -v dnf >/dev/null 2>&1; then
-                                echo -e "${cyan}📦 RHEL/Fedora 极限更新...${plain}"
-                                dnf check-update -q
-                                dnf upgrade -yq --exclude=kernel*
-                            elif command -v yum >/dev/null 2>&1; then
-                                echo -e "${cyan}📦 CentOS 极限更新...${plain}"
-                                yum check-update -q
-                                yum upgrade -yq --exclude=kernel* --exclude=kernel-*-*
-                            fi
-                            echo -e "\n${cyan}🧹 焦土化清理...${plain}"
-                            $PKG_CLEAN >/dev/null 2>&1
-                            echo -e "\n${green}✅ 常规维护完毕，冗余包已清理。${plain}"
-                            read -p "👉 按【回车键】继续..."
-                            ;;
-                        2)
-                            echo -e "\n${red}================================================================${plain}"
-                            echo -e "${red} ⚠️ [最高级别警报] 您正在请求执行系统级【内核换心手术】！${plain}"
-                            echo -e "${yellow} * 真换核请务必在【云面板能开 VNC/串口】的机器上操作；无救援通道的机器禁止使用！${plain}"
-                            echo -e "${yellow} * 当前运行内核：${cyan}$(uname -r)${plain}"
-                            echo -e "${yellow} * 此操作仅限资深极客！失败可能导致机器无法开机（Kernel Panic）。${plain}"
-                            echo -e "${yellow} * 灾难抢救预案：登录云厂商网页 VNC 控制台 -> 疯狂按 ESC 进 GRUB -> Advanced -> 选旧内核开机！${plain}"
-                            echo -e "${red}================================================================${plain}"
-                            
-                            # 【第一重防线】：人工物理确认
-                            read -p " 💀 若您已熟知抢救预案并执意执行，请大写输入 YES 放行: " confirm_upgrade
-                            if [[ "$confirm_upgrade" != "YES" ]]; then
-                                echo -e "\n${green}指令已撤销。敬畏底层，这不丢人。✅${plain}"
-                                read -p "👉 按【回车键】返回..."
-                                continue
-                            fi
-                            
-                            echo -e "\n${cyan}正在启动高维架构环境雷达侦测...${plain}"
-                            
-                            # 【第二重防线】：OS 基因探测 (强行屏蔽 CentOS)
-                            if ! command -v apt-get >/dev/null 2>&1; then
-                                echo -e " ❌ ${red}雷达拦截：当前手术仅支持 Debian/Ubuntu (apt) 阵营，其他系统已封锁！${plain}"
-                                read -p "👉 按【回车键】安全撤离..."
-                                continue
-                            fi
-                            
-                            # 【第三重防线】：虚拟化物理雷达
-                            VIRT_TYPE=$(systemd-detect-virt 2>/dev/null || echo "unknown")
-                            if [[ "$VIRT_TYPE" == "lxc" || "$VIRT_TYPE" == "openvz" || "$VIRT_TYPE" == "wsl" ]]; then
-                                echo -e " ❌ ${red}雷达拦截：检测到共享内核架构 [$VIRT_TYPE]！无独立内核权限，强升必死！${plain}"
-                                read -p "👉 按【回车键】安全撤离..."
-                                continue
-                            fi
-                            
-                            # 【第四重防线】：爆盘预警雷达 (确保根目录至少有 1024MB 即 1GB 剩余空间)
-                            DISK_FREE=$(df -m / | awk 'NR==2 {print $4}')
-                            if [ -n "$DISK_FREE" ] && [ "$DISK_FREE" -lt 1024 ]; then
-                                echo -e " ❌ ${red}雷达拦截：根目录可用空间严重不足 (仅剩 ${DISK_FREE}MB)！强制写入极易爆盘卡死！${plain}"
-                                read -p "👉 按【回车键】安全撤离..."
-                                continue
-                            fi
-                            
-                            echo -e " ✅ ${green}雷达绿灯：环境评估满分通过 (架构: $VIRT_TYPE | 磁盘余量: ${DISK_FREE}MB)${plain}"
-                            echo -e "\n${yellow}🚀 防爆锁全开！正在向系统核心无感注入新内核...${plain}"
-                            
-                            # 开启无人值守静默强升，强行镇压所有 GRUB 弹窗
-                            export DEBIAN_FRONTEND=noninteractive
-                            export UCF_FORCE_KEEP_CURRENT=true
-                            
-                            apt-get update -yqq
-                            apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" full-upgrade
-                            apt-get autoremove -yqq
-                            
-                            echo -e "\n${green}🎉 内核换心手术执行完毕！${plain}"
-                            echo -e "${red}🚨 警告：新心脏目前只存在于硬盘，必须物理重启系统才能生效！${plain}"
-                            echo -e "${yellow}📌 当前仍在运行旧内核: ${cyan}$(uname -r)${plain}${yellow}，重启后才会切换到新内核。${plain}"
-                            read -p " 👉 是否立刻执行重启？(y/n) [回车默认 n]: " reboot_choice
-                            if [[ -z "$reboot_choice" || "$reboot_choice" == "n" || "$reboot_choice" == "N" ]]; then
-                                echo -e "${yellow}请记得稍后手动输入 reboot 指令！${plain}"
-                                read -p "👉 按【回车键】继续..."
-                            else
-                                echo -e "${green}正在物理拔管重启... 我们星辰大海再见！🚀${plain}"
-                                reboot
-                            fi
-                            ;;
-                        0)
-                            ;;
-                        *)
-                            echo -e "${red}请输入正确的选项 [0-2]${plain}"
-                            sleep 1
-                            ;;
-                    esac
+                                NEW_KERNELS=$(apt-get -s dist-upgrade 2>/dev/null | grep -E '^Inst linux-image' || true)
+                                
+                                if [ -z "$NEW_KERNELS" ]; then
+                                    echo -e "${green}✅ 扫描完毕：当前运行的 [$(uname -r)] 已经是官方源内的最新内核！${plain}"
+                                    echo -e "${yellow}系统拒绝执行无谓的物理空跑，手术已自动熔断取消！${plain}"
+                                    read -p "👉 按【回车键】返回本菜单..."
+                                    continue
+                                fi
+                                
+                                echo -e "${yellow}即将获取的新内核补给包预览：${plain}"
+                                echo "$NEW_KERNELS"
+                                read -p " 👉 确认要注入上述新内核？再次输入大写 YES 执行手术: " confirm_upgrade2
+                                if [[ "$confirm_upgrade2" != "YES" ]]; then
+                                    echo -e "\n${green}指令已撤销。${plain}"
+                                    read -p "👉 按【回车键】返回本菜单..."
+                                    continue
+                                fi
+                                
+                                echo -e "\n${yellow}🚀 防爆锁全开！正在向系统核心无感注入新内核...${plain}"
+                                
+                                export DEBIAN_FRONTEND=noninteractive
+                                export UCF_FORCE_KEEP_CURRENT=true
+                                
+                                apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" full-upgrade
+                                apt-get autoremove -yqq
+                                
+                                echo -e "\n${green}🎉 内核换心手术执行完毕！${plain}"
+                                echo -e "${red}🚨 警告：新心脏目前只存在于硬盘，必须物理重启系统才能生效！${plain}"
+                                echo -e "${yellow}📌 当前仍在运行旧内核: ${cyan}$(uname -r)${plain}${yellow}，重启后才会切换到新内核。${plain}"
+                                read -p " 👉 是否立刻执行重启？(y/n) [回车默认 n]: " reboot_choice
+                                if [[ -z "$reboot_choice" || "$reboot_choice" == "n" || "$reboot_choice" == "N" ]]; then
+                                    echo -e "${yellow}请记得稍后手动输入 reboot 指令！${plain}"
+                                    read -p "👉 按【回车键】返回本菜单..."
+                                    continue
+                                else
+                                    echo -e "${green}正在物理拔管重启... 我们星辰大海再见！🚀${plain}"
+                                    reboot
+                                fi
+                                ;;
+                            0)
+                                break
+                                ;;
+                            *)
+                                echo -e "${red}请输入正确的选项 [0-2]${plain}"
+                                sleep 1
+                                ;;
+                        esac
+                    done
                     ;;
         
     19)
