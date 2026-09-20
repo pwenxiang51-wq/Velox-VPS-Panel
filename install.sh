@@ -1165,7 +1165,9 @@ EOF_BBR
                                 fi
                                 ensure_nexttrace || { read -p "👉 按【回车键】返回..."; continue; }
                                 echo -e "\n${cyan}=== 追踪回程：VPS -> ${CLIENT_IP} ===${plain}"
-                                echo -e "${yellow}💡 提示：若路径中大量出现 London / Frankfurt 或 AS1299，说明存在绕路现象。${plain}\n"
+                               echo -e "${yellow}💡 极客看线心法：${plain}"
+                               echo -e "${yellow} 1. 查物理绕路：路由轨迹应符合【真实地理法则】。例如：亚洲机回国不该绕美国，美西机不该绕欧洲。若出现反常的跨大洲节点，延迟必炸！${plain}"
+                               echo -e "${yellow} 2. 查核心骨干：国内段若看到 AS4837(联通169)/AS4134(电信163) 为普通直连；若含 AS9929/AS58453(CN2) 则是尊贵专线。${plain}\n"
                                 nexttrace "$CLIENT_IP"
                                 echo -e "\n${green}✅ 探测结束。${plain}"
                                 read -p "👉 按【回车键】返回本菜单..."
@@ -1986,9 +1988,8 @@ EOF_ALERT
                                 fi
                                 
                                 VIRT_TYPE=$(systemd-detect-virt 2>/dev/null || echo "unknown")
-                                # 🚀 补枪：把 microsoft 架构 (WSL) 加入拦截黑名单
-                                if [[ "$VIRT_TYPE" == "lxc" || "$VIRT_TYPE" == "openvz" || "$VIRT_TYPE" == "wsl" || "$VIRT_TYPE" == "microsoft" ]]; then
-                                    echo -e " ❌ ${red}雷达拦截：检测到共享或套壳架构 [$VIRT_TYPE]！无独立内核权限，强升必死！${plain}"
+                                if [[ "$VIRT_TYPE" == "lxc" || "$VIRT_TYPE" == "openvz" || "$VIRT_TYPE" == "wsl" ]]; then
+                                    echo -e " ❌ ${red}雷达拦截：检测到共享内核架构 [$VIRT_TYPE]！无独立内核权限，禁止换核！${plain}"
                                     read -p "👉 按【回车键】安全撤离..."
                                     continue
                                 fi
