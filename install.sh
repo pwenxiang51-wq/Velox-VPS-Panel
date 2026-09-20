@@ -1130,18 +1130,18 @@ EOF_BBR
                         }
 
                         CLIENT_IP=$(echo "${SSH_CLIENT:-}" | awk '{print $1}')
-                        VPS_IP=$(curl -4 -fsS --max-time 3 https://ifconfig.me 2>/dev/null || echo "获取失败")
+                        VPS_IP=$(curl -4 -fsS --max-time 3 https://ifconfig.me 2>/dev/null || echo "当前VPS公网IP")
 
                         echo -e "  📡 你的本地网络 IP (SSH 来源): ${cyan}${CLIENT_IP:-未侦测到}${plain}"
                         echo -e "  🖥️  当前 VPS 公网 IP (仅供参考): ${cyan}${VPS_IP}${plain}"
                         echo -e "${cyan}--------------------------------------------------------${plain}"
-                        echo -e "  ${green}1.${plain} 🌐 快速骨干扫描 (一键测试从本 VPS 到国内三网的路由)"
+                        echo -e "  ${green}1.${plain} 🌐 快速骨干扫描 (测 【本 VPS -> 国内三网】 的回程路由)"
                         if [ -n "$CLIENT_IP" ]; then
-                            echo -e "  ${green}2.${plain} 🎯 一键回程验户 (追踪从本 VPS 到你本地 IP: ${cyan}$CLIENT_IP${plain} 的路由)"
+                            echo -e "  ${green}2.${plain} 🎯 一键回程验户 (测 【本 VPS -> 你本地电脑】 的回程路由)"
                         else
                             echo -e "  ${yellow}2.${plain} 🎯 一键回程验户 (${red}未捕获到本地 IP，请使用选项 3 手动输入${plain})"
                         fi
-                        echo -e "  ${green}3.${plain} 📍 手动输入目标 IP (追踪从本 VPS 出发到该 IP 的路由)"
+                        echo -e "  ${green}3.${plain} 📍 战术沙盒测径 (手动指定目标IP / 获取本地去程测试指令)"
                         echo -e "  ${purple}0.${plain} 🔙 返回主菜单"
                         echo -e "${cyan}--------------------------------------------------------${plain}"
                         read -p " 👉 请选择雷达模式 [0-3]: " trace_choice
@@ -1150,8 +1150,10 @@ EOF_BBR
                             1)
                                 ensure_nexttrace || { read -p "👉 按【回车键】返回..."; continue; }
                                 echo -e "\n${cyan}正在执行快速骨干扫描...${plain}"
-                                echo -e "${yellow}💡 提示：电信/联通/移动回程若出现 59.43.x.x 等节点，通常代表 CN2 线路。${plain}"
-                                echo -e "${yellow}💡 结束后可复制终端底部的 MapTrace 链接，在浏览器查看路由地图。${plain}\n"
+                                echo -e "${yellow}💡 极客看线心法：${plain}"
+                                echo -e "${yellow} 1. 查物理绕路：路由轨迹应符合【真实地理法则】。例如亚洲机回国不该绕美国，美西不该绕欧洲。${plain}"
+                                echo -e "${yellow} 2. 查核心骨干：国内段若看到 AS4837/AS4134 为普通直连；若含 AS9929/AS58453 则是尊贵专线。${plain}"
+                                echo -e "${yellow} 3. 可视化：结束后可复制终端底部的 MapTrace 链接，在浏览器查看 3D 路由地图。${plain}\n"
                                 nexttrace --fast-trace
                                 echo -e "\n${green}✅ 扫描结束。${plain}"
                                 read -p "👉 按【回车键】返回本菜单..."
@@ -1165,9 +1167,9 @@ EOF_BBR
                                 fi
                                 ensure_nexttrace || { read -p "👉 按【回车键】返回..."; continue; }
                                 echo -e "\n${cyan}=== 追踪回程：VPS -> ${CLIENT_IP} ===${plain}"
-                               echo -e "${yellow}💡 极客看线心法：${plain}"
-                               echo -e "${yellow} 1. 查物理绕路：路由轨迹应符合【真实地理法则】。例如：亚洲机回国不该绕美国，美西机不该绕欧洲。若出现反常的跨大洲节点，延迟必炸！${plain}"
-                               echo -e "${yellow} 2. 查核心骨干：国内段若看到 AS4837(联通169)/AS4134(电信163) 为普通直连；若含 AS9929/AS58453(CN2) 则是尊贵专线。${plain}\n"
+                                echo -e "${yellow}💡 极客看线心法：${plain}"
+                                echo -e "${yellow} 1. 查物理绕路：路由轨迹应符合【真实地理法则】。例如亚洲机回国不该绕美国，美西不该绕欧洲。${plain}"
+                                echo -e "${yellow} 2. 查核心骨干：国内段若看到 AS4837/AS4134 为普通直连；若含 AS9929/AS58453 则是尊贵专线。${plain}\n"
                                 nexttrace "$CLIENT_IP"
                                 echo -e "\n${green}✅ 探测结束。${plain}"
                                 read -p "👉 按【回车键】返回本菜单..."
@@ -1175,12 +1177,16 @@ EOF_BBR
                                 ;;
                             3)
                                 ensure_nexttrace || { read -p "👉 按【回车键】返回..."; continue; }
-                                echo -e "\n${cyan}=== 📍 手动输入目标 IP ===${plain}"
-                                echo -e "${yellow}📌 战术科普：本项在 VPS 上执行，探测路径为【本 VPS -> 目标 IP】。${plain}"
-                                echo -e "${yellow}📌 若要探测【您家网络 -> 目标 IP】的真实去程，请在本地电脑执行：${plain}"
-                                echo -e "${yellow}   💻 Windows (CMD/PowerShell) :  tracert -d 目标IP${plain}"
-                                echo -e "${yellow}   🍎 macOS/Linux (终端)       :  traceroute -n 目标IP${plain}"
-                                read -p " 📡 请输入你要查询的 IP (IPv4/IPv6，直接回车取消): " target_ip
+                                echo -e "\n${cyan}=== 📍 战术沙盒测径与去程指令 ===${plain}"
+                                echo -e "${purple}📌 极客铁律：网络路由是【非对称】的！在 VPS 终端里测的永远是【VPS 往外发】的包。${plain}"
+                                echo -e "${red}❌ 常见误区：不要在这里填本 VPS 的 IP，那是左手摸右手（延迟0.1毫秒）！${plain}"
+                                echo -e "${cyan}--------------------------------------------------------${plain}"
+                                echo -e "${yellow}❓ 想要测试【你家电脑 -> 本 VPS】的真实去程？${plain}"
+                                echo -e "${yellow}👉 请直接复制以下极客指令，在您的【本地电脑】执行：${plain}"
+                                echo -e "   💻 Windows (CMD/PowerShell) :  ${green}tracert -d ${VPS_IP}${plain}"
+                                echo -e "   🍎 macOS/Linux (终端)       :  ${green}traceroute -n ${VPS_IP}${plain}"
+                                echo -e "${cyan}--------------------------------------------------------${plain}"
+                                read -p " 📡 若需测试【本 VPS -> 任意其他 IP】，请输入目标 IP (直接回车取消): " target_ip
                                 target_ip=$(echo "$target_ip" | tr -d '[:space:]')
                                 if [ -z "$target_ip" ]; then
                                     echo -e "${yellow}已取消查询。${plain}"
