@@ -1129,7 +1129,9 @@ EOF_BBR
                             return 1
                         }
 
-                        CLIENT_IP=$(echo "${SSH_CLIENT:-}" | awk '{print $1}')
+                        # 优先从底层终端 (who am i) 强行穿透提取真实 IP，若失败再降级使用 SSH_CLIENT 变量
+                        CLIENT_IP=$(who am i | awk '{print $NF}' | tr -d '()')
+                        [[ -z "$CLIENT_IP" ]] && CLIENT_IP=$(echo "${SSH_CLIENT:-}" | awk '{print $1}')
                         VPS_IP=$(curl -4 -fsS --max-time 3 https://ifconfig.me 2>/dev/null || echo "当前VPS公网IP")
 
                         echo -e "  📡 你的本地网络 IP (SSH 来源): ${cyan}${CLIENT_IP:-未侦测到}${plain}"
