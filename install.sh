@@ -2106,6 +2106,8 @@ EOF_ALERT
             echo -e "\n${blue}=== 🚨 SSH 智能动态防盗门与双核防御中心 ===${plain}"
             echo -e "🔹 当前状态 -> 端口: [${cyan}$current_port${plain}] | 模式: [$login_status]"
             echo -e "🔹 实时防御: [$defender_status]"
+            echo -e "${yellow}💡 极客避坑：云厂商(如 GCP/AWS) 存在默认普通账号。若您在此开启密码登录，${plain}"
+            echo -e "${yellow}   请务必在 SSH 客户端使用【root】用户名及 root 密码直连，切勿使用原普通账号！${plain}"
             echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
             echo -e "  ${green}1.${plain} 🕵️  查看当前在线 SSH 用户并实施制裁"
             echo -e "  ${green}2.${plain} 💣  审计被拦截的黑客爆破日志 (查外鬼)"
@@ -2114,9 +2116,10 @@ EOF_ALERT
             echo -e "  ${purple}5.${plain} 🚀  一键部署全新密钥并【锁死密码】(初次配置推荐)"
             echo -e "  ${purple}6.${plain} ⚙️  一键切换【密钥】登录开关 (执行: $key_toggle)"
             echo -e "  ${red}7.${plain} 🛡️  部署/卸载安全防御武器库 (机枪塔/Fail2Ban)"
+            echo -e "  ${green}8.${plain} 🔑 强改系统 Root 密码 (无视云服务商面板直接在底层换锁)"
             echo -e "  ${yellow}0.${plain} 🔙  返回主菜单"
             echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
-            read -p "👉 请选择安全操作 [0-7]: " ssh_choice
+            read -p "👉 请选择安全操作 [0-8]: " ssh_choice
             
             case $ssh_choice in
                 1)
@@ -2460,6 +2463,26 @@ EOF_F2B
                         fi
                     else echo -e "${red}❌ 无效输入。${plain}"; fi
                     ;;
+                    8)
+                        echo -e "\n${cyan}=== 🔑 强改系统 Root 密码 [全架构 Linux 通用] ===${plain}"
+                        echo -e "${yellow}💡 极客常识：在此修改密码后，云服务商(如 GCP/Vultr/RN) 网页控制台显示的密码【不会】同步更新！${plain}"
+                        echo -e "${yellow}⚠️ 生效原则：一切以您在此处新设置的密码为准，网页端显示的旧密码彻底作废。${plain}"
+                        echo -e "${cyan}--------------------------------------------------------${plain}"
+                        read -p " 👉 确认要强行修改 Root 密码吗？(y/n): " confirm_pwd
+                         if [[ "${confirm_pwd,,}" == "y" ]]; then
+                         echo -e "\n${purple}👇 请输入新密码 (Unix 极客防窥机制：输入时屏幕不会显示任何字符，盲打后回车即可)：${plain}"
+                         passwd root
+                          if [ $? -eq 0 ]; then
+                         echo -e "\n${green}✅ 密码修改成功！旧密码已销毁，请牢记您的新密码。${plain}"
+                            else
+                        echo -e "\n${red}❌ 密码修改失败，请检查输入是否一致或权限是否被拦截。${plain}"
+                        fi
+                         else
+                         echo -e "\n${yellow}已取消修改，维持原状。${plain}"
+                     fi
+                     read -p "👉 按【回车键】返回本菜单..."
+                     continue
+                  ;;
                 0) break ;;
                 *) echo -e "\n${red}❌ 无效输入。${plain}" ;;
             esac
