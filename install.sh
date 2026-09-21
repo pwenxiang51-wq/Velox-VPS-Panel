@@ -2116,7 +2116,7 @@ EOF_ALERT
             echo -e "  ${purple}5.${plain} 🚀  一键部署全新密钥并【锁死密码】(初次配置推荐)"
             echo -e "  ${purple}6.${plain} ⚙️  一键切换【密钥】登录开关 (执行: $key_toggle)"
             echo -e "  ${red}7.${plain} 🛡️  部署/卸载安全防御武器库 (机枪塔/Fail2Ban)"
-            echo -e "  ${green}8.${plain} 🔑 强改系统 Root 密码 (无视云服务商面板直接在底层换锁)"
+            echo -e "  ${green}8.${plain} 🔑  强改系统 Root 密码 (无视云服务商面板直接在底层换锁)"
             echo -e "  ${yellow}0.${plain} 🔙  返回主菜单"
             echo -e "${cyan}--------------------------------------------------------------------------------${plain}"
             read -p "👉 请选择安全操作 [0-8]: " ssh_choice
@@ -2463,9 +2463,9 @@ EOF_F2B
                         fi
                     else echo -e "${red}❌ 无效输入。${plain}"; fi
                     ;;
-                    8)
+                     8)
                         echo -e "\n${cyan}=== 🔑 强改系统 Root 密码 [全架构 Linux 通用] ===${plain}"
-                        echo -e "${yellow}💡 极客常识：在此修改密码后，云服务商(如 GCP/Vultr/RN) 网页控制台显示的密码【不会】同步更新！${plain}"
+                        echo -e "${yellow}💡 极客常识：在此修改密码后，云服务商(如 GCP/Vultr/RackNerd) 网页控制台显示的密码【不会】同步更新！${plain}"
                         echo -e "${yellow}⚠️ 生效原则：一切以您在此处新设置的密码为准，网页端显示的旧密码彻底作废。${plain}"
                         echo -e "${cyan}--------------------------------------------------------${plain}"
                         read -p " 👉 确认要强行修改 Root 密码吗？(y/n): " confirm_pwd
