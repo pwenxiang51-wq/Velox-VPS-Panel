@@ -1,51 +1,55 @@
-# 🛰️ VeloX VPS Panel v6.2.8 (全域兼容满血终极版)
+# 🛰️ VeloX VPS Panel v6.2.8
 
-[![OS](https://img.shields.io/badge/OS-Ubuntu%20%7C%20Debian%20%7C%20CentOS-orange.svg)]()
+[![OS](https://img.shields.io/badge/OS-Ubuntu%20%7C%20Debian-orange.svg)]()
 [![Language](https://img.shields.io/badge/Language-Pure%20Bash-blue.svg)]()
-[![Armor](https://img.shields.io/badge/Armor-Idiot--Proof%20%7C%20Anti--Explosion-red.svg)]()
+[![Security](https://img.shields.io/badge/Security-Idiot--Proof-red.svg)]()
 
-> **“拒绝臃肿的 Web 垃圾，唯有纯血 Bash 才是极客的浪漫。”**
-> VeloX 是一款为您量身锻造的高维 VPS 集群调度中枢。0 内存常驻，自带四层防弹装甲。对 512M 低配小鸡实施物理级穿透保护，对高配母机执行极限性能压榨。
-
----
-
-## ⚙️ 核心火力矩阵 (Matrix)
-
-* **🛡️ 纯血内核防爆**：彻底抛弃污染主配置文件的陋习，采用独立模块化 BBR 注入；原子级 PageCache 与系统日志碎片清理，彻底根绝爆盘隐患。
-* **🔌 代理引擎高维调度**：解锁流媒体深空探测，针对 Hysteria2 / VLESS 协议进行 TCP/UDP 读写队列的物理级扩容；部署 SSH 异地登录毫秒级狙击，联动开机秒级自愈防线。
-* **🚨 智能防线与流量管控**：废弃低效外挂，强行注入 `vnstat` C语言内核进行内存级浮点运算（支持单双向精准红黄线熔断）；一键部署纯 Bash 轻量机枪塔或 Fail2Ban 正规装甲，物理绞杀一切黑客爆破。
-* **📡 资产 X 光机与无损克隆**：3 秒底层穿透，扫描隐秘监听端口与高体积藏匿点。打破粗暴打包，支持模块化“交互式点餐”备份，强行锁死绝对路径与内核级权限，跨机器瞬间满血复活 Nginx 地堡与私有仓！
+> 一款基于纯 Bash 编写的轻量级 VPS 运维与调度面板。
+> 坚持零内存常驻与模块化解耦，将复杂的高阶网络调优与系统防御，收束为极简的终端交互体验。大道至简，克制且高效。
 
 ---
 
-## 🔐 防呆装甲 (Idiot-Proof Armor)
+## ⚙️ 核心功能矩阵
 
-本面板内置高强度防呆拦截网，即使闭着眼睛脸滚键盘，也绝不会写烂底层配置：
-* **正则死锁拦截**：所有数字交互均挂载严苛边界锁，端口越界、非法特殊字符瞬间弹开阻断。
-* **公钥基因嗅探**：部署免密兵符时，自动嗅探前缀基因 (`ssh-rsa` / `ssh-ed25519`)，拒收无效乱码，死守 `.ssh` 核心大门。
-* **活体连通性校验**：TG Token 写入全局池前，强行向司令部发包握手，未收到官方 `"ok":true` 回应的死凭证一律物理拒收！
+* **🛡️ 系统与网络调优**
+  提供独立的模块化 BBR 拥塞控制配置（卸载不留痕）；安全的 PageCache 与系统日志碎片清理机制；内置 NextTrace 路由追踪工具进行出站测速。
+* **🔌 代理环境调度**
+  支持 TCP/UDP 读写队列底层扩容；集成流媒体解锁检测；提供 SSH 异地登录的 TG 毫秒级预警及开机自愈服务。
+* **🚨 轻量化流量与防御**
+  基于 `vnstat` 构建低资源开销的流量探针，支持自定义双向流量阈值熔断与报警；支持一键部署轻量级 Bash 脚本机枪塔或 Fail2Ban，防止 SSH 暴力破解。
+* **📡 资产管理与无损克隆**
+  3 秒快速扫描系统核心监听端口与大体积文件；支持“交互式点餐”打包核心资产，锁定绝对路径与内核级权限，实现跨 VPS 环境的无损快速恢复。
 
 ---
 
-## 📥 极速点火 (Ignition)
+## 🔐 交互与安全过滤
 
-在纯净的 Ubuntu / Debian / CentOS 终端内，丢入以下指令，一键装载母舰引擎：
+面板内置严格的输入校验机制（Idiot-Proof），避免因误操作导致的系统配置文件损坏：
+* **边界校验**：端口设置、定时任务等交互强制进行范围与合法字符正则检测，非法输入自动阻断。
+* **公钥嗅探**：免密配置时自动校验 `ssh-rsa` / `ssh-ed25519` 等标准公钥前缀，拒收格式错误的文本。
+* **活体验证**：Telegram Token 配置时强行向官方接口发包测试，收到 `"ok":true` 才允许写入全局环境。
+
+---
+
+## 📥 快速安装
+
+在纯净的 **Ubuntu / Debian** 系统终端中，执行以下指令即可一键安装：
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/refs/heads/main/install.sh)
+bash <(curl -sL [https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/refs/heads/main/install.sh](https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/refs/heads/main/install.sh))
 ```
-> 💡 **极客心法**：装载完毕后，随时在终端敲入 `velox` 即可唤醒您的专属座驾。
+> 💡 提示：安装完成后，随时在终端输入 `velox` 即可唤醒面板。
 
 ---
 
-## 💥 焦土化清理协议 (物理拔管)
+## 💥 纯净卸载
 
-在面板主大厅按下 `U` 键，即刻触发核平级清扫程序：
-引擎将无痕抹杀面板本体、强行拆除 Bash 机枪塔、清洗全局 TG 凭证池并恢复出厂网络内核。**手术刀式的精准切除，对您机器上原有的珍贵业务数据（博客、容器、代码仓）绝对毫发无损！**
+当您不再需要本面板时，在主菜单按下 `U` 键即可触发纯净卸载程序。
+系统将自动清理面板本体、防御脚本、定时任务及环境变量。**卸载过程仅移除 VeloX 产生的相关文件，绝不触碰您原有的业务数据与私有配置。**
 
 ---
 
-## 👨‍💻 星际指挥官
+## 👨‍💻 作者与支持
 * **GitHub**: [github.com/pwenxiang51-wq](https://github.com/pwenxiang51-wq)
-* **极客博客**: [222382.xyz](https://222382.xyz)
-* **Telegram 中枢**: [@Velox95](https://t.me/Velox95)
+* **Blog**: [222382.xyz](https://222382.xyz)
+* **Telegram**: [@Velox95](https://t.me/Velox95)
