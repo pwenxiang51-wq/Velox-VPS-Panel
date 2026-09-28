@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V6.2.8 全域兼容满血终极版 - 智能嗅探 + 原子防护)
+# 自动生成并运行 Velox 面板 (V6.2.9 全域兼容满血终极版 - 智能嗅探 + 原子防护)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
@@ -11,7 +11,7 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
-LOCAL_VERSION="6.2.8"
+LOCAL_VERSION="6.2.9"
 if command -v apt-get >/dev/null 2>&1; then
     PKG_INSTALL="apt-get install -yqq"
     PKG_REMOVE="apt-get remove --purge -yqq"
@@ -92,7 +92,13 @@ if [ "$1" == "restore" ]; then
     fi
 
     # 2. 解包覆盖
-    echo -e "${cyan}⏳ 正在执行物理解包与资产强行覆盖...${plain}"
+    echo -e "${cyan}⏳ 正在校验包裹完整性...${plain}"
+    if ! tar -tzf /root/Velox_Assets_Backup.tar.gz >/dev/null 2>&1; then
+        echo -e "${red}❌ 包裹完整性校验失败！文件可能已损坏或传输不完整。${plain}"
+        rm -f /root/Velox_Assets_Backup.tar.gz
+        exit 1
+    fi
+    echo -e "${green}✅ 校验通过，正在执行物理解包与资产强行覆盖...${plain}"
     if ! tar -xzpPf /root/Velox_Assets_Backup.tar.gz -C / >/dev/null 2>&1; then
         echo -e "${red}❌ 解包失败！请检查包裹是否完整或权限是否足够。${plain}"
         exit 1
@@ -135,7 +141,7 @@ refresh_status_async() {
     if [ -d "$lock" ]; then
         local lock_ts
         lock_ts=$(stat -c %Y "$lock" 2>/dev/null || echo 0)
-        if [ $(($(date +%s) - lock_ts)) -gt 5 ]; then
+        if [ $(($(date +%s) - lock_ts)) -gt 15 ]; then
             rm -rf "$lock" 2>/dev/null
         fi
     fi
@@ -380,9 +386,16 @@ echo -e "${cyan}=======================================================${plain}"
 操作: <b>${action}</b>
 核心: <code>${core}</code>
 时间: $(date +'%Y-%m-%d %H:%M:%S')"
-            curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" \
-                -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" \
-                --data-urlencode "text=$MSG" >/dev/null 2>&1 &
+            local MAIN_IF=$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print $5}' | head -n 1)
+            if [ -n "$MAIN_IF" ]; then
+                curl --interface "$MAIN_IF" -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" \
+                    -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" \
+                    --data-urlencode "text=$MSG" >/dev/null 2>&1 &
+            else
+                curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" \
+                    -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" \
+                    --data-urlencode "text=$MSG" >/dev/null 2>&1 &
+            fi
         }
 
         get_core_info() {
@@ -1416,7 +1429,7 @@ core_radar() {
 
     # 第二层：遗体特征库扫雷（如果进程死了，到底安没安装？）
     # 路径 1：利用补全后的 PATH 变量进行标准探查
-    if command -v "$core_name" >/dev/null 2>&1; then
+    if command -v "$core_name" >/dev/null 2>&1 || which "$core_name" >/dev/null 2>&1; then
         echo "🔴 阵亡"
         return
     fi
@@ -1480,7 +1493,12 @@ MSG="📊 <b>[Velox 每日体检晨报]</b>
 ⚔️ Mihomo   : ${MH_LIVE}
 --------------------------------------
 <i>(此消息为每日例行存活打卡)</i>"
-curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" --data-urlencode "text=$MSG" > /dev/null 2>&1
+MAIN_IF=$(ip -4 route ls | grep default | grep -v tun | grep -v warp | grep -v wg | awk '{print $5}' | head -n 1)
+if [ -n "$MAIN_IF" ]; then
+    curl --interface "$MAIN_IF" -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" --data-urlencode "text=$MSG" > /dev/null 2>&1
+else
+    curl -s -m 5 -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d "chat_id=${GLOBAL_TG_CHATID}" -d "parse_mode=HTML" --data-urlencode "text=$MSG" > /dev/null 2>&1
+fi
 EOF_P
                         chmod +x /usr/local/bin/velox_pulse_alert.sh
                         crontab -l 2>/dev/null | grep -v "velox_pulse_alert.sh" | crontab -
