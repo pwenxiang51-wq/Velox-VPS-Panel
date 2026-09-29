@@ -137,7 +137,7 @@ trap cleanup_velox_status EXIT
 refresh_status_async() {
     local lock="$STATUS_DIR/refresh.lock"
     
-    # === 💥 注入僵尸探测器：超 5 秒强制物理强拆 ===
+    # === 💥 注入僵尸探测器：超 15 秒强制物理强拆 ===
     if [ -d "$lock" ]; then
         local lock_ts
         lock_ts=$(stat -c %Y "$lock" 2>/dev/null || echo 0)
