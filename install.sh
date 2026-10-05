@@ -677,6 +677,7 @@ echo -e "${cyan}=======================================================${plain}"
         warp_status="off"
         warp_ip=""
         proxy_mode=""
+        warp_socks_port=""
 
         if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null || systemctl is-active --quiet warp-svc 2>/dev/null; then
             
@@ -711,6 +712,7 @@ echo -e "${cyan}=======================================================${plain}"
                         warp_status="on"
                         warp_ip=$(echo "$trace" | grep ip= | cut -d= -f2)
                         proxy_mode=" ${purple}(SOCKS5 局部代理 | 自动捕获端口: $port)${plain}"
+                        warp_socks_port="$port"
                         break
                     fi
                 done
@@ -726,7 +728,7 @@ echo -e "${cyan}=======================================================${plain}"
                 fi
 
                 if [ -z "$warp_ip4" ] || [ -z "$warp_ip6" ]; then
-                    _sp=$(echo "$proxy_mode" | grep -oE '[0-9]{2,5}' | tail -n1)
+                    _sp="${warp_socks_port:-}"
                     [ -z "$_sp" ] && _sp=$(ss -nltp 2>/dev/null | grep -E 'warp-svc|warp-go' | awk '{print $4}' | grep -E '127\.0\.0\.1|::1' | awk -F':' '{print $NF}' | head -n1)
 
                     if [ -n "$_sp" ]; then
