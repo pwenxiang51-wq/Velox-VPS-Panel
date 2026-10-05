@@ -724,13 +724,30 @@ echo -e "${cyan}=======================================================${plain}"
                 elif [ -n "$warp_ip" ]; then
                     warp_ip4="$warp_ip"
                 fi
-                if [ -z "$warp_ip4" ]; then
-                    t4=$(timeout 3 curl -s4 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
-                    echo "$t4" | grep -q "warp=on" && warp_ip4=$(echo "$t4" | grep '^ip=' | cut -d= -f2 | head -n1)
-                fi
-                if [ -z "$warp_ip6" ]; then
-                    t6=$(timeout 3 curl -s6 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
-                    echo "$t6" | grep -q "warp=on" && warp_ip6=$(echo "$t6" | grep '^ip=' | cut -d= -f2 | head -n1)
+                    if [ -z "$warp_ip4" ] || [ -z "$warp_ip6" ]; then
+                    # 从 proxy_mode 里抠端口；没有则再扫一遍本地 warp 端口
+                    _sp=$(echo "$proxy_mode" | grep -oE '[0-9]{2,5}' | tail -n1)
+                    [ -z "$_sp" ] && _sp=$(ss -nltp 2>/dev/null | grep -E 'warp-svc|warp-go' | awk '{print $4}' | grep -E '127\.0\.0\.1|::1' | awk -F':' '{print $NF}' | head -n1)
+                    if [ -n "$_sp" ]; then
+                        if [ -z "$warp_ip4" ]; then
+                            t4=$(timeout 3 curl -x socks5h://127.0.0.1:$_sp -s4 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
+                            echo "$t4" | grep -q "warp=on" && warp_ip4=$(echo "$t4" | grep '^ip=' | cut -d= -f2 | head -n1)
+                        fi
+                        if [ -z "$warp_ip6" ]; then
+                            t6=$(timeout 3 curl -x socks5h://127.0.0.1:$_sp -s6 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
+                            echo "$t6" | grep -q "warp=on" && warp_ip6=$(echo "$t6" | grep '^ip=' | cut -d= -f2 | head -n1)
+                        fi
+                    else
+                        # 非 SOCKS（全局/网卡）再直连补测
+                        if [ -z "$warp_ip4" ]; then
+                            t4=$(timeout 3 curl -s4 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
+                            echo "$t4" | grep -q "warp=on" && warp_ip4=$(echo "$t4" | grep '^ip=' | cut -d= -f2 | head -n1)
+                        fi
+                        if [ -z "$warp_ip6" ]; then
+                            t6=$(timeout 3 curl -s6 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
+                            echo "$t6" | grep -q "warp=on" && warp_ip6=$(echo "$t6" | grep '^ip=' | cut -d= -f2 | head -n1)
+                        fi
+                    fi
                 fi
                 echo -e " 🛡️  出口 IPv4 : ${cyan}${warp_ip4:-未探测到}${plain} (Cloudflare 节点)"
                 echo -e " 🛡️  出口 IPv6 : ${cyan}${warp_ip6:-未探测到/未启用}${plain} (Cloudflare 节点)"
