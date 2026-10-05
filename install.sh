@@ -716,9 +716,24 @@ echo -e "${cyan}=======================================================${plain}"
                 done
             fi
 
-            if [[ "$warp_status" == "on" ]]; then
-                echo -e " 🛡️  WARP 状态 : ${green}已开启并成功接管流量 ✅${plain}"
-                echo -e " 🛡️  出口 IP   : ${cyan}${warp_ip}${plain} (Cloudflare 节点)${proxy_mode}"
+              if [[ "$warp_status" == "on" ]]; then
+                echo -e " 🛡️  WARP 状态 : ${green}已开启并成功接管流量 ✅${plain}${proxy_mode}"
+                warp_ip4=""; warp_ip6=""
+                if [[ "$warp_ip" == *:* ]]; then
+                    warp_ip6="$warp_ip"
+                elif [ -n "$warp_ip" ]; then
+                    warp_ip4="$warp_ip"
+                fi
+                if [ -z "$warp_ip4" ]; then
+                    t4=$(timeout 3 curl -s4 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
+                    echo "$t4" | grep -q "warp=on" && warp_ip4=$(echo "$t4" | grep '^ip=' | cut -d= -f2 | head -n1)
+                fi
+                if [ -z "$warp_ip6" ]; then
+                    t6=$(timeout 3 curl -s6 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
+                    echo "$t6" | grep -q "warp=on" && warp_ip6=$(echo "$t6" | grep '^ip=' | cut -d= -f2 | head -n1)
+                fi
+                echo -e " 🛡️  出口 IPv4 : ${cyan}${warp_ip4:-未探测到}${plain} (Cloudflare 节点)"
+                echo -e " 🛡️  出口 IPv6 : ${cyan}${warp_ip6:-未探测到/未启用}${plain} (Cloudflare 节点)"
             else
                 echo -e " 🛡️  WARP 状态 : ${yellow}服务已运行但未能成功接管流量 (请检查路由或代理配置) ⚠️${plain}"
             fi
