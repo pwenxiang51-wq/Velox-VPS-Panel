@@ -729,23 +729,26 @@ echo -e "${cyan}=======================================================${plain}"
                     _sp=$(echo "$proxy_mode" | grep -oE '[0-9]{2,5}' | tail -n1)
                     [ -z "$_sp" ] && _sp=$(ss -nltp 2>/dev/null | grep -E 'warp-svc|warp-go' | awk '{print $4}' | grep -E '127\.0\.0\.1|::1' | awk -F':' '{print $NF}' | head -n1)
                     if [ -n "$_sp" ]; then
-                        if [ -z "$warp_ip4" ]; then
-                            t4=$(timeout 3 curl -x socks5h://127.0.0.1:$_sp -s4 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
-                            echo "$t4" | grep -q "warp=on" && warp_ip4=$(echo "$t4" | grep '^ip=' | cut -d= -f2 | head -n1)
+                 if [ -z "$warp_ip4" ]; then
+                        t4=$(timeout 3 curl -x socks5h://127.0.0.1:$_sp -s4 https://1.1.1.1/cdn-cgi/trace 2>/dev/null)
+                        warp_ip4=$(echo "$t4" | grep '^ip=' | cut -d= -f2 | head -n1)
+                        if [ -z "$warp_ip4" ] || [[ "$warp_ip4" == *:* ]]; then
+                            warp_ip4=$(timeout 3 curl -x socks5h://127.0.0.1:$_sp -s4 https://api.ipify.org 2>/dev/null | tr -d '\r\n')
+                            [[ "$warp_ip4" == *:* ]] && warp_ip4=""
                         fi
+                    fi
                         if [ -z "$warp_ip6" ]; then
                             t6=$(timeout 3 curl -x socks5h://127.0.0.1:$_sp -s6 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
                             echo "$t6" | grep -q "warp=on" && warp_ip6=$(echo "$t6" | grep '^ip=' | cut -d= -f2 | head -n1)
                         fi
                     else
                         # 非 SOCKS（全局/网卡）再直连补测
-                        if [ -z "$warp_ip4" ]; then
-                            t4=$(timeout 3 curl -s4 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
-                            echo "$t4" | grep -q "warp=on" && warp_ip4=$(echo "$t4" | grep '^ip=' | cut -d= -f2 | head -n1)
-                        fi
-                        if [ -z "$warp_ip6" ]; then
-                            t6=$(timeout 3 curl -s6 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
-                            echo "$t6" | grep -q "warp=on" && warp_ip6=$(echo "$t6" | grep '^ip=' | cut -d= -f2 | head -n1)
+                    if [ -z "$warp_ip4" ]; then
+                        t4=$(timeout 3 curl -s4 https://1.1.1.1/cdn-cgi/trace 2>/dev/null)
+                        warp_ip4=$(echo "$t4" | grep '^ip=' | cut -d= -f2 | head -n1)
+                        if [ -z "$warp_ip4" ] || [[ "$warp_ip4" == *:* ]]; then
+                            warp_ip4=$(timeout 3 curl -s4 https://api.ipify.org 2>/dev/null | tr -d '\r\n')
+                            [[ "$warp_ip4" == *:* ]] && warp_ip4=""
                         fi
                     fi
                 fi
