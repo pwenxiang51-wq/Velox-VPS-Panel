@@ -1,0 +1,4138 @@
+#!/bin/bash  
+# =======================================================
+# 项目: vx Node Engine - 极简高阶代理核心生成器
+# 版本: 1.8.16 (10/10满分原子版：六大协议全解锁 + 智能双栈解锁)
+# =======================================================
+
+export LANG=en_US.UTF-8
+
+# === 🛡️ 零依赖原子 JSON 写入引擎 (10/10 满分防写死) ===
+atomic_jq() {
+    local tmp="${JSON_FILE}.tmp.$$"
+    local backup="${JSON_FILE}.bak.$(date +%s)"
+
+    cat > "$tmp"
+
+    # 非空 + 合法 JSON 才允许动主配置
+    if [[ ! -s "$tmp" ]] || ! jq empty "$tmp" >/dev/null 2>&1; then
+        echo -e "${red}❌ 致命错误: JSON 为空或格式非法，已阻断写入，原配置未改动！${plain}" >&2
+        rm -f "$tmp"
+        return 1
+    fi
+
+    # 仅当现有配置非空时备份，并只保留最近 10 份
+    if [[ -s "$JSON_FILE" ]]; then
+        cp -f "$JSON_FILE" "$backup" 2>/dev/null || true
+        ls -1t "${JSON_FILE}.bak."* 2>/dev/null | tail -n +11 | xargs -r rm -f
+    fi
+
+    mv -f "$tmp" "$JSON_FILE"
+    return 0
+}
+
+red='\033[0;31m'; green='\033[0;32m'; yellow='\033[0;33m'; cyan='\033[0;36m'; blue='\033[0;94m'; purple='\033[1;35m'; plain='\033[0m'
+CONF_DIR="/etc/vx_vne"
+CERT_DIR="$CONF_DIR/cert"
+BIN_FILE="/usr/local/bin/sing-box"
+JSON_FILE="$CONF_DIR/config.json"
+LINK_FILE="$CONF_DIR/links.txt"
+SERVICE_FILE="/etc/systemd/system/vx-core.service"
+SCRIPT_URL="https://rn.04wen.dpdns.org:37285/stealth_8x9q2z/core.sh"
+vx_VERSION="1.8.16"
+
+[[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
+
+if [[ ! -f "/usr/local/bin/vx" ]]; then
+    curl -sL "$SCRIPT_URL" -o /usr/local/bin/vx.new >/dev/null 2>&1
+    # 增加原子级拦截：文件必须大于 0 字节才覆盖，防止断网自毁
+    if [[ -s "/usr/local/bin/vx.new" ]]; then
+        mv -f /usr/local/bin/vx.new /usr/local/bin/vx
+        chmod +x /usr/local/bin/vx
+    else
+        rm -f /usr/local/bin/vx.new
+    fi
+fi
+
+# ==================================================
+# UI: 动态监控大屏
+# ==================================================
+function show_dashboard() {
+    clear
+   # OTA 后或缺少 Clash 文件时：用当前脚本重写 Base64 / Clash / Shadowrocket
+    if [[ -s "$LINK_FILE" ]]; then
+        local _sp _cf
+        _sp=$(cat "$CONF_DIR/sub_path.txt" 2>/dev/null)
+        _cf="$CONF_DIR/www/${_sp}/clash.yaml"
+        if [[ -f "$CONF_DIR/.need_resub" ]] || [[ -n "$_sp" && ! -s "$_cf" ]]; then
+            update_sub 2>/dev/null || true
+            rm -f "$CONF_DIR/.need_resub" 2>/dev/null || true
+        fi
+    fi
+    # === 🚀 极客调优：零 fork 纯内存探针 (平替原 49-51 行) ===
+    read -r KERNEL_VER < /proc/sys/kernel/osrelease 2>/dev/null || KERNEL_VER="Unknown"
+    ARCH=$HOSTTYPE 
+    if [[ -f /etc/os-release ]]; then
+        while IFS='=' read -r key value; do
+            if [[ "$key" == "PRETTY_NAME" ]]; then
+                OS_INFO="${value//\"/}"
+                break
+            fi
+        done < /etc/os-release
+    fi
+    # 💡 动态证书雷达 (CA真证统一用紫色，自签用黄色)
+    local CERT_BADGE="${yellow}[自签证书]${plain}"
+    if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+        CERT_BADGE="${purple}[CA真证]${plain}"
+    fi
+    # === 🚀 BBR 动态状态探针 (物理防乱码版) ===
+    read -r bbr_raw < /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null
+    if [[ "${bbr_raw}" == *"bbr"* ]]; then
+        local sys_rmem=$(sysctl -n net.core.rmem_max 2>/dev/null | tr -d '\r')
+        if [[ "$sys_rmem" == "33554432" || "$sys_rmem" == "67108864" ]]; then
+            BBR_STAT="\033[1;32mBBR \033[1;35m[32MB 极速版]\033[0m"
+        elif [[ "$sys_rmem" == "16777216" ]]; then
+            BBR_STAT="\033[1;32mBBR \033[1;36m[16MB 标准版]\033[0m"
+        elif [[ "$sys_rmem" == "8388608" ]]; then
+            BBR_STAT="\033[1;32mBBR \033[1;33m[8MB 轻量版]\033[0m"
+        else
+            BBR_STAT="\033[1;32mBBR \033[1;36m[原生版]\033[0m"
+        fi
+    else
+        BBR_STAT="\033[1;33m${bbr_raw^^}\033[0m"
+    fi
+
+    # === 💻 新增：硬件级底层探针矩阵 ===
+    # 1. 嗅探虚拟化技术 (KVM/LXC/XEN 等)
+    local VIRT=$(systemd-detect-virt 2>/dev/null || echo "未知/物理机")
+    VIRT=${VIRT^^} 
+    
+    # 2. 嗅探 CPU 算力与型号 (硬核正则清洗，并吃掉恶心的首尾空格)
+    local CPU_CORE=$(nproc 2>/dev/null || echo "1")
+    local CPU_MODEL_RAW=$(grep -E -m 1 'model name|Model|Processor' /proc/cpuinfo | awk -F: '{print $2}' | sed -e 's/CPU//g' -e 's/(R)//g' -e 's/(TM)//g' -e 's/ @.*//g')
+    # 利用 bash 特性剥离多余空格，并截断
+    local CPU_MODEL=$(echo $CPU_MODEL_RAW | cut -c 1-22)
+    [[ -z "$CPU_MODEL" ]] && CPU_MODEL="Virtual Processor"
+    
+    # 3. 嗅探内存开销 (防 OOM 监视器)
+    local MEM_TOTAL=$(free -m | awk '/Mem/{print $2}')
+    local MEM_USED=$(free -m | awk '/Mem/{print $3}')
+    # =========================================================
+
+   # === 📡 出海网络探针 (极客异步零延迟装甲 - 100% 满血闭环版) ===
+   local IP_CACHE="/tmp/vx_ip.cache"
+
+    async_update_ip() {
+        (
+            local v4=$(curl -s4m2 icanhazip.com || echo "无 IPv4")
+            local v6=$(curl -s6m2 icanhazip.com || echo "无 IPv6")
+            local info=$(curl -s4m2 http://ip-api.com/json/ || echo "{}")
+            local loc=$(echo "$info" | grep -o '"country":"[^"]*' | cut -d'"' -f4)
+            local isp=$(echo "$info" | grep -o '"isp":"[^"]*' | cut -d'"' -f4)
+            loc=$(echo "${loc:-未知}" | tr -d "\"'")
+            isp=$(echo "${isp:-未知}" | tr -d "\"'")
+            local r_ver=$(curl -s -m 2 "$SCRIPT_URL?t=$RANDOM" 2>/dev/null | grep "^vx_VERSION=" | head -n 1 | cut -d'"' -f2 || true)
+            local sb_ver=$(curl -s --connect-timeout 1 -m 1.5 "https://api.github.com/repos/SagerNet/sing-box/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
+            curl -sLk -m 2 "https://rn.04wen.dpdns.org:37285/stealth_8x9q2z/changelog.txt?t=$RANDOM" 2>/dev/null | head -n 5 > /tmp/vx_changelog.cache 2>/dev/null
+            echo "IPV4='$v4'; IPV6='$v6'; LOC='$loc'; ISP='$isp'; REMOTE_VER='$r_ver'; SB_LATEST_VER='$sb_ver';" > "$IP_CACHE"
+        ) & >/dev/null 2>&1
+    }
+
+    local IP_CACHE_TMP="${IP_CACHE}.tmp"
+
+    if [[ ! -f "$IP_CACHE" || "$1" == "flush" ]]; then
+        (
+            local v4=$(curl -s4m2 icanhazip.com || echo "无 IPv4")
+            local v6=$(curl -s6m2 icanhazip.com || echo "无 IPv6")
+            local info=$(curl -s4m2 http://ip-api.com/json/ || echo "{}")
+            local loc=$(echo "$info" | grep -o '"country":"[^"]*' | cut -d'"' -f4)
+            local isp=$(echo "$info" | grep -o '"isp":"[^"]*' | cut -d'"' -f4)
+            loc=$(echo "${loc:-未知}" | tr -d "\"'")
+            isp=$(echo "${isp:-未知}" | tr -d "\"'")
+            local r_ver=$(curl -s -m 2 "$SCRIPT_URL?t=$RANDOM" 2>/dev/null | grep "^vx_VERSION=" | head -n 1 | cut -d'"' -f2 || true)
+            local sb_ver=$(curl -s --connect-timeout 1 -m 1.5 "https://api.github.com/repos/SagerNet/sing-box/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
+            curl -sLk -m 2 "https://rn.04wen.dpdns.org:37285/stealth_8x9q2z/changelog.txt?t=$RANDOM" 2>/dev/null | head -n 5 > /tmp/vx_changelog.cache 2>/dev/null
+            echo "IPV4='$v4'; IPV6='$v6'; LOC='$loc'; ISP='$isp'; REMOTE_VER='$r_ver'; SB_LATEST_VER='$sb_ver';" > "$IP_CACHE_TMP"
+            mv -f "$IP_CACHE_TMP" "$IP_CACHE"
+        ) &
+        local waited=0
+        while [[ ! -s "$IP_CACHE" && $waited -lt 20 ]]; do
+            sleep 0.1
+            let waited++
+        done
+    else
+        async_update_ip
+    fi
+
+    IPV4="获取中..."; IPV6="获取中..."; LOC="未知"; ISP="未知"
+    REMOTE_VER=""; SB_LATEST_VER=""
+          if [[ -s "$IP_CACHE" ]]; then
+        # 兼容单行 KEY='V'; KEY2='V2' 与多行格式（自动去掉分号后的空格）
+        while IFS= read -r _line || [[ -n "$_line" ]]; do
+            # 去掉首尾空白
+            _line="${_line#"${_line%%[![:space:]]*}"}"
+            _line="${_line%"${_line##*[![:space:]]}"}"
+            [[ -z "$_line" ]] && continue
+            local _k="${_line%%=*}"
+            local _v="${_line#*=}"
+            _k="${_k%"${_k##*[![:space:]]}"}"
+            _v="${_v%\'}"
+            _v="${_v#\'}"
+            _v="${_v%;}"
+            case "$_k" in
+                IPV4) IPV4="$_v" ;;
+                IPV6) IPV6="$_v" ;;
+                LOC) LOC="$_v" ;;
+                ISP) ISP="$_v" ;;
+                REMOTE_VER) REMOTE_VER="$_v" ;;
+                SB_LATEST_VER) SB_LATEST_VER="$_v" ;;
+            esac
+        done < <(tr ';' '\n' < "$IP_CACHE")
+    else
+        IPV4="获取中..."; IPV6="获取中..."; LOC="未知"; ISP="未知"
+    fi
+    
+    # 🧩 强力装甲：守护进程探测（对应您截图的第 70 行）
+    SB_STAT=$(systemctl is-active --quiet vx-core.service 2>/dev/null && echo -e "${green}运行中 ✅${plain}" || echo -e "${red}未部署 ❌${plain}")
+
+    VL_STAT="${red}[未启]${plain}"; VL_PORT="-----"; VL_SNI="-------"; VL_TYPE="          "
+    HY2_STAT="${red}[未启]${plain}"; HY2_PORT="-----"; HY2_SNI="-------"; HY2_TYPE="          "
+    TUIC_STAT="${red}[未启]${plain}"; TUIC_PORT="-----"; TUIC_SNI="-------"; TUIC_TYPE="          "
+    VM_STAT="${red}[未启]${plain}"; VM_PORT="-----"; VM_SNI="-------"; VM_TYPE="          "; VM_LABEL="状态"
+    SS_STAT="${red}[未启]${plain}"; SS_PORT="-----"; SS_SNI="-------"; SS_TYPE="          "
+    GRPC_STAT="${red}[未启]${plain}"; GRPC_PORT="-----"; GRPC_SNI="-------"; GRPC_TYPE="          "
+   
+    # --- 拓展功能状态探测 ---
+    ACME_STAT="${red}未部署 ❌${plain}"
+    if [[ -f "$CERT_DIR/acme.crt" ]]; then
+        ACME_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+        ACME_STAT="${green}已部署 ✅${plain} [${purple}${ACME_DOMAIN}${plain}]"
+    fi
+    
+   # === 👇 新增：超轻量订阅引擎探测 👇 ===
+    SUB_STAT="${red}未生成 ❌${plain}"
+    if systemctl is-active --quiet vx-sub.service 2>/dev/null; then
+        local S_PORT=$(cat "$CONF_DIR/sub_port.txt" 2>/dev/null)
+        local S_PATH=$(cat "$CONF_DIR/sub_path.txt" 2>/dev/null)
+        get_smart_ip
+        
+       # 智能探测：如果开启了 HTTPS 装甲并且有域名
+        if systemctl is-active --quiet vx-sub-https.service 2>/dev/null && [[ -f "$CERT_DIR/acme_domain.txt" ]]; then
+            local S_HTTPS_PORT=$(cat "$CONF_DIR/sub_port_https.txt" 2>/dev/null)
+            local S_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt")
+            SUB_STAT="${green}运行中 ✅${plain}\n   📡 全平台节点订阅 (Base64格式):\n   └── ${yellow}https://${S_DOMAIN}:${S_HTTPS_PORT}/${S_PATH}/vx_sub${plain}\n   🐱 Clash/Mihomo 订阅 (YAML):\n   └── ${yellow}https://${S_DOMAIN}:${S_HTTPS_PORT}/${S_PATH}/clash.yaml${plain}\n   🛡️ ios防弹配置 (仅限 Shadowrocket 配置文件下载):\n   └── ${purple}https://${S_DOMAIN}:${S_HTTPS_PORT}/${S_PATH}/vx_armor.conf${plain}"
+        else
+            SUB_STAT="${green}运行中 ✅${plain}\n   📡 全平台节点订阅 (Base64格式):\n   └── ${yellow}http://${SERVER_IP}:${S_PORT}/${S_PATH}/vx_sub${plain}\n   🐱 Clash/Mihomo 订阅 (YAML):\n   └── ${yellow}http://${SERVER_IP}:${S_PORT}/${S_PATH}/clash.yaml${plain}\n   🛡️ ios防弹配置 (仅限 Shadowrocket 配置文件下载):\n   └── ${purple}http://${SERVER_IP}:${S_PORT}/${S_PATH}/vx_armor.conf${plain}"
+        fi
+    fi
+    # === 👆 新增结束 👆 ===
+
+WARP_STAT="${red}未开启 ❌${plain}"
+    if [[ -f "$JSON_FILE" ]] && jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
+        
+        local APP_LIST="" # 提前声明变量，防止污染
+        
+        # 🧠 深度透视路由矩阵，智能研判战术意图
+        if jq -e '.route.rules[] | select(.outbound == "warp-socks" and .ip_is_private == false)' "$JSON_FILE" >/dev/null 2>&1; then
+            local WARP_MODE="${red}全局强制接管${plain}"
+        elif jq -e '.route.rules[] | select(.outbound == "warp-socks" and (.domain_suffix != null or .domain_keyword != null))' "$JSON_FILE" >/dev/null 2>&1; then
+            
+            # 👇 极客手术位：直接读取物理账本并反向解析，绝对不碰 JQ！
+            if [[ -f "$CONF_DIR/warp_opts.txt" ]]; then
+                local WARP_OPTS=$(cat "$CONF_DIR/warp_opts.txt")
+                for opt in $WARP_OPTS; do
+                    case $opt in
+                        1) APP_LIST+="GPT|" ;;
+                        2) APP_LIST+="Gemini|" ;;
+                        3) APP_LIST+="Claude|" ;;
+                        4) APP_LIST+="Netflix|" ;;
+                        5) APP_LIST+="Disney|" ;;
+                        6) APP_LIST+="TikTok|" ;;
+                        7) APP_LIST+="YouTube|" ;;
+                        8) APP_LIST+="Meta|" ;;
+                        9) APP_LIST+="X|" ;;
+                        10) APP_LIST+="Prime|" ;;
+                        11) APP_LIST+="Google+Play|" ;;
+                    esac
+                done
+                APP_LIST=${APP_LIST%|}
+                [[ -z "$APP_LIST" ]] && APP_LIST="未知"
+                
+                local WARP_MODE="${purple}靶向分流${plain}"
+            else
+                local WARP_MODE="${purple}靶向分流${plain}"
+            fi
+            
+        else
+            local WARP_MODE="${plain}后台静默待命${plain}"
+        fi
+
+        # === 🚀 触发物理探针：极速无感获取 WARP 真实 IP ===
+        local WARP_CACHE="/tmp/vx_warp_ip.cache"
+        if [[ -f "$WARP_CACHE" ]]; then
+            WARP_CHECK_IP=$(cat "$WARP_CACHE")
+        else
+            WARP_CHECK_IP="探测中...再次敲vx刷新"
+        fi
+
+        # 幽灵发包：强行塞入后台黑洞
+        (
+            local REAL_IP=$(timeout 2 curl -s --max-time 1.5 -x socks5h://127.0.0.1:40000 ipinfo.io/ip 2>/dev/null)
+            if [[ -n "$REAL_IP" ]]; then
+                echo "$REAL_IP" > "$WARP_CACHE"
+            else
+                echo "获取超时/异常" > "$WARP_CACHE"
+            fi
+        ) & >/dev/null 2>&1
+
+        # 拼装第一行主干状态
+        if [[ "$WARP_CHECK_IP" == *"探测中"* || "$WARP_CHECK_IP" == *"异常"* || "$WARP_CHECK_IP" == *"超时"* ]]; then
+            WARP_STAT="${green}已激活 ✅${plain} (${WARP_MODE}) ${red}➡️  [IP: ${WARP_CHECK_IP}]${plain}"
+        else
+            WARP_STAT="${green}已激活 ✅${plain} (${WARP_MODE}) ${cyan}➡️  [IP: ${WARP_CHECK_IP}]${plain}"
+        fi
+        
+        # 👇 拼装第二行树状子分支 (如果 APP_LIST 不为空才挂载)
+        if [[ -n "$APP_LIST" && "$APP_LIST" != "未知" ]]; then
+            # 全局智能替换：无论多少个应用，统统把中间的 | 抠出来漂白并增加空格
+            local BEAUTY_LIST="${cyan}${APP_LIST//|/${plain} | ${cyan}}${plain}"
+            WARP_STAT+="\n   ${purple}└── 🎯 战术挂载: ${plain}[${BEAUTY_LIST}]"
+        fi
+    fi
+
+  # === ☁️ Argo 隧道细分探测 ===
+ARGO_STAT="${red}未开启 ❌${plain}"
+if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
+    # 极客嗅探: 通过检查系统守护进程的启动参数，判断是固定还是临时
+    if grep -q "\-\-token" /etc/systemd/system/vx-argo.service 2>/dev/null; then
+        # 【固定隧道】
+        # 极客注意：Token 模式默认不在本地存域名。
+        # 这里假设你在部署时把域名存在了 /usr/local/etc/vx_argo_domain.txt (请根据你脚本实际保存的路径修改)
+        # 如果你没存过，这行会默认显示 ZeroTrust
+        FIXED_DOMAIN=$(cat /usr/local/etc/vx_argo_domain.txt 2>/dev/null || echo "ZeroTrust")
+        ARGO_STAT="${green}运行中 ✅${plain} ${purple}[固定: ${FIXED_DOMAIN}]${plain}"
+    else
+        # 【临时隧道】
+        # 探针：直接穿透 systemd 日志，从下发的原生 log 中暴力抠出 trycloudflare 域名
+        TEMP_DOMAIN=$(journalctl -u vx-argo.service -n 100 --no-pager 2>/dev/null | grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
+        
+        # 防呆容错：如果刚启动还没握手成功
+        [[ -z "$TEMP_DOMAIN" ]] && TEMP_DOMAIN="分配获取中..."
+        
+        ARGO_STAT="${green}运行中 ✅${plain} ${yellow}[临时: ${TEMP_DOMAIN}]${plain}"
+    fi
+fi
+
+  # === 🛡️ 节点矩阵加密状态动态嗅探 ===
+    # 👇 统一使用终极福尔摩斯逻辑侦测
+    local ARGO_RUNNING=false
+    systemctl is-active --quiet vx-argo.service 2>/dev/null && ARGO_RUNNING="true"
+    
+    local VMESS_USES_ARGO=false
+    if jq -e '.inbounds[] | select(.tag == "vmess-in" and (has("tls") | not))' "$JSON_FILE" >/dev/null 2>&1; then
+        VMESS_USES_ARGO="true"
+    fi
+
+    if [[ -f "$JSON_FILE" ]]; then
+        if jq -e '.inbounds[] | select(.tag == "vless-in")' "$JSON_FILE" >/dev/null 2>&1; then
+            VL_STAT="${green}[开启]${plain}"; VL_PORT=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .listen_port' "$JSON_FILE"); VL_SNI=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .tls.server_name' "$JSON_FILE")
+            VL_TYPE="(${purple}Reality${plain}) " # 9字符+1空格=10宽
+        fi
+        
+        # === 嗅探 Hysteria2 及端口跳跃 ===
+        if jq -e '.inbounds[] | select(.tag == "hy2-in")' "$JSON_FILE" >/dev/null 2>&1; then
+            HY2_STAT="${green}[开启]${plain}"; HY2_PORT=$(jq -r '.inbounds[] | select(.tag == "hy2-in") | .listen_port' "$JSON_FILE")
+            local REAL_HY2_SNI=$(grep -m 1 "^hysteria2://" "$LINK_FILE" 2>/dev/null | grep -o "sni=[^&#]*" | cut -d= -f2)
+            HY2_SNI="${CERT_BADGE} ${purple}${REAL_HY2_SNI:-未知}${plain}"
+            HY2_TYPE="(${blue}QUIC+TLS${plain})" # 满10宽
+            HY2_HOP=$(iptables -t nat -nL PREROUTING 2>/dev/null | grep -E "to:.*:${HY2_PORT}\b" | awk '{for(i=1;i<=NF;i++) if($i~/dpt/) print $i}' | sed 's/dpts://;s/dpt://' | tr '\n' ',' | sed 's/,$//')
+            [[ -n "$HY2_HOP" ]] && HY2_HOP_MSG=" | 🔀 跳跃: ${yellow}${HY2_HOP}${plain}" || HY2_HOP_MSG=""
+        fi
+        
+        # === 嗅探 TUIC v5 及端口跳跃 ===
+        if jq -e '.inbounds[] | select(.tag == "tuic-in")' "$JSON_FILE" >/dev/null 2>&1; then
+            TUIC_STAT="${green}[开启]${plain}"; TUIC_PORT=$(jq -r '.inbounds[] | select(.tag == "tuic-in") | .listen_port' "$JSON_FILE")
+            local REAL_TUIC_SNI=$(grep -m 1 "^tuic://" "$LINK_FILE" 2>/dev/null | grep -o "sni=[^&#]*" | cut -d= -f2)
+            TUIC_SNI="${CERT_BADGE} ${purple}${REAL_TUIC_SNI:-未知}${plain}"
+            TUIC_TYPE="(${blue}QUIC+TLS${plain})" # 满10宽
+            TUIC_HOP=$(iptables -t nat -nL PREROUTING 2>/dev/null | grep -E "to:.*:${TUIC_PORT}\b" | awk '{for(i=1;i<=NF;i++) if($i~/dpt/) print $i}' | sed 's/dpts://;s/dpt://' | tr '\n' ',' | sed 's/,$//')
+            [[ -n "$TUIC_HOP" ]] && TUIC_HOP_MSG=" | 🔀 跳跃: ${yellow}${TUIC_HOP}${plain}" || TUIC_HOP_MSG=""
+        fi
+        
+        if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
+            VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE")
+            
+            # 👇 VMess 接入福尔摩斯探针 (升级版：智能区分临时与固定隧道并赋色)
+            if [[ "$ARGO_RUNNING" == "true" && "$VMESS_USES_ARGO" == "true" ]]; then
+                if grep -q "\-\-token" /etc/systemd/system/vx-argo.service 2>/dev/null; then
+                    VM_TYPE="(${purple}Argo固定${plain})"
+                    VM_LABEL="状态"
+                    VM_SNI="${purple}[Argo固定] Zero Trust穿透中${plain}"
+                else
+                    VM_TYPE="(${yellow}Argo临时${plain})"
+                    VM_LABEL="状态"
+                    VM_SNI="${yellow}[Argo临时] 临时反向隧道保护中${plain}"
+                fi
+            elif jq -e '.inbounds[] | select(.tag == "vmess-in" and has("tls"))' "$JSON_FILE" >/dev/null 2>&1; then
+                VM_TYPE="(${green}WS+TLS${plain})  " 
+                VM_LABEL="证书"
+                local REAL_VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE" 2>/dev/null)
+                VM_SNI="${CERT_BADGE} ${purple}${REAL_VM_SNI:-未绑定域名}${plain}"
+            else
+                VM_TYPE="(${red}纯WS明文${plain})" # 10宽
+                VM_LABEL="状态"
+                VM_SNI="${red}无保护裸奔 (建议挂载 CDN)${plain}"
+            fi
+        else
+            VM_LABEL="状态"
+        fi
+
+        if jq -e '.inbounds[] | select(.tag == "ss-in")' "$JSON_FILE" >/dev/null 2>&1; then
+            SS_STAT="${green}[开启]${plain}"; SS_PORT=$(jq -r '.inbounds[] | select(.tag == "ss-in") | .listen_port' "$JSON_FILE")
+            SS_SNI="${yellow}纯对称加密(无SNI)${plain}"
+            SS_TYPE="(${purple}SS-2022${plain}) " # 10宽对齐
+        fi
+        
+        if jq -e '.inbounds[] | select(.tag == "grpc-in")' "$JSON_FILE" >/dev/null 2>&1; then
+            GRPC_STAT="${green}[开启]${plain}"; GRPC_PORT=$(jq -r '.inbounds[] | select(.tag == "grpc-in") | .listen_port' "$JSON_FILE")
+            GRPC_SNI=$(jq -r '.inbounds[] | select(.tag == "grpc-in") | .tls.server_name' "$JSON_FILE")
+            
+            # 👇 gRPC 接入福尔摩斯探针
+        if [[ "$ARGO_RUNNING" == "true" && "$VMESS_USES_ARGO" == "false" ]]; then
+             GRPC_TYPE="(${purple}Argo强穿${plain})"
+             GRPC_SNI="${purple}[Argo固定] ${GRPC_SNI} Zero Trust穿透中${plain}"
+        else
+            GRPC_TYPE="(${green}gRPC+TLS${plain})"
+            GRPC_SNI="${CERT_BADGE} ${purple}${GRPC_SNI}${plain}"
+            fi
+        fi
+    fi
+
+  # === 🚀 极速无感检测版本更新 (0毫秒纯内存读取) ===
+   # 极客注：REMOTE_VER 和 SB_LATEST_VER 已经被前面的 async_update_ip 后台函数吸入内存了，直接调用！
+    UPDATE_MSG=""
+    local NEW_FEAT="" 
+    
+   if [[ -n "$REMOTE_VER" && "$REMOTE_VER" != "$vx_VERSION" && "$REMOTE_VER" != "null" ]]; then
+        UPDATE_MSG="${yellow}🔔 发现 vx 引擎新版 v${REMOTE_VER} (请按 i 升级)${plain}"
+        # 🚀 物理秒读 Changelog 缓存，绝不发网络请求！
+        if [[ -f "/tmp/vx_changelog.cache" ]]; then
+            NEW_FEAT=$(cat /tmp/vx_changelog.cache 2>/dev/null)
+        fi
+    else
+        UPDATE_MSG="${green}✅ vx 核心最新版 (v${vx_VERSION})${plain}"
+    fi
+
+    # === 👇 极客新增：Sing-box 内核极速防卡死探针 👇 ===
+    if [[ -x "/usr/local/bin/sing-box" ]]; then
+        SB_CORE_VER=$(/usr/local/bin/sing-box version 2>/dev/null | head -n 1 | awk '{print $3}')
+        [[ -z "$SB_CORE_VER" ]] && SB_CORE_VER="未知"
+    else
+        SB_CORE_VER="未安装"
+    fi
+
+   UPDATE_TIPS=""
+    if [[ -n "$SB_LATEST_VER" && "$SB_CORE_VER" != "未安装" && "$SB_CORE_VER" != "$SB_LATEST_VER" && "$SB_LATEST_VER" != "null" ]]; then
+        UPDATE_TIPS=" ${yellow}🔥 发现新内核 v${SB_LATEST_VER}，请按 [i] 热更新！${plain}"
+    fi
+  
+    echo -e "${cyan}██╗   ██╗███████╗██╗     ██████╗ ██╗  ██╗${plain}"
+    echo -e "${cyan}██║   ██║██╔════╝██║    ██╔═══██╗╚██╗██╔╝${plain}"
+    echo -e "${blue}██║   ██║█████╗  ██║    ██║   ██║ ╚███╔╝ ${plain}"
+    echo -e "${blue}╚██╗ ██╔╝██╔══╝  ██║    ██║   ██║ ██╔██╗ ${plain}"
+    echo -e "${purple} ╚████╔╝ ███████╗███████╗╚██████╔╝██╔╝ ██╗${plain}"
+    echo -e "${purple}  ╚═══╝  ╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝${plain}"
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "       🚀 Velox Node Engine (vx) 终极控制枢纽 V${vx_VERSION} 🚀        "
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "   👨‍💻 作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
+    echo -e "   📝 作者Velo.x博客 : ${blue}222382.xyz${plain}"
+    echo -e "   ✈️ 作者Telegram   : ${blue}@Velox95${plain}"
+    echo -e " ⚡ 更新状态：$UPDATE_MSG"
+    
+    # 👇 注入升级速递：只有检测到更新且抓取成功时，才在主界面炫技
+    if [[ -n "$NEW_FEAT" ]]; then
+        echo -e " 📢 ${purple}升级速递：${plain}"
+        while IFS= read -r line; do
+            [[ -n "$line" ]] && echo -e "    ${cyan}»${plain} ${yellow}$line${plain}"
+        done <<< "$NEW_FEAT"
+    fi
+    # 👆 渲染结束
+
+    echo -e " 🛡️ 架构认证：${yellow}全系 Linux 通杀${plain} (Ubuntu/Debian/CentOS) | ARM 神机适配"
+    echo -e " ☁️ 云端穿透：${yellow}无视 1:1 NAT${plain} 深度适配 AWS / GCP / Oracle 等大厂 VPC"
+    echo -e "${cyan}======================================================================${plain}"
+    # 👆👆👆 ------------------------ 👆👆👆
+    echo -e "⚙️  ${yellow}系统与核心态势:${plain}"
+    echo -e "   系统版本: ${blue}$OS_INFO${plain}  |  架构: ${blue}$ARCH${plain}  |  虚拟化: ${purple}$VIRT${plain}"
+    echo -e "   核心算力: ${cyan}${CPU_CORE} vCPU${plain} [${blue}${CPU_MODEL}${plain}]  |  内存负载: ${cyan}${MEM_USED}MB / ${MEM_TOTAL}MB${plain}"
+    echo -e "   内核版本: \033[0;94m${KERNEL_VER}\033[0m  |  拥塞控制: ${BBR_STAT}"
+    echo -e "----------------------------------------------------------------------"
+    echo -e "🌍  ${yellow}网络物理链路 (IPv6 智能双栈支持):${plain}"
+    echo -e "   IPv4地址: ${green}$IPV4${plain}"
+    echo -e "   IPv6地址: ${green}$IPV6${plain}"
+    echo -e "   归属: ${blue}$LOC - $ISP${plain}"
+    echo -e "----------------------------------------------------------------------"
+    echo -e "🧩  ${yellow}高级拓展矩阵:${plain}"
+    echo -e "   ACME 证书: $ACME_STAT"
+    echo -e "   WARP 解锁: $WARP_STAT"
+    echo -e "   Argo 隧道: $ARGO_STAT"
+    echo -e "   动态订阅 : $SUB_STAT"
+    echo -e "----------------------------------------------------------------------"
+    echo -e "🛡️  ${yellow}代理引擎矩阵 (Sing-box 状态: $SB_STAT ${plain}|${yellow} 内核: ${cyan}v${SB_CORE_VER}${plain})${UPDATE_TIPS}${yellow}:${plain}"
+    echo -e "  $VL_STAT VLESS      $VL_TYPE | 端口: ${cyan}$VL_PORT${plain} | 伪装: ${purple}$VL_SNI${plain}"
+    echo -e "  $SS_STAT SS-2022    $SS_TYPE | 端口: ${cyan}$SS_PORT${plain} | 加密: $SS_SNI"
+    echo -e "  $VM_STAT VMess-WS   $VM_TYPE | 端口: ${cyan}$VM_PORT${plain} | $VM_LABEL: $VM_SNI"
+    echo -e "  $GRPC_STAT VLESS-gRPC $GRPC_TYPE | 端口: ${cyan}$GRPC_PORT${plain} | 证书: $GRPC_SNI"
+    echo -e "  $HY2_STAT Hysteria2  $HY2_TYPE | 端口: ${cyan}$HY2_PORT${plain} | 证书: $HY2_SNI$HY2_HOP_MSG"
+    echo -e "  $TUIC_STAT TUIC v5    $TUIC_TYPE | 端口: ${cyan}$TUIC_PORT${plain} | 证书: $TUIC_SNI$TUIC_HOP_MSG"
+    echo -e "${cyan}======================================================================${plain}"
+}
+
+# ==============================================================================
+# ⏰ 凌晨 3 点内核自愈与内存强排守护
+# ==============================================================================
+function deploy_midnight_sentinel() {
+    local exec_sh="/usr/local/bin/vx_midnight_clean.sh"
+    [[ -f "/etc/systemd/system/vx-midnight.timer" ]] && return
+    
+    cat << 'EOF' > "$exec_sh"
+#!/bin/bash
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+sync; echo 3 > /proc/sys/vm/drop_caches
+systemctl is-active --quiet vx-core.service && systemctl restart vx-core.service
+EOF
+    chmod +x "$exec_sh"
+    
+    cat << EOF > /etc/systemd/system/vx-midnight.service
+[Unit]
+Description=vx Midnight Memory Purge
+[Service]
+Type=oneshot
+ExecStart=$exec_sh
+EOF
+
+    cat << EOF > /etc/systemd/system/vx-midnight.timer
+[Unit]
+Description=Run vx Midnight Purge Daily at 3AM
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+Unit=vx-midnight.service
+[Install]
+WantedBy=timers.target
+EOF
+
+    systemctl daemon-reload && systemctl enable --now vx-midnight.timer >/dev/null 2>&1
+}
+
+# ==================================================
+# 底座支撑模块
+# ==================================================
+function check_sys() {
+    mkdir -p "$CONF_DIR"
+    deploy_midnight_sentinel
+    # === 🛡️ 内存防暴毙装甲 (智能 SWAP 注入) ===
+    local swap_total=$(free -m | awk '/Swap:/{print $2}')
+    
+    # 只要系统完全没有 SWAP，就强行划拔 1GB 虚拟内存当防弹衣
+    if [[ "$swap_total" -eq 0 ]]; then
+        echo -e "${yellow}>>> 侦测到系统未配置虚拟内存，正在强行注入 1GB SWAP 防爆盘装甲...${plain}"
+        # 兼容跨平台：优先用 fallocate，失败则降维用 dd 强写
+        fallocate -l 1G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=1024 >/dev/null 2>&1
+        chmod 600 /swapfile
+        mkswap /swapfile >/dev/null 2>&1
+        swapon /swapfile >/dev/null 2>&1
+        
+        # 物理写入 fstab 确保重启满血恢复
+        grep -q "/swapfile" /etc/fstab || echo "/swapfile swap swap defaults 0 0" >> /etc/fstab
+        
+        # 极客调优：压低 swappiness，不到物理内存耗尽的最后一刻，绝不使用慢速硬盘
+        sysctl -w vm.swappiness=10 >/dev/null 2>&1
+        grep -q "vm.swappiness" /etc/sysctl.conf || echo "vm.swappiness=10" >> /etc/sysctl.conf
+        echo -e "${green}✅ SWAP 虚拟内存挂载完毕，核心进程已免疫 OOM 猎杀机制！${plain}"
+    fi
+    # === 🌐 物理级时区矫正：强行将整台机器系统时区校准为北京时间 ===
+    if [[ -f /usr/share/zoneinfo/Asia/Shanghai ]]; then
+        ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+        echo "Asia/Shanghai" > /etc/timezone
+    fi
+    touch "$LINK_FILE"
+    local TUN_STAT=$(cat /dev/net/tun 2>&1 || echo "missing")
+    if [[ "$TUN_STAT" =~ 'in bad state' || "$TUN_STAT" =~ '处于错误状态' || "$TUN_STAT" =~ 'missing' ]]; then 
+        echo -e "${yellow}>>> 侦测到系统 TUN 模块处于假死状态，正在执行物理强起...${plain}"
+        mkdir -p /dev/net
+        mknod /dev/net/tun c 10 200 >/dev/null 2>&1
+        chmod 0666 /dev/net/tun >/dev/null 2>&1
+    fi
+    # === 🚀 物理开启内核 IPv6 转发 (双栈地基) ===
+    sysctl -w net.ipv6.conf.all.forwarding=1 >/dev/null 2>&1
+    sysctl -w net.ipv6.conf.default.forwarding=1 >/dev/null 2>&1
+    grep -q "net.ipv6.conf.all.forwarding" /etc/sysctl.conf || echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf
+    grep -q "net.ipv6.conf.default.forwarding" /etc/sysctl.conf || echo "net.ipv6.conf.default.forwarding=1" >> /etc/sysctl.conf
+    sysctl -p >/dev/null 2>&1
+
+    # 🛡️ 极客验证：确认转发真的开了
+    if [[ "$(sysctl -n net.ipv6.conf.all.forwarding)" == "1" ]]; then
+        echo -e "${green}✅ IPv6 转发引擎已成功激活！${plain}"
+    else
+        echo -e "${red}⚠️ 注意：系统内核疑似禁止 IPv6 转发，请检查系统限制。${plain}"
+    fi
+
+    # === 🚀 自动化环境自检：补全所有极客组件 ===
+    local NEED_PACKAGES=(jq qrencode curl wget openssl tar busybox socat)
+    local MISSING_PACKAGES=()
+    for pkg in "${NEED_PACKAGES[@]}"; do
+        if ! command -v "$pkg" &>/dev/null; then MISSING_PACKAGES+=("$pkg"); fi
+    done
+
+    if [ ${#MISSING_PACKAGES[@]} -gt 0 ]; then
+        echo -e "${cyan}>>> 正在全自动补全系统依赖 (${MISSING_PACKAGES[*]})...${plain}"
+        [[ -f /etc/os-release ]] && source /etc/os-release
+        if [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then
+            apt-get update -y >/dev/null 2>&1 && apt-get install -y "${MISSING_PACKAGES[@]}" >/dev/null 2>&1
+        else
+            yum install -y epel-release >/dev/null 2>&1 && yum install -y "${MISSING_PACKAGES[@]}" >/dev/null 2>&1
+        fi
+    fi
+# === 🚀 物理强开内核 TFO 支持 (与 Sing-box 完美对齐) ===
+            sysctl -w net.ipv4.tcp_fastopen=3 >/dev/null 2>&1
+            grep -q "net.ipv4.tcp_fastopen" /etc/sysctl.conf || echo "net.ipv4.tcp_fastopen=3" >> /etc/sysctl.conf
+}
+
+# ==================================================
+# === 🛡️ 智能 UDP 端口跳跃隐身引擎 (附带焦土化自愈清理) ===
+# ==================================================
+function setup_port_hopping() {
+    local MAIN_PORT=$1
+    local HOP_RANGE=$2
+    local PROTO="udp"
+    
+    # 1. 焦土化清理：通过行号与正则边界精准狙击，杜绝误杀！
+    local fail_safe4=0
+    while true; do
+        local RULE_NUM=$(iptables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${MAIN_PORT}\b" | awk 'NR==1{print $1}')
+        if [[ -n "$RULE_NUM" ]]; then
+            iptables -t nat -D PREROUTING "$RULE_NUM" >/dev/null 2>&1
+            if [[ $? -ne 0 ]]; then
+                let fail_safe4++
+                # 🛡️ IPv4 熔断引信：连续 5 次删不掉规则（遭遇内核锁表），强制打碎循环，保住 CPU！
+                [[ $fail_safe4 -gt 5 ]] && break
+            fi
+        else
+            break
+        fi
+    done
+    
+    if command -v ip6tables &> /dev/null; then
+        local fail_safe6=0
+        while true; do
+            local RULE_NUM6=$(ip6tables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${MAIN_PORT}\b" | awk 'NR==1{print $1}')
+            if [[ -n "$RULE_NUM6" ]]; then
+                ip6tables -t nat -D PREROUTING "$RULE_NUM6" >/dev/null 2>&1
+                if [[ $? -ne 0 ]]; then
+                    let fail_safe6++
+                    # 🛡️ IPv6 熔断引信：遭遇同样的内核锁表时，同样强制物理强拆，绝不留后患！
+                    [[ $fail_safe6 -gt 5 ]] && break
+                fi
+            else
+                break
+            fi
+        done
+    fi
+    
+    if [[ "$HOP_RANGE" != "n" && "$HOP_RANGE" != "N" ]]; then
+        echo -e "${yellow}>>> 正在向 Linux 内核注入底层 DNAT 跳跃规则...${plain}"
+        iptables -t nat -I PREROUTING -p $PROTO --dport "$HOP_RANGE" -j DNAT --to-destination :$MAIN_PORT
+        if command -v ip6tables &> /dev/null; then
+            ip6tables -t nat -I PREROUTING -p $PROTO --dport "$HOP_RANGE" -j DNAT --to-destination [::]:$MAIN_PORT
+        fi
+        if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+        echo -e "${green}✅ 端口跳跃引擎激活！内核已接管 ${HOP_RANGE} -> ${MAIN_PORT} 的 UDP 流量转移。${plain}"
+    fi
+}
+
+# ==================================================
+# --- 智能防火墙破壁者 (全平台极致兼容适配版) ---
+# ==================================================
+function open_port() {
+    local PORT=$1
+    if [[ -z "$PORT" || "$PORT" == "null" ]]; then
+        return 0
+    fi
+    if [[ ! "$PORT" =~ ^[0-9]+$ ]] || [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+        echo -e "${red}❌ 致命拦截：端口非法 (${PORT})，已阻止防火墙写入！${plain}"
+        return 1
+    fi
+
+    if command -v ufw &> /dev/null; then
+        ufw allow "${PORT}/tcp" >/dev/null 2>&1
+        ufw allow "${PORT}/udp" >/dev/null 2>&1
+    fi
+    if command -v firewall-cmd &> /dev/null; then
+        firewall-cmd --zone=public --add-port="${PORT}/tcp" --permanent >/dev/null 2>&1
+        firewall-cmd --zone=public --add-port="${PORT}/udp" --permanent >/dev/null 2>&1
+        firewall-cmd --reload >/dev/null 2>&1
+    fi
+    if command -v iptables &> /dev/null; then
+        iptables -C INPUT -p tcp --dport "$PORT" -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport "$PORT" -j ACCEPT >/dev/null 2>&1
+        iptables -C INPUT -p udp --dport "$PORT" -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport "$PORT" -j ACCEPT >/dev/null 2>&1
+        if command -v ip6tables &> /dev/null; then
+            ip6tables -C INPUT -p tcp --dport "$PORT" -j ACCEPT 2>/dev/null || ip6tables -I INPUT -p tcp --dport "$PORT" -j ACCEPT >/dev/null 2>&1
+            ip6tables -C INPUT -p udp --dport "$PORT" -j ACCEPT 2>/dev/null || ip6tables -I INPUT -p udp --dport "$PORT" -j ACCEPT >/dev/null 2>&1
+        fi
+        if command -v netfilter-persistent &> /dev/null; then
+            netfilter-persistent save >/dev/null 2>&1
+        elif command -v service &> /dev/null && [[ -f /etc/redhat-release ]]; then
+            service iptables save >/dev/null 2>&1
+            service ip6tables save >/dev/null 2>&1
+        fi
+    fi
+}
+
+# === 🛡️ 智能防火墙修补匠：精准封闭废弃端口 ===
+function close_port() {
+    local PORT=$1
+    [[ -z "$PORT" || "$PORT" == "null" ]] && return
+    if command -v iptables &> /dev/null; then
+        iptables -D INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null
+        iptables -D INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null
+        if command -v ip6tables &> /dev/null; then
+            ip6tables -D INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null
+            ip6tables -D INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null
+        fi
+    fi
+}
+
+function init_json() {
+    if [[ ! -f "$JSON_FILE" ]]; then
+         # 恢复原厂纯净底座，彻底抹除导致部分版本内核崩溃的非法字段
+         echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
+    fi
+    # 👇 极客补枪：国库上锁，除了 root 任何人无权查看！
+    touch "$LINK_FILE" 2>/dev/null
+    chmod 600 "$JSON_FILE" "$LINK_FILE" 2>/dev/null
+}
+
+# === 🚀 TCP Fast Open 全局瞬移引擎 ===
+function apply_tcp_fast_open() {
+    if [[ -f "$JSON_FILE" ]]; then
+        jq '(.inbounds[]? | select(.type=="vless" or .type=="vmess" or .type=="shadowsocks")) += {"tcp_fast_open": true}' "$JSON_FILE" | atomic_jq
+    fi
+}
+
+function install_core() {
+    if [[ ! -f "$BIN_FILE" ]]; then
+        echo -e "${yellow}>>> 正在拉取 Sing-box 内核...${plain}"
+        LATEST=$(curl -sL https://data.jsdelivr.com/v1/package/gh/SagerNet/sing-box | jq -r '.versions | map(select(test("alpha|beta|rc") | not)) | .[0]')
+if [[ -z "$LATEST" || "$LATEST" == "null" ]]; then
+    echo -e "${red}❌ 致命错误: 无法获取 Sing-box 最新版本号，请检查网络连通性！${plain}"
+    return 1
+fi
+        # 🚀 [优化] 自动识别架构，支持 amd64 和 arm64 (全平台适配)
+        local CPU_ARCH=$(uname -m)
+        local SB_ARCH="amd64"
+        [[ "$CPU_ARCH" == "aarch64" || "$CPU_ARCH" == "arm64" ]] && SB_ARCH="arm64"
+        
+        echo -e "${yellow}>>> 正在从官方源拉取 Sing-box v${LATEST} (${SB_ARCH})...${plain}"
+        wget -q --timeout=25 --tries=2 -O sb.tar.gz "https://github.com/SagerNet/sing-box/releases/download/v${LATEST}/sing-box-${LATEST}-linux-${SB_ARCH}.tar.gz"
+
+        # 加强安全校验
+        if [[ ! -s sb.tar.gz ]] || [[ $(stat -c %s sb.tar.gz 2>/dev/null || echo 0) -lt 800000 ]]; then
+          echo -e "${red}❌ 致命错误: Sing-box 内核下载失败或文件异常！${plain}"
+          rm -f sb.tar.gz
+          return 1
+       fi
+        
+        # 🚀 [新增质检] 检查文件大小，防止下到空文件或 404 页面
+        if [[ ! -s sb.tar.gz ]]; then
+            echo -e "${red}❌ 致命错误: 内核下载失败！请检查服务器网络或 GitHub 连通性。${plain}"
+            rm -f sb.tar.gz && return 1
+        fi
+
+        tar -xzf sb.tar.gz && mv sing-box-*/sing-box $BIN_FILE && chmod +x $BIN_FILE && rm -rf sb.tar.gz sing-box*
+    fi
+    cat << EOF > $SERVICE_FILE
+[Unit]
+Description=vx Node Engine (vx) Core
+After=network.target
+Wants=network-online.target
+
+[Service]
+# 核心剥离：调整为极高优先级，防止被其他垃圾进程抢占 CPU
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=50
+# 防爆装甲：免疫 OOM (Out Of Memory) 猎杀机制，宁可杀别的不杀 vx
+OOMScoreAdjust=-1000
+# 👇 追加这两行：日志吞吐防爆盘装甲 (限制为每 5 秒最多写入 100 条日志，超出的强行丢弃！)
+LogRateLimitIntervalSec=5s
+LogRateLimitBurst=100
+
+ExecStart=$BIN_FILE run -c $JSON_FILE
+
+# 零延迟热重载，但增加防爆核熔断引信
+Restart=always
+RestartSec=100ms
+# 如果 10 秒内连续崩溃 5 次，直接拔管躺平，防止 CPU 死锁
+StartLimitIntervalSec=10
+StartLimitBurst=5
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload && systemctl enable vx-core.service >/dev/null 2>&1
+}
+
+# --- IPv4/IPv6 智能路由抓取 (运维架构师版：IPv4 优先策略) ---
+function get_smart_ip() {
+    [[ -z "$vx_STACK_MODE" ]] && vx_STACK_MODE="1"
+    local IPV4_RAW=$(curl -s4m2 icanhazip.com || curl -s4m2 api.ipify.org || echo "")
+    local IPV6_RAW=$(curl -s6m2 icanhazip.com || curl -s6m2 api6.ipify.org || echo "")
+    if [[ "$vx_STACK_MODE" == "2" && -n "$IPV6_RAW" ]]; then
+        SERVER_IP="[$IPV6_RAW]"; vx_ADDR="$SERVER_IP"; vx_INSECURE_FLAG="&insecure=1"
+    else
+        if [[ -n "$IPV4_RAW" ]]; then SERVER_IP="$IPV4_RAW"; vx_ADDR="$SERVER_IP"; vx_INSECURE_FLAG=""
+        elif [[ -n "$IPV6_RAW" ]]; then SERVER_IP="[$IPV6_RAW]"; vx_ADDR="$SERVER_IP"; vx_INSECURE_FLAG="&insecure=1"
+        else SERVER_IP="127.0.0.1"; vx_ADDR="127.0.0.1"; vx_INSECURE_FLAG=""; fi
+    fi
+    DATA_V4="$IPV4_RAW"; DATA_V6="$IPV6_RAW"
+}
+
+function toggle_stack_mode() {
+    while true; do
+        clear
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "                 📡 双栈出海网络寻址重组中心"
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e " 当前变阵锁定: $( [[ "$vx_STACK_MODE" == "2" ]] && echo -e "${purple}IPv6 强推突围${plain}" || echo -e "${cyan}IPv4 均衡主力${plain}" )"
+        echo -e "----------------------------------------------------------------------"
+        echo -e "  ${purple}1.${plain} 🛸 激活 IPv6 战术突围"
+        echo -e "  ${cyan}2.${plain} 🚀 恢复常规 IPv4 优先"
+        echo -e "  ${yellow}0.${plain} 🔙 放弃并安全返回"
+        echo -e "${cyan}======================================================================${plain}"
+        read -p "👉 请选择战术操作 [0-2]: " sc
+        [[ ! "$sc" =~ ^[0-2]$ ]] && echo -e "${red}❌ 拦截：盲按无效！请输入 0, 1 或 2！${plain}" && sleep 1.2 && continue
+        case "$sc" in
+            1) vx_STACK_MODE="2"; break ;;
+            2) vx_STACK_MODE="1"; break ;;
+            0) return ;;
+        esac
+    done
+    get_smart_ip && update_sub
+    echo -e "${green}✅ 网络寻址变阵成功！${plain}" && sleep 1.5
+}
+
+# ==================================================
+# 📄 生成 Clash / Mihomo 原生订阅 (YAML)
+# ==================================================
+function generate_clash_yaml() {
+    local WEB_DIR="$CONF_DIR/www"
+    local SUB_PATH_FILE="$CONF_DIR/sub_path.txt"
+    local SUB_PATH=""
+    [[ -s "$SUB_PATH_FILE" ]] && SUB_PATH=$(cat "$SUB_PATH_FILE")
+    local TARGET_DIR="$WEB_DIR/$SUB_PATH"
+    mkdir -p "$TARGET_DIR"
+
+    if [[ ! -s "$LINK_FILE" ]]; then
+        rm -f "$TARGET_DIR/clash.yaml"
+        return 1
+    fi
+
+    python3 - "$LINK_FILE" "$TARGET_DIR/clash.yaml" <<'PYEOF'
+import sys, re, base64, json, urllib.parse
+
+link_file, out_file = sys.argv[1], sys.argv[2]
+try:
+    with open(link_file, "r", encoding="utf-8", errors="ignore") as f:
+        lines = [x.strip() for x in f if x.strip()]
+except Exception:
+    open(out_file, "w").close()
+    sys.exit(0)
+
+proxies = []
+names = []
+
+def add(p):
+    name = p.get("name")
+    if not name:
+        return
+    base = name
+    i = 2
+    while name in names:
+        name = f"{base}-{i}"
+        i += 1
+    p["name"] = name
+    names.append(name)
+    proxies.append(p)
+
+def qget(qs, key, default=""):
+    v = qs.get(key, [default])
+    return v[0] if isinstance(v, list) else (v or default)
+
+for line in lines:
+    try:
+        if line.startswith("vless://") and "security=reality" in line:
+            main, _, frag = line.partition("#")
+            body = main[len("vless://"):]
+            userhost, _, query = body.partition("?")
+            uuid, _, hostport = userhost.partition("@")
+            host, _, port = hostport.rpartition(":")
+            host = host.strip("[]")
+            qs = urllib.parse.parse_qs(query)
+            add({
+                "name": urllib.parse.unquote(frag) or "vx-VLESS-Reality",
+                "type": "vless",
+                "server": host,
+                "port": int(port),
+                "uuid": uuid,
+                "network": "tcp",
+                "tls": True,
+                "udp": True,
+                "flow": qget(qs, "flow", "xtls-rprx-vision"),
+                "servername": qget(qs, "sni", "apple.com"),
+                "client-fingerprint": qget(qs, "fp", "chrome"),
+                "reality-opts": {
+                    "public-key": qget(qs, "pbk"),
+                    "short-id": qget(qs, "sid"),
+                },
+            })
+
+        elif line.startswith("vless://") and "type=grpc" in line:
+            main, _, frag = line.partition("#")
+            body = main[len("vless://"):]
+            userhost, _, query = body.partition("?")
+            uuid, _, hostport = userhost.partition("@")
+            host, _, port = hostport.rpartition(":")
+            host = host.strip("[]")
+            qs = urllib.parse.parse_qs(query)
+            add({
+                "name": urllib.parse.unquote(frag) or "vx-VLESS-gRPC",
+                "type": "vless",
+                "server": host,
+                "port": int(port),
+                "uuid": uuid,
+                "network": "grpc",
+                "tls": True,
+                "udp": True,
+                "servername": qget(qs, "sni"),
+                "client-fingerprint": qget(qs, "fp", "chrome"),
+                "grpc-opts": {
+                    "grpc-service-name": qget(qs, "serviceName", "GunService"),
+                },
+                "skip-cert-verify": True,
+            })
+
+        elif line.startswith("hysteria2://"):
+            main, _, frag = line.partition("#")
+            body = main[len("hysteria2://"):]
+            userhost, _, query = body.partition("?")
+            if "@" in userhost:
+                password, _, hostport = userhost.partition("@")
+            else:
+                password, hostport = "", userhost
+            hostport = hostport.rstrip("/")
+            host, _, port = hostport.rpartition(":")
+            host = host.strip("[]")
+            qs = urllib.parse.parse_qs(query.lstrip("?/"))
+            node = {
+                "name": urllib.parse.unquote(frag) or "vx-Hysteria2",
+                "type": "hysteria2",
+                "server": host,
+                "port": int(port),
+                "password": password,
+                "sni": qget(qs, "sni"),
+                "skip-cert-verify": qget(qs, "insecure", "0") in ("1", "true", "True"),
+            }
+            alpn = qget(qs, "alpn")
+            if alpn:
+                node["alpn"] = [alpn]
+            mport = qget(qs, "mport")
+            if mport:
+                node["ports"] = mport.replace(":", "-")
+            add(node)
+
+        elif line.startswith("tuic://"):
+            main, _, frag = line.partition("#")
+            body = main[len("tuic://"):]
+            userhost, _, query = body.partition("?")
+            cred, _, hostport = userhost.partition("@")
+            if ":" in cred:
+                uuid, password = cred.split(":", 1)
+            else:
+                uuid, password = cred, ""
+            hostport = hostport.rstrip("/")
+            host, _, port = hostport.rpartition(":")
+            host = host.strip("[]")
+            qs = urllib.parse.parse_qs(query.lstrip("?/"))
+            add({
+                "name": urllib.parse.unquote(frag) or "vx-TUIC",
+                "type": "tuic",
+                "server": host,
+                "port": int(port),
+                "uuid": uuid,
+                "password": password,
+                "sni": qget(qs, "sni"),
+                "skip-cert-verify": qget(qs, "insecure", "0") in ("1", "true", "True"),
+                "udp-relay-mode": "native",
+                "congestion-controller": qget(qs, "congestion_control", "bbr"),
+                "alpn": [qget(qs, "alpn", "h3")],
+            })
+
+        elif line.startswith("ss://"):
+            main, _, frag = line.partition("#")
+            body = main[len("ss://"):]
+            userinfo, _, hostport = body.partition("@")
+            try:
+                decoded = base64.urlsafe_b64decode(userinfo + "==").decode()
+            except Exception:
+                try:
+                    decoded = base64.b64decode(userinfo + "==").decode()
+                except Exception:
+                    continue
+            method, _, password = decoded.partition(":")
+            host, _, port = hostport.rpartition(":")
+            host = host.strip("[]")
+            add({
+                "name": urllib.parse.unquote(frag) or "vx-SS-2022",
+                "type": "ss",
+                "server": host,
+                "port": int(port),
+                "cipher": method,
+                "password": password,
+                "udp": True,
+            })
+
+        elif line.startswith("vmess://"):
+            raw = line[len("vmess://"):]
+            raw = raw.split("#", 1)[0]
+            pad = "=" * (-len(raw) % 4)
+            try:
+                data = json.loads(base64.urlsafe_b64decode(raw + pad).decode())
+            except Exception:
+                try:
+                    data = json.loads(base64.b64decode(raw + pad).decode())
+                except Exception:
+                    continue
+            node = {
+                "name": data.get("ps") or "vx-VMess-WS",
+                "type": "vmess",
+                "server": data.get("add"),
+                "port": int(data.get("port", 0)),
+                "uuid": data.get("id"),
+                "alterId": int(data.get("aid") or 0),
+                "cipher": data.get("scy") or "auto",
+                "udp": True,
+                "network": data.get("net") or "ws",
+            }
+            if (data.get("tls") or "") in ("tls", "true", True):
+                node["tls"] = True
+                node["servername"] = data.get("sni") or data.get("host") or ""
+                node["skip-cert-verify"] = True
+            if node["network"] == "ws":
+                node["ws-opts"] = {
+                    "path": data.get("path") or "/",
+                    "headers": {
+                        "Host": data.get("host") or data.get("sni") or ""
+                    },
+                }
+            add(node)
+    except Exception:
+        continue
+
+if not proxies:
+    open(out_file, "w").close()
+    sys.exit(0)
+
+def ystr(s):
+    s = str(s)
+    if re.search(r'[:#{}[\],&*?|<>=!%@`]', s) or s == "" or s.lower() in ("true", "false", "null"):
+        return json.dumps(s, ensure_ascii=False)
+    return s
+
+lines_out = []
+lines_out.append("mixed-port: 7890")
+lines_out.append("allow-lan: false")
+lines_out.append("mode: rule")
+lines_out.append("log-level: info")
+lines_out.append("external-controller: 127.0.0.1:9090")
+lines_out.append("")
+lines_out.append("proxies:")
+
+def dump_val(key, val, indent):
+    sp = " " * indent
+    if isinstance(val, dict):
+        lines_out.append(f"{sp}{key}:")
+        for kk, vv in val.items():
+            dump_val(kk, vv, indent + 2)
+    elif isinstance(val, list):
+        lines_out.append(f"{sp}{key}:")
+        for item in val:
+            lines_out.append(f"{sp}  - {ystr(item)}")
+    elif isinstance(val, bool):
+        lines_out.append(f"{sp}{key}: {'true' if val else 'false'}")
+    else:
+        lines_out.append(f"{sp}{key}: {ystr(val)}")
+
+for p in proxies:
+    lines_out.append(f"  - name: {ystr(p['name'])}")
+    for k, v in p.items():
+        if k == "name":
+            continue
+        dump_val(k, v, 4)
+
+name_yaml = "\n".join([f"      - {ystr(n)}" for n in names])
+lines_out.append("")
+lines_out.append("proxy-groups:")
+lines_out.append('  - name: "🚀 节点选择"')
+lines_out.append("    type: select")
+lines_out.append("    proxies:")
+lines_out.append('      - "♻️ 自动选择"')
+lines_out.append("      - DIRECT")
+lines_out.append(name_yaml)
+lines_out.append("")
+lines_out.append('  - name: "♻️ 自动选择"')
+lines_out.append("    type: url-test")
+lines_out.append("    url: http://www.gstatic.com/generate_204")
+lines_out.append("    interval: 300")
+lines_out.append("    proxies:")
+lines_out.append(name_yaml)
+lines_out.append("")
+lines_out.append("rules:")
+lines_out.append("  - GEOIP,CN,DIRECT")
+lines_out.append('  - MATCH,🚀 节点选择')
+
+with open(out_file, "w", encoding="utf-8") as f:
+    f.write("\n".join(lines_out) + "\n")
+PYEOF
+}
+
+# ==================================================
+# 📡 动态订阅防盗分发引擎 (极致兼容 & 自动 HTTPS 版)
+# ==================================================
+function update_sub() {
+    local WEB_DIR="$CONF_DIR/www"
+    local SUB_PORT_FILE="$CONF_DIR/sub_port.txt"
+    local SUB_PATH_FILE="$CONF_DIR/sub_path.txt"
+
+    mkdir -p "$WEB_DIR"
+    # 👇 极客补枪：强行扔一个空白页进去，堵死根目录嗅探！
+    touch "$WEB_DIR/index.html"
+
+    if [[ ! -f "$SUB_PORT_FILE" ]]; then
+        local TEMP_PORT
+        while true; do
+            TEMP_PORT=$(shuf -i 30000-40000 -n 1)
+            if ! ss -tunlp | grep -q ":$TEMP_PORT " 2>/dev/null; then
+                echo "$TEMP_PORT" > "$SUB_PORT_FILE"
+                break
+            fi
+        done
+    fi
+
+    if [[ ! -s "$SUB_PATH_FILE" ]]; then
+        local NEW_UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null)
+        if [[ -z "$NEW_UUID" ]]; then
+            NEW_UUID="vx-$(date +%s)-$(shuf -i 100-999 -n 1)"
+        fi
+        echo "$NEW_UUID" > "$SUB_PATH_FILE"
+    fi
+
+    local SUB_PORT=$(cat "$SUB_PORT_FILE")
+    local SUB_PATH=$(cat "$SUB_PATH_FILE")
+    local TARGET_DIR="$WEB_DIR/$SUB_PATH"
+    mkdir -p "$TARGET_DIR"
+
+    if [[ -s "$LINK_FILE" ]]; then
+        cat "$LINK_FILE" | base64 | tr -d '\n\r' > "$TARGET_DIR/vx_sub"
+    else
+        echo "" > "$TARGET_DIR/vx_sub"
+    fi
+    generate_clash_yaml
+
+ # ================= 👇 极客手术：动态生成ios防弹装甲配置文件 👇 =================
+    local ARMOR_CONF="$TARGET_DIR/vx_armor.conf"
+    cat <<EOF > "$ARMOR_CONF"
+[General]
+# --- 🛡️ 局域网物理隔离装甲 (必须置顶，防发热，防公共 Wi-Fi 断网) ---
+bypass-system = true
+skip-proxy = 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, localhost, *.local, captive.apple.com
+tun-excluded-routes = 10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.0.2.0/24, 192.88.99.0/24, 192.168.0.0/16, 198.51.100.0/24, 203.0.113.0/24, 224.0.0.0/4, 255.255.255.255/32, 239.255.255.250/32
+
+# 🛡️ 强制接管 DNS，物理致盲运营商 (绝对不漏)
+dns-server = https://dns.google/dns-query, https://1.1.1.1/dns-query
+fallback-dns-server = https://dns.google/dns-query
+remote-dns = true
+
+# ⚡ 国内直连规则命中后，瞬间切换回手机原生 DNS 提速
+dns-direct-system = true
+private-ip-answer = true
+udp-policy-not-supported-behaviour = REJECT
+icmp-auto-reply = true
+use-local-host-item-for-proxy = false
+
+# 🚨 三大核心防弹钢板 (防 TikTok/流氓 APP 硬编码逃逸)
+ipv6 = false
+mode = pcb
+is-skip-local-ip-queries-enabled = false
+hijack-dns = 8.8.8.8:53, 8.8.4.4:53, 1.1.1.1:53, 9.9.9.9:53
+
+[Rule]
+# === 🛡️ 局域网物理隔离 (必须加 no-resolve 斩断本地 DNS 查询) ===
+IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+
+# 物理击落 WebRTC 探针
+DOMAIN-KEYWORD,stun,REJECT
+DOMAIN-KEYWORD,turn,REJECT
+
+# ===============================================================
+# ⚡ 提速第一引擎：国内高频 APP 物理直连 (系统 DNS 秒开)
+# ===============================================================
+# 🎵 影音社交与出行 (网易、字节、高德、滴滴、豆包、飞猪)
+DOMAIN-SUFFIX,cn,DIRECT
+DOMAIN-SUFFIX,doubao.com,DIRECT
+DOMAIN-SUFFIX,volces.com,DIRECT
+DOMAIN-KEYWORD,douyin,DIRECT
+DOMAIN-KEYWORD,snssdk,DIRECT
+DOMAIN-KEYWORD,amemv,DIRECT
+DOMAIN-SUFFIX,byteimg.com,DIRECT
+DOMAIN-SUFFIX,163.com,DIRECT
+DOMAIN-SUFFIX,126.net,DIRECT
+DOMAIN-SUFFIX,127.net,DIRECT
+DOMAIN-SUFFIX,163yun.com,DIRECT
+DOMAIN-SUFFIX,xiaojukeji.com,DIRECT
+DOMAIN-SUFFIX,didiglobal.com,DIRECT
+DOMAIN-SUFFIX,amap.com,DIRECT
+DOMAIN-SUFFIX,bilibili.com,DIRECT
+DOMAIN-SUFFIX,hdslb.com,DIRECT
+DOMAIN-SUFFIX,qq.com,DIRECT
+DOMAIN-SUFFIX,qpic.cn,DIRECT
+DOMAIN-SUFFIX,wechat.com,DIRECT
+DOMAIN-KEYWORD,wechat,DIRECT
+DOMAIN-SUFFIX,servicewechat.com,DIRECT
+DOMAIN-SUFFIX,fliggy.com,DIRECT
+DOMAIN-SUFFIX,tenpay.com,DIRECT
+DOMAIN-SUFFIX,baidu.com,DIRECT
+
+# 🛍️ 购物与生活 (覆盖得物、京东图片等全部变态边缘 CDN)
+DOMAIN-SUFFIX,taobao.com,DIRECT
+DOMAIN-SUFFIX,tmall.com,DIRECT
+DOMAIN-SUFFIX,alicdn.com,DIRECT
+DOMAIN-SUFFIX,jd.com,DIRECT
+DOMAIN-SUFFIX,360buyimg.com,DIRECT
+DOMAIN-SUFFIX,jdpay.com,DIRECT
+DOMAIN-SUFFIX,dewu.com,DIRECT
+DOMAIN-SUFFIX,poizon.com,DIRECT
+DOMAIN-SUFFIX,shizhuang-inc.com,DIRECT
+DOMAIN-SUFFIX,vip.com,DIRECT
+DOMAIN-SUFFIX,vipstatic.com,DIRECT
+DOMAIN-SUFFIX,zhuanzhuan.com,DIRECT
+DOMAIN-SUFFIX,qunar.com,DIRECT
+DOMAIN-SUFFIX,qunarzz.com,DIRECT
+DOMAIN-SUFFIX,meituan.com,DIRECT
+DOMAIN-SUFFIX,meituan.net,DIRECT
+DOMAIN-SUFFIX,dianping.com,DIRECT
+DOMAIN-SUFFIX,zhipin.com,DIRECT
+DOMAIN-SUFFIX,bosszhipin.com,DIRECT
+
+# 💰 财务与税务 (防网银、个税异地风控)
+DOMAIN-SUFFIX,ccb.com,DIRECT
+DOMAIN-SUFFIX,icbc.com.cn,DIRECT
+DOMAIN-SUFFIX,cmbchina.com,DIRECT
+DOMAIN-SUFFIX,cmbimg.com,DIRECT
+DOMAIN-SUFFIX,cib.com.cn,DIRECT
+DOMAIN-KEYWORD,alipay,DIRECT
+DOMAIN-SUFFIX,alipay.com,DIRECT
+DOMAIN-SUFFIX,alipayobjects.com,DIRECT
+DOMAIN-SUFFIX,chinatax.gov.cn,DIRECT
+
+# 🍏 Apple Store 与核心服务 (包含所有独立非共用 CDN 域名)
+DOMAIN,www-cdn.icloud.com.akadns.net,DIRECT
+DOMAIN-SUFFIX,apple.com,DIRECT
+DOMAIN-SUFFIX,apple.co,DIRECT
+DOMAIN-SUFFIX,apple.news,DIRECT
+DOMAIN-SUFFIX,apple.com.cn,DIRECT
+DOMAIN-SUFFIX,appstore.com,DIRECT
+DOMAIN-SUFFIX,icloud.com,DIRECT
+DOMAIN-SUFFIX,icloud.com.cn,DIRECT
+DOMAIN-SUFFIX,icloud-content.com,DIRECT
+DOMAIN-SUFFIX,apple-cloudkit.com,DIRECT
+DOMAIN-SUFFIX,aaplimg.com,DIRECT
+DOMAIN-SUFFIX,cdn-apple.com,DIRECT
+DOMAIN-SUFFIX,mzstatic.com,DIRECT
+DOMAIN-SUFFIX,me.com,DIRECT
+DOMAIN-SUFFIX,crashlytics.com,DIRECT
+
+# Apple Intelligence, Siri
+# https://support.apple.com/en-us/101555
+DOMAIN-SUFFIX,apple-relay.akamaized.net,PROXY
+DOMAIN-SUFFIX,apple-relay.apple.com,PROXY
+DOMAIN-SUFFIX,apple-relay.cloudflare.com,PROXY
+DOMAIN-SUFFIX,apple-relay.fastly-edge.com,PROXY
+
+# ===============================================================
+# 🚀 提速第二引擎：海外高频 APP 直接物理送入隧道 (避开 GEOIP 解析延迟)
+# ===============================================================
+# TikTok 专属满速通道 (配合 hijack-dns 绝杀硬编码)
+DOMAIN-KEYWORD,tiktok,PROXY
+DOMAIN-SUFFIX,tiktokv.com,PROXY
+DOMAIN-SUFFIX,tiktokcdn.com,PROXY
+DOMAIN-SUFFIX,byteoversea.com,PROXY
+
+# AI 矩阵
+DOMAIN-SUFFIX,anthropic.com,PROXY
+DOMAIN-SUFFIX,claude.ai,PROXY
+DOMAIN-SUFFIX,x.ai,PROXY
+DOMAIN-SUFFIX,grok.com,PROXY
+DOMAIN-SUFFIX,openai.com,PROXY
+DOMAIN-SUFFIX,chatgpt.com,PROXY
+DOMAIN-SUFFIX,oaistatic.com,PROXY
+DOMAIN-SUFFIX,oaiusercontent.com,PROXY
+DOMAIN-KEYWORD,openai,PROXY
+DOMAIN-KEYWORD,openaicom-api,PROXY
+DOMAIN-SUFFIX,gemini.google.com,PROXY
+DOMAIN-SUFFIX,muse.ai,PROXY
+DOMAIN-SUFFIX,meta.ai,PROXY
+
+# 谷歌基础服务 (防搜索和验证码卡顿)
+DOMAIN-SUFFIX,google.com,PROXY
+DOMAIN-SUFFIX,googleapis.com,PROXY
+DOMAIN-SUFFIX,gstatic.com,PROXY
+
+# Google
+DOMAIN-KEYWORD,gmail,PROXY
+DOMAIN-KEYWORD,blogspot,PROXY
+DOMAIN-KEYWORD,google,PROXY
+DOMAIN-SUFFIX,abc.xyz,PROXY
+DOMAIN-SUFFIX,goog,PROXY
+DOMAIN-SUFFIX,admin.recaptcha.net,PROXY
+DOMAIN-SUFFIX,ampproject.org,PROXY
+DOMAIN-SUFFIX,android.com,PROXY
+DOMAIN-SUFFIX,androidify.com,PROXY
+DOMAIN-SUFFIX,appspot.com,PROXY
+DOMAIN-SUFFIX,autodraw.com,PROXY
+DOMAIN-SUFFIX,blogger.com,PROXY
+DOMAIN-SUFFIX,capitalg.com,PROXY
+DOMAIN-SUFFIX,certificate-transparency.org,PROXY
+DOMAIN-SUFFIX,chrome.com,PROXY
+DOMAIN-SUFFIX,chromeexperiments.com,PROXY
+DOMAIN-SUFFIX,chromestatus.com,PROXY
+DOMAIN-SUFFIX,chromium.org,PROXY
+DOMAIN-SUFFIX,webrtc.org,PROXY
+
+# 海外社交、影音与开发
+DOMAIN-SUFFIX,twitter.com,PROXY
+DOMAIN-SUFFIX,twimg.com,PROXY
+DOMAIN-SUFFIX,x.com,PROXY
+DOMAIN-SUFFIX,t.co,PROXY
+DOMAIN-SUFFIX,instagram.com,PROXY
+DOMAIN-KEYWORD,facebook,PROXY
+DOMAIN-SUFFIX,cdninstagram.com,PROXY
+DOMAIN-SUFFIX,threads.net,PROXY
+DOMAIN-SUFFIX,whatsapp.com,PROXY
+DOMAIN-SUFFIX,whatsapp.net,PROXY
+DOMAIN-KEYWORD,youtube,PROXY
+DOMAIN-SUFFIX,youtube.com,PROXY
+DOMAIN-SUFFIX,ytimg.com,PROXY
+DOMAIN-SUFFIX,googlevideo.com,PROXY
+DOMAIN-SUFFIX,spotify.com,PROXY
+DOMAIN-SUFFIX,scdn.co,PROXY
+DOMAIN-SUFFIX,github.com,PROXY
+DOMAIN-SUFFIX,githubusercontent.com,PROXY
+
+# 隐私工具与跨境金融
+DOMAIN-SUFFIX,tuta.com,PROXY
+DOMAIN-SUFFIX,tutanota.com,PROXY
+DOMAIN-SUFFIX,wise.com,PROXY
+DOMAIN-SUFFIX,termius.com,PROXY
+
+# === 📡 Telegram 官方满血阵列  ===
+DOMAIN-SUFFIX,t.me,PROXY
+DOMAIN-SUFFIX,tdesktop.com,PROXY
+DOMAIN-SUFFIX,telegra.ph,PROXY
+DOMAIN-SUFFIX,telegram.me,PROXY
+DOMAIN-SUFFIX,telegram.org,PROXY
+DOMAIN-SUFFIX,telesco.pe,PROXY
+IP-CIDR,91.108.4.0/22,PROXY,no-resolve
+IP-CIDR,91.108.8.0/22,PROXY,no-resolve
+IP-CIDR,91.108.12.0/22,PROXY,no-resolve
+IP-CIDR,91.108.16.0/22,PROXY,no-resolve
+IP-CIDR,91.108.56.0/22,PROXY,no-resolve
+IP-CIDR,109.239.140.0/24,PROXY,no-resolve
+IP-CIDR,149.154.160.0/20,PROXY,no-resolve
+
+# --- 🇨🇳 终极物理兜底直连 (防止冷门国内流量走节点引发风控) ---
+GEOIP,CN,DIRECT
+# ----------------------------------------
+
+# 🌍 终极冷酷兜底代理 (其余所有未上榜的海外冷门流量)
+FINAL,PROXY
+
+[Host]
+# 谷歌与 CF DNS 硬核点火引信 
+dns.google = 8.8.8.8, 8.8.4.4
+cloudflare-dns.com = 1.1.1.1, 1.0.0.1
+
+# 阿里 DNS 引信 (对应的 dns.alidns.com)
+dns.alidns.com = 223.5.5.5, 223.6.6.6
+EOF
+    # ================= 👆 手术结束 👆 =================
+
+    # --- 1. 启动基础 HTTP 服务 ---
+    if ! systemctl is-active --quiet vx-sub.service 2>/dev/null; then
+        local BB_PATH=$(command -v busybox)
+        cat <<EOF > /etc/systemd/system/vx-sub.service
+[Unit]
+Description=vx Subscription Server (HTTP)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=$BB_PATH httpd -f -p $SUB_PORT -h $WEB_DIR
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        systemctl daemon-reload
+        systemctl enable --now vx-sub.service >/dev/null 2>&1
+        open_port $SUB_PORT
+    fi
+
+    # --- 2. 启动 HTTPS 加密装甲 (智能识别 ACME 证书) ---
+    if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme.key" ]]; then
+        local HTTPS_PORT=$((SUB_PORT + 1)) # 使用相邻的端口做 HTTPS
+        echo "$HTTPS_PORT" > "$CONF_DIR/sub_port_https.txt"
+        
+        # 合并证书供 socat 使用
+        cat "$CERT_DIR/acme.crt" "$CERT_DIR/acme.key" > "$CERT_DIR/socat.pem"
+        
+        if ! systemctl is-active --quiet vx-sub-https.service 2>/dev/null; then
+            local SOCAT_PATH=$(command -v socat)
+            cat <<EOF > /etc/systemd/system/vx-sub-https.service
+[Unit]
+Description=vx Subscription Server (HTTPS Wrapper)
+After=vx-sub.service
+
+[Service]
+Type=simple
+# 核心魔法：将 HTTPS 流量解密后转发给本地的 Busybox
+ExecStart=$SOCAT_PATH openssl-listen:$HTTPS_PORT,cert=$CERT_DIR/socat.pem,verify=0,fork tcp:127.0.0.1:$SUB_PORT
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+            systemctl daemon-reload
+            systemctl enable --now vx-sub-https.service >/dev/null 2>&1
+            open_port $HTTPS_PORT
+        fi
+    fi
+}
+
+# ==================================================
+# --- 智能双引擎发证机 (真实ACME/极速自签 无缝切换 + 自动双轨寻址) ---
+# ==================================================
+function generate_cert_dynamic() {
+    local DOMAIN=$1
+    mkdir -p $CERT_DIR
+    
+    # === 🛡️ 注入智能参数雷达 (双轨制) ===
+    # 默认状态：兜底使用物理 IP 保连通，开启不安全跳过 (true)
+    export vx_INSECURE_FLAG="&insecure=1" 
+    export vx_ADDR="${SERVER_IP}"
+
+   # 1. 嗅探是否存在匹配的真实 ACME 证书
+    if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+        local ACME_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt")
+        if [[ "$DOMAIN" == "$ACME_DOMAIN" ]]; then
+            echo -e "${green}>>> 雷达锁定：匹配到真实 ACME 证书，自动切换为【纯IP直连寻址】与【强制校验】模式...${plain}"
+            ln -sf $CERT_DIR/acme.crt $CERT_DIR/cert.crt
+            ln -sf $CERT_DIR/acme.key $CERT_DIR/private.key
+            
+            # 🚀 降维打击：真实证书就位，抹除 insecure，并将底座强行锁死在物理 IP 避开 DNS 污染！
+            export vx_INSECURE_FLAG="" 
+            export vx_ADDR="${SERVER_IP}"
+            return
+        fi
+    fi
+
+    # 2. 没匹配上真证书，自动降级为极速量子自签 (维持 IP 寻址)
+    echo -e "${cyan}>>> 正在为 [${DOMAIN}] 极速签发 10年期 ECC 量子自签证书...${plain}"
+    rm -f $CERT_DIR/private.key $CERT_DIR/cert.crt
+    openssl ecparam -genkey -name prime256v1 -out $CERT_DIR/private.key >/dev/null 2>&1
+    openssl req -new -x509 -days 3650 -key $CERT_DIR/private.key -out $CERT_DIR/cert.crt -subj "/C=US/ST=California/L=Los Angeles/O=Cloudflare/OU=CDN/CN=${DOMAIN}" >/dev/null 2>&1
+}
+
+# ==================================================
+# --- 🌐 ACME 真实证书独立申请模块 ---
+# ==================================================
+function apply_acme_cert() {
+    clear
+    echo -e "${cyan}================ [ 🌐 ACME 真实证书极速申请 ] =================${plain}"
+    echo -e "${yellow}⚠️ 警告：请确保您的域名已在控制台成功解析到本机器的 IP！${plain}"
+    get_smart_ip
+    echo -e "当前 VPS IP: ${green}${SERVER_IP}${plain}"
+    
+    # 极致防呆：增加可回车取消的提示
+    read -p "👉 请输入您已解析的真实域名 (直接按回车可取消并返回): " REAL_DOMAIN
+    
+    if [[ -z "$REAL_DOMAIN" ]]; then
+        echo -e "\n${yellow}已取消操作，安全返回主界面。${plain}"
+        sleep 1.5
+        return
+    fi
+    
+    # 依赖检查与安装 socat
+    if ! command -v socat &> /dev/null; then
+        echo -e "${cyan}>>> 正在补全 ACME 依赖 (socat)...${plain}"
+        if [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then apt-get install -y socat cron >/dev/null 2>&1; else yum install -y socat cron >/dev/null 2>&1; fi
+    fi
+
+    # 端口查杀：独立模式需要 80 端口
+    if ss -tlpn | grep -q ":80 " || netstat -tlpn | grep -q ":80 "; then
+        echo -e "${red}❌ 致命错误: 80 端口被占用！请先停止占用 80 端口的服务 (如 Nginx) 再试。${plain}"
+        sleep 3 && return
+    fi
+
+    echo -e "${yellow}>>> 正在安装 acme.sh 核心组件...${plain}"
+    curl -sL https://get.acme.sh | sh -s email=admin@${REAL_DOMAIN} >/dev/null 2>&1
+    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt >/dev/null 2>&1
+
+    echo -e "${yellow}>>> 正在向 Let's Encrypt 申请 [${REAL_DOMAIN}] 的 ECC 证书...${plain}"
+    ~/.acme.sh/acme.sh --issue -d ${REAL_DOMAIN} --standalone -k ec-256 --force
+    
+    if [[ $? -ne 0 ]]; then
+        echo -e "${red}❌ 申请失败！请检查域名是否解析正确，或是否被 Let's Encrypt 限流。${plain}"
+        read -p "👉 按回车返回..." && return
+    fi
+
+    echo -e "${yellow}>>> 正在安装证书到 vx 引擎核心目录...${plain}"
+    mkdir -p $CERT_DIR
+    # 注入无感重载命令，证书续签自动重启 Sing-box (极致防呆)
+~/.acme.sh/acme.sh --installcert -d ${REAL_DOMAIN} --fullchainpath $CERT_DIR/acme.crt --keypath $CERT_DIR/acme.key --ecc --force --reloadcmd "systemctl restart vx-core.service vx-sub-https.service vx-sub.service" >/dev/null 2>&1
+    echo "${REAL_DOMAIN}" > $CERT_DIR/acme_domain.txt    
+    echo -e "\n${green}✅ ACME 真实证书部署完成！系统将自动为您管理后续的十年续签。${plain}"
+    echo -e "👉 ${yellow}提示: 安装 Hys2/TUIC/Trojan 时填入此域名，将自动接管真实证书！${plain}"
+    if [[ "$1" != "inline" ]]; then
+        read -p "👉 按回车返回大屏..."
+    else
+        echo -e "${green}>>> 证书部署完毕，系统即将自动推进装载流程...${plain}"
+        sleep 2
+    fi
+}
+
+# ==================================================
+# 协议库
+# ==================================================
+function install_vless_reality() {
+    check_sys && install_core && init_json && get_smart_ip
+    echo -e "\n${yellow}>>> 锻造 VLESS-Reality ：${plain}"
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT
+    LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    if [[ ! "$LISTEN_PORT" =~ ^[0-9]+$ ]] || [ "$LISTEN_PORT" -lt 1 ] || [ "$LISTEN_PORT" -gt 65535 ]; then
+        echo -e "${red}❌ 端口非法，已取消装载！${plain}"; return 1
+    fi
+    read -p "👉 UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
+    read -p "👉 伪装域名 (直接回车默认 apple.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"apple.com"}
+
+    KEYS=$($BIN_FILE generate reality-keypair)
+    PRV_KEY=$(echo "$KEYS" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
+    PUB_KEY=$(echo "$KEYS" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
+    SHORT_ID=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+
+    local OLD_P
+    OLD_P=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+    close_port "$OLD_P"
+    jq 'del(.inbounds[] | select(.tag == "vless-in"))' "$JSON_FILE" | atomic_jq
+
+    jq --argjson p "$LISTEN_PORT" --arg u "$UUID" --arg sni "$SNI_DOMAIN" --arg pr "$PRV_KEY" --arg sid "$SHORT_ID" \
+       '.inbounds += [{"type":"vless","tag":"vless-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"flow":"xtls-rprx-vision"}],"tls":{"enabled":true,"server_name":$sni,"reality":{"enabled":true,"handshake":{"server":$sni,"server_port":443},"private_key":$pr,"short_id":[$sid]}}}]' \
+       "$JSON_FILE" | atomic_jq
+
+    open_port "$LISTEN_PORT"
+    apply_tcp_fast_open
+    systemctl restart vx-core.service
+    SHARE="vless://${UUID}@${SERVER_IP}:${LISTEN_PORT}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#vless-reality-velox"
+    sed -i '/^vless:\/\/.*security=reality/d' "$LINK_FILE" 2>/dev/null
+    echo "$SHARE" >> "$LINK_FILE"
+    update_sub
+    echo -e "\n${green}✅ VLESS-Reality 装载完成！${plain}"
+    echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
+}
+
+function install_hysteria2() {
+    check_sys && install_core && init_json && get_smart_ip
+    local OLD_P
+    OLD_P=$(jq -r '.inbounds[] | select(.tag == "hy2-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+    [[ -n "$OLD_P" && "$OLD_P" != "null" ]] && {
+        while true; do local RN=$(iptables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${OLD_P}\b" | awk 'NR==1{print $1}'); [[ -z "$RN" ]] && break; iptables -t nat -D PREROUTING "$RN" >/dev/null 2>&1; done
+        command -v ip6tables &> /dev/null && while true; do local RN6=$(ip6tables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${OLD_P}\b" | awk 'NR==1{print $1}'); [[ -z "$RN6" ]] && break; ip6tables -t nat -D PREROUTING "$RN6" >/dev/null 2>&1; done
+        close_port "$OLD_P"
+    }
+    echo -e "\n${yellow}>>> 锻造 Hysteria2 ：${plain}"
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT
+    LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    if [[ ! "$LISTEN_PORT" =~ ^[0-9]+$ ]] || [ "$LISTEN_PORT" -lt 1 ] || [ "$LISTEN_PORT" -gt 65535 ]; then
+        echo -e "${red}❌ 端口非法，已取消装载！${plain}"; return 1
+    fi
+    read -p "👉 密码 (直接回车随机): " HYS_PASS; HYS_PASS=${HYS_PASS:-$TEMP_PASS}
+
+    local RAND_HOP_START=$(shuf -i 20000-40000 -n 1)
+    local DEFAULT_HOP="${RAND_HOP_START}:$((RAND_HOP_START + 999))"
+    echo -e "\n${cyan}🛡️  是否开启 UDP 端口跳跃 (防运营商定点阻断/限速)？${plain}"
+    read -p "👉 请输入跳跃端口段 (如 20000:30000, 小白请回车默认 ${DEFAULT_HOP}, 填 n 取消): " HOP_INPUT
+    local HOP_PORT_RANGE=${HOP_INPUT:-$DEFAULT_HOP}
+    local MPORT_STR=""
+    if [[ "$HOP_PORT_RANGE" != "n" && "$HOP_PORT_RANGE" != "N" ]]; then
+        setup_port_hopping "$LISTEN_PORT" "$HOP_PORT_RANGE"
+        local CLIENT_HOP=$(echo "$HOP_PORT_RANGE" | tr ':' '-')
+        MPORT_STR="&mport=${CLIENT_HOP}"
+    fi
+
+    read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
+    if [[ -z "$INPUT_DOMAIN" ]]; then
+        if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+            SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+            echo -e "${green}✅ 雷达锁定！侦测到真实防弹装甲，已自动继承 ACME 域名: ${cyan}$SNI_DOMAIN${plain}"
+        else
+            SNI_DOMAIN="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
+            echo -e "${yellow}⚠️ 未挂载真实证书，UDP层已自动切换至防探针乱码装甲: ${SNI_DOMAIN}${plain}"
+        fi
+    else
+        SNI_DOMAIN="$INPUT_DOMAIN"
+        echo -e "${green}✅ 手动强控覆盖！已锁定域名: ${cyan}$SNI_DOMAIN${plain}"
+    fi
+
+    generate_cert_dynamic "$SNI_DOMAIN"
+    jq 'del(.inbounds[] | select(.tag == "hy2-in"))' "$JSON_FILE" | atomic_jq
+    jq --argjson p "$LISTEN_PORT" --arg pw "$HYS_PASS" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" \
+       '.inbounds += [{"type":"hysteria2","tag":"hy2-in","listen":"::","listen_port":$p,"users":[{"password":$pw}],"masquerade":{"type":"proxy","url":"https://www.bing.com"},"tls":{"enabled":true,"alpn":["h3"],"certificate_path":$crt,"key_path":$key}}]' \
+       "$JSON_FILE" | atomic_jq
+
+    open_port "$LISTEN_PORT"
+    systemctl restart vx-core.service
+    SHARE="hysteria2://${HYS_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3${vx_INSECURE_FLAG}${MPORT_STR}&padding=20#hy2-velox"
+    sed -i '/^hysteria2:\/\//d' "$LINK_FILE" 2>/dev/null
+    echo "$SHARE" >> "$LINK_FILE"
+    update_sub
+    echo -e "\n${green}✅ Hysteria2 装载完成！${plain}"
+    echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
+}
+
+function install_tuic_v5() {
+    check_sys && install_core && init_json && get_smart_ip
+    local OLD_P
+    OLD_P=$(jq -r '.inbounds[] | select(.tag == "tuic-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+    [[ -n "$OLD_P" && "$OLD_P" != "null" ]] && {
+        while true; do local RN=$(iptables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${OLD_P}\b" | awk 'NR==1{print $1}'); [[ -z "$RN" ]] && break; iptables -t nat -D PREROUTING "$RN" >/dev/null 2>&1; done
+        command -v ip6tables &> /dev/null && while true; do local RN6=$(ip6tables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${OLD_P}\b" | awk 'NR==1{print $1}'); [[ -z "$RN6" ]] && break; ip6tables -t nat -D PREROUTING "$RN6" >/dev/null 2>&1; done
+        close_port "$OLD_P"
+    }
+    echo -e "\n${yellow}>>> 锻造 TUIC v5 ：${plain}"
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT
+    LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    if [[ ! "$LISTEN_PORT" =~ ^[0-9]+$ ]] || [ "$LISTEN_PORT" -lt 1 ] || [ "$LISTEN_PORT" -gt 65535 ]; then
+        echo -e "${red}❌ 端口非法，已取消装载！${plain}"; return 1
+    fi
+    read -p "👉 UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
+    read -p "👉 密码 (直接回车随机): " TUIC_PASS; TUIC_PASS=${TUIC_PASS:-$TEMP_PASS}
+
+    local RAND_HOP_START=$(shuf -i 20000-40000 -n 1)
+    local DEFAULT_HOP="${RAND_HOP_START}:$((RAND_HOP_START + 999))"
+    echo -e "\n${cyan}🛡️  是否开启 UDP 端口跳跃 (防运营商定点阻断/限速)？${plain}"
+    read -p "👉 请输入跳跃端口段 (如 20000:30000, 小白请回车默认 ${DEFAULT_HOP}, 填 n 取消): " HOP_INPUT
+    local HOP_PORT_RANGE=${HOP_INPUT:-$DEFAULT_HOP}
+    local MPORT_STR=""
+    if [[ "$HOP_PORT_RANGE" != "n" && "$HOP_PORT_RANGE" != "N" ]]; then
+        setup_port_hopping "$LISTEN_PORT" "$HOP_PORT_RANGE"
+        local CLIENT_HOP=$(echo "$HOP_PORT_RANGE" | tr ':' '-')
+        MPORT_STR="&mport=${CLIENT_HOP}"
+    fi
+
+    read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
+    if [[ -z "$INPUT_DOMAIN" ]]; then
+        if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+            SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+            echo -e "${green}✅ 雷达锁定！侦测到真实防弹装甲，已自动继承 ACME 域名: ${cyan}$SNI_DOMAIN${plain}"
+        else
+            SNI_DOMAIN="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
+            echo -e "${yellow}⚠️ 未挂载真实证书，UDP层已自动切换至防探针乱码装甲: ${SNI_DOMAIN}${plain}"
+        fi
+    else
+        SNI_DOMAIN="$INPUT_DOMAIN"
+        echo -e "${green}✅ 手动强控覆盖！已锁定域名: ${cyan}$SNI_DOMAIN${plain}"
+    fi
+
+    generate_cert_dynamic "$SNI_DOMAIN"
+    jq 'del(.inbounds[] | select(.tag == "tuic-in"))' "$JSON_FILE" | atomic_jq
+    jq --argjson p "$LISTEN_PORT" --arg u "$UUID" --arg pw "$TUIC_PASS" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" \
+       '.inbounds += [{"type":"tuic","tag":"tuic-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"password":$pw}],"congestion_control":"bbr","tls":{"enabled":true,"alpn":["h3"],"certificate_path":$crt,"key_path":$key}}]' \
+       "$JSON_FILE" | atomic_jq
+
+    open_port "$LISTEN_PORT"
+    systemctl restart vx-core.service
+    SHARE="tuic://${UUID}:${TUIC_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&congestion_control=bbr${vx_INSECURE_FLAG}#tuic-velox"
+    sed -i '/^tuic:\/\//d' "$LINK_FILE" 2>/dev/null
+    echo "$SHARE" >> "$LINK_FILE"
+    update_sub
+    echo -e "\n${green}✅ TUIC v5 装载完成！${plain}"
+    echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
+}
+
+function install_vmess_ws() {
+    check_sys && install_core && init_json && get_smart_ip
+    echo -e "\n${yellow}>>> 锻造 VMess-WS+TLS (满血防弹装甲) ：${plain}"
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT
+    LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    if [[ ! "$LISTEN_PORT" =~ ^[0-9]+$ ]] || [ "$LISTEN_PORT" -lt 1 ] || [ "$LISTEN_PORT" -gt 65535 ]; then
+        echo -e "${red}❌ 端口非法，已取消装载！${plain}"; return 1
+    fi
+    read -p "👉 UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
+
+    read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
+    if [[ -z "$INPUT_DOMAIN" ]]; then
+        if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+            SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+            echo -e "${green}✅ 雷达锁定！已自动继承 ACME 域名: ${cyan}$SNI_DOMAIN${plain}"
+        else
+            SNI_DOMAIN="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
+            echo -e "${yellow}⚠️ 未挂载真实证书，已自动注入防探针乱码装甲: ${SNI_DOMAIN}${plain}"
+        fi
+    else
+        SNI_DOMAIN="$INPUT_DOMAIN"
+        echo -e "${green}✅ 手动强控覆盖！已锁定域名: ${cyan}$SNI_DOMAIN${plain}"
+    fi
+
+    generate_cert_dynamic "$SNI_DOMAIN"
+    WS_PATH="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
+
+    local OLD_P
+    OLD_P=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+    close_port "$OLD_P"
+    jq 'del(.inbounds[] | select(.tag == "vmess-in"))' "$JSON_FILE" | atomic_jq
+    jq --argjson p "$LISTEN_PORT" --arg u "$UUID" --arg w "$WS_PATH" --arg sni "$SNI_DOMAIN" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" \
+       '.inbounds += [{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"alterId":0}],"transport":{"type":"ws","path":$w},"tls":{"enabled":true,"server_name":$sni,"certificate_path":$crt,"key_path":$key}}]' \
+       "$JSON_FILE" | atomic_jq
+
+    open_port "$LISTEN_PORT"
+    apply_tcp_fast_open
+    systemctl restart vx-core.service
+
+    VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "vmess-ws-velox" --arg add "$vx_ADDR" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "$SNI_DOMAIN" --arg path "$WS_PATH" --arg tls "tls" --arg sni "$SNI_DOMAIN" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+    SHARE="vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
+    sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
+    echo "$SHARE" >> "$LINK_FILE"
+    update_sub
+    echo -e "\n${green}✅ VMess-WS+TLS 装载完成！已默认穿戴防弹装甲。${plain}"
+    echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
+}
+
+function install_ss_2022() {
+    check_sys && install_core && init_json && get_smart_ip
+    echo -e "\n${yellow}>>> 锻造 Shadowsocks-2022 (工业级非TLS防弹衣) ：${plain}"
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT
+    LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    if [[ ! "$LISTEN_PORT" =~ ^[0-9]+$ ]] || [ "$LISTEN_PORT" -lt 1 ] || [ "$LISTEN_PORT" -gt 65535 ]; then
+        echo -e "${red}❌ 端口非法，已取消装载！${plain}"; return 1
+    fi
+    local SS_KEY=$(openssl rand -base64 16)
+
+    local OLD_P
+    OLD_P=$(jq -r '.inbounds[] | select(.tag == "ss-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+    close_port "$OLD_P"
+    jq 'del(.inbounds[] | select(.tag == "ss-in"))' "$JSON_FILE" | atomic_jq
+    jq --argjson p "$LISTEN_PORT" --arg pw "$SS_KEY" \
+       '.inbounds += [{"type":"shadowsocks","tag":"ss-in","listen":"::","listen_port":$p,"method":"2022-blake3-aes-128-gcm","password":$pw}]' \
+       "$JSON_FILE" | atomic_jq
+
+    open_port "$LISTEN_PORT"
+    apply_tcp_fast_open
+    systemctl restart vx-core.service
+
+    SHARE="ss://$(echo -n "2022-blake3-aes-128-gcm:$SS_KEY" | base64 -w 0)@${SERVER_IP}:${LISTEN_PORT}#ss-2022-velox"
+    sed -i '/^ss:\/\//d' "$LINK_FILE" 2>/dev/null
+    echo "$SHARE" >> "$LINK_FILE"
+    update_sub
+    echo -e "\n${green}✅ SS-2022 装载完成！已免疫针对 TLS 的封锁与探测。${plain}"
+    echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
+}
+
+function install_vless_grpc() {
+    check_sys && install_core && init_json && get_smart_ip
+    echo -e "\n${yellow}>>> 锻造 VLESS-gRPC (隐身战术大师/CDN备胎) ：${plain}"
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT
+    LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    if [[ ! "$LISTEN_PORT" =~ ^[0-9]+$ ]] || [ "$LISTEN_PORT" -lt 1 ] || [ "$LISTEN_PORT" -gt 65535 ]; then
+        echo -e "${red}❌ 端口非法，已取消装载！${plain}"; return 1
+    fi
+    read -p "👉 UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
+
+    read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
+    if [[ -z "$INPUT_DOMAIN" ]]; then
+        if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+            SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+            echo -e "${green}✅ 雷达锁定！已自动继承 ACME 域名: ${cyan}$SNI_DOMAIN${plain}"
+        else
+            SNI_DOMAIN="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
+            echo -e "${yellow}⚠️ 未挂载真实证书，已自动注入防探针乱码装甲: ${SNI_DOMAIN}${plain}"
+        fi
+    else
+        SNI_DOMAIN="$INPUT_DOMAIN"
+        echo -e "${green}✅ 手动强控覆盖！已锁定域名: ${cyan}$SNI_DOMAIN${plain}"
+    fi
+
+    generate_cert_dynamic "$SNI_DOMAIN"
+    SERVICE_NAME="grpc-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
+
+    local OLD_P
+    OLD_P=$(jq -r '.inbounds[] | select(.tag == "grpc-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+    close_port "$OLD_P"
+    jq 'del(.inbounds[] | select(.tag == "grpc-in"))' "$JSON_FILE" | atomic_jq
+    jq --argjson p "$LISTEN_PORT" --arg u "$UUID" --arg sni "$SNI_DOMAIN" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" --arg svc "$SERVICE_NAME" \
+       '.inbounds += [{"type":"vless","tag":"grpc-in","listen":"::","listen_port":$p,"users":[{"uuid":$u}],"tls":{"enabled":true,"server_name":$sni,"certificate_path":$crt,"key_path":$key},"transport":{"type":"grpc","service_name":$svc}}]' \
+       "$JSON_FILE" | atomic_jq
+
+    open_port "$LISTEN_PORT"
+    apply_tcp_fast_open
+    systemctl restart vx-core.service
+
+    SHARE="vless://${UUID}@${vx_ADDR:-$SERVER_IP}:${LISTEN_PORT}?encryption=none&security=tls&sni=${SNI_DOMAIN}&alpn=h2&type=grpc&host=${SNI_DOMAIN}&serviceName=${SERVICE_NAME}#vless-grpc-velox"
+    sed -i '/^vless:\/\/.*type=grpc/d' "$LINK_FILE" 2>/dev/null
+    echo "$SHARE" >> "$LINK_FILE"
+    update_sub
+    echo -e "\n${green}✅ VLESS-gRPC+TLS 装载完成！已部署隐身级 CDN 容灾防线。${plain}"
+    echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
+}
+
+# ==================================================
+# --- 🚀 终极杀器：一键大满贯全协议装载 (防冲突优化版) ---
+# ==================================================
+function install_all_nodes() {
+    check_sys && install_core && init_json && get_smart_ip
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "         🚀 正在启动【大满贯】全协议一键全自动装载引擎 🚀"
+    echo -e "${cyan}======================================================================${plain}"
+
+    # 1. 智能发证引导
+    if [[ ! -f "$CERT_DIR/acme.crt" ]]; then
+        echo -e "${yellow}⚠️ 检测到您尚未申请 ACME 真实证书！${plain}"
+        read -p "❓ 是否先去申请真实域名证书？(输入 y 申请，直接回车则使用自签): " DO_ACME
+        if [[ "$DO_ACME" == "y" || "$DO_ACME" == "Y" ]]; then
+            apply_acme_cert "inline"
+            if [[ ! -f "$CERT_DIR/acme.crt" ]]; then
+                echo -e "${red}❌ 证书申请失败，将降级为自签模式继续安装...${plain}"; sleep 2
+            fi
+        fi
+    fi
+
+    # 2. 智能域名与证书准备 (双轨防弹装甲)
+    local TCP_SNI="apple.com"  # TCP 协议雷打不动薅大厂羊毛
+    local UDP_SNI=""
+
+    if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+        UDP_SNI=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+        echo -e ">>> 🌐 检测到 ACME 真实证书，UDP 协议已接管真实域名: ${green}$UDP_SNI${plain}"
+    else
+        # 核心防呆：没有真实证书，UDP 暴力协议强行生成无特征乱码装甲
+        UDP_SNI="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
+        echo -e ">>> ⚠️ 未部署真实证书！TCP 隐匿层维持伪装: ${green}$TCP_SNI${plain}"
+        echo -e ">>> 🛡️ UDP 暴力层 (Hy2/TUIC) 已强行隔离，注入防探针装甲: ${yellow}$UDP_SNI${plain}"
+    fi
+
+    # 证书发证机只为 UDP 协议服务，避免污染
+    generate_cert_dynamic "$UDP_SNI" >/dev/null 2>&1
+
+  # 3. 彻底核爆清空历史数据 (附带：动态卸载旧端口装甲，防止内核规则泄漏)
+    echo -e "${yellow}>>> 🧹 正在执行深层除垢：物理拔管旧世代的防火墙与跳跃规则...${plain}"
+    # 💣 物理超度遗留的 Argo 隧道，防止复活甲变僵尸干扰 UI 渲染
+    if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
+        systemctl stop vx-argo.service >/dev/null 2>&1
+        systemctl disable vx-argo.service >/dev/null 2>&1
+        rm -f /etc/systemd/system/vx-argo.service
+        systemctl daemon-reload
+    fi
+    if [[ -f "$JSON_FILE" ]]; then
+        local OLD_PORTS=$(jq -r '.inbounds[].listen_port' "$JSON_FILE" 2>/dev/null | grep -v null)
+       for OP in $OLD_PORTS; do
+            # 狙击旧 INPUT 放行规则
+            command -v iptables &> /dev/null && { iptables -D INPUT -p tcp --dport $OP -j ACCEPT 2>/dev/null; iptables -D INPUT -p udp --dport $OP -j ACCEPT 2>/dev/null; }
+            command -v ip6tables &> /dev/null && { ip6tables -D INPUT -p tcp --dport $OP -j ACCEPT 2>/dev/null; ip6tables -D INPUT -p udp --dport $OP -j ACCEPT 2>/dev/null; }
+            
+            # 狙击旧 NAT 跳跃规则 (IPv4)
+            while true; do
+                local RN=$(iptables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${OP}\b" | awk 'NR==1{print $1}')
+                [[ -z "$RN" ]] && break
+                iptables -t nat -D PREROUTING "$RN" >/dev/null 2>&1
+            done
+            
+            if command -v ip6tables &> /dev/null; then
+                while true; do
+                    local RN6=$(ip6tables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${OP}\b" | awk 'NR==1{print $1}')
+                    [[ -z "$RN6" ]] && break
+                    ip6tables -t nat -D PREROUTING "$RN6" >/dev/null 2>&1
+                done
+            fi
+        done
+    fi
+    > "$LINK_FILE"
+    echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
+
+    # 4. 端口隔离生成池：智能侦测碰撞，确保大满贯端口绝对纯净！
+    local BASE_PORTS=()
+    while [ ${#BASE_PORTS[@]} -lt 6 ]; do
+        local TEMP_PORT=$(shuf -i 10000-60000 -n 1)
+        # 兼容全系 Linux：只要 ss 或 netstat 查出占用，直接物理抛弃
+        if ! ss -tunlp 2>/dev/null | grep -q ":$TEMP_PORT " && ! netstat -tunlp 2>/dev/null | grep -q ":$TEMP_PORT "; then
+            if [[ ! " ${BASE_PORTS[@]} " =~ " ${TEMP_PORT} " ]]; then
+                BASE_PORTS+=($TEMP_PORT)
+            fi
+        fi
+    done
+    local P1=${BASE_PORTS[0]}
+    local P2=${BASE_PORTS[1]}
+    local P3=${BASE_PORTS[2]}
+    local P4=${BASE_PORTS[3]}
+    local P5=${BASE_PORTS[4]}
+    local P6=${BASE_PORTS[5]}
+
+    # 5. 极速压入节点 (👇此处已修复克隆人 Bug，每个协议独立生成凭证)
+    echo -e "\n${yellow}>>> [1/6] 正在极速压入 VLESS-Reality...${plain}"
+    local U1=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)1"); local K1=$($BIN_FILE generate reality-keypair); local PR1=$(echo "$K1" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n'); local PU1=$(echo "$K1" | awk '/PublicKey/ {print $2}' | tr -d '\r\n'); local S1=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+    jq --argjson p1 "$P1" --arg u "$U1" --arg sni "apple.com" --arg pr "$PR1" --arg sid "$S1" '.inbounds += [{"type":"vless","tag":"vless-in","listen":"::","listen_port":$p1,"users":[{"uuid":$u,"flow":"xtls-rprx-vision"}],"tls":{"enabled":true,"server_name":$sni,"reality":{"enabled":true,"handshake":{"server":$sni,"server_port":443},"private_key":$pr,"short_id":[$sid]}}}]' "$JSON_FILE" | atomic_jq
+    echo "vless://${U1}@${SERVER_IP}:${P1}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=apple.com&fp=chrome&pbk=${PU1}&sid=${S1}&type=tcp&headerType=none#vless-reality-velox" >> "$LINK_FILE"
+    open_port $P1
+
+   # === [2/6] Hysteria2 增强版：注入端口跳跃 ===
+    echo -e "${yellow}>>> [2/6] 正在极速压入 Hysteria2 (自带跳跃装甲)...${plain}"
+    local PW2=$(openssl rand -hex 8)
+    
+    # 极速随机段生成：锁定 20000-29999 安全区
+    local HOP_START_2=$(shuf -i 20000-29000 -n 1)
+    local HOP_RANGE_2="${HOP_START_2}:$((HOP_START_2 + 999))"
+    setup_port_hopping "$P2" "$HOP_RANGE_2"
+    local CLIENT_HOP_2=$(echo "$HOP_RANGE_2" | tr ':' '-')
+    
+    # 原子注入 JSON (保持原有 jq 逻辑)
+    jq --argjson p2 "$P2" --arg pw "$PW2" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" '.inbounds += [{"type":"hysteria2","tag":"hy2-in","listen":"::","listen_port":$p2,"users":[{"password":$pw}],"masquerade":{"type":"proxy","url":"https://www.bing.com"},"tls":{"enabled":true,"alpn":["h3"],"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" | atomic_jq    
+    # 增强版分享链接：强制注入 mport 参数
+    echo "hysteria2://${PW2}@${SERVER_IP}:${P2}/?sni=${UDP_SNI}&alpn=h3${vx_INSECURE_FLAG}&mport=${CLIENT_HOP_2}&padding=20#hy2-velox" >> "$LINK_FILE"
+    open_port $P2
+
+    # === [3/6] TUIC v5 增强版：注入端口跳跃 ===
+    echo -e "${yellow}>>> [3/6] 正在极速压入 TUIC v5 (自带跳跃装甲)...${plain}"
+    local U3=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)3"); local PW3=$(openssl rand -hex 8)
+    
+    # 极速随机段生成：锁定 30000-39999 纯净区 (与 Hy2 物理隔离)
+    local HOP_START_3=$(shuf -i 30000-39000 -n 1)
+    local HOP_RANGE_3="${HOP_START_3}:$((HOP_START_3 + 999))"
+    setup_port_hopping "$P3" "$HOP_RANGE_3"
+    local CLIENT_HOP_3=$(echo "$HOP_RANGE_3" | tr ':' '-')
+    
+    # 原子注入 JSON
+    jq --argjson p3 "$P3" --arg u "$U3" --arg pw "$PW3" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" '.inbounds += [{"type":"tuic","tag":"tuic-in","listen":"::","listen_port":$p3,"users":[{"uuid":$u,"password":$pw}],"congestion_control":"bbr","tls":{"enabled":true,"alpn":["h3"],"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" | atomic_jq
+    
+    # 增强版分享链接：强制注入 mport 参数
+    echo "tuic://${U3}:${PW3}@${SERVER_IP}:${P3}/?sni=${UDP_SNI}&alpn=h3&congestion_control=bbr${vx_INSECURE_FLAG}#tuic-velox" >> "$LINK_FILE"
+    open_port $P3
+
+    echo -e "${yellow}>>> [4/6] 正在极速压入 VMess-ws+tls...${plain}"
+    local U4=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)4"); local W4="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
+    jq --argjson p4 "$P4" --arg u "$U4" --arg w "$W4" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" --arg sni "$UDP_SNI" '.inbounds += [{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$p4,"users":[{"uuid":$u,"alterId":0}],"transport":{"type":"ws","path":$w},"tls":{"enabled":true,"server_name":$sni,"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" | atomic_jq
+    local VM_J=$(jq -n -c --arg v "2" --arg ps "vmess-ws-velox" --arg add "$vx_ADDR" --arg port "$P4" --arg id "$U4" --arg net "ws" --arg host "$UDP_SNI" --arg path "$W4" --arg tls "tls" --arg sni "$UDP_SNI" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+    echo "vmess://$(echo -n "$VM_J" | base64 -w 0)" >> "$LINK_FILE"
+    open_port $P4
+
+    echo -e "${yellow}>>> [5/6] 正在极速压入 Shadowsocks-2022...${plain}"
+    local SS_KEY5=$(openssl rand -base64 16)
+    jq --argjson p5 "$P5" --arg pw "$SS_KEY5" '.inbounds += [{"type":"shadowsocks","tag":"ss-in","listen":"::","listen_port":$p5,"method":"2022-blake3-aes-128-gcm","password":$pw}]' "$JSON_FILE" | atomic_jq
+    echo "ss://$(echo -n "2022-blake3-aes-128-gcm:$SS_KEY5" | base64 -w 0)@${SERVER_IP}:${P5}#ss-2022-velox" >> "$LINK_FILE"
+    open_port $P5
+
+    echo -e "${yellow}>>> [6/6] 正在极速压入 VLESS-gRPC (顶级隐身装甲)...${plain}"
+    local U6=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)6"); local SV_NAME="grpc-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
+    jq --argjson p6 "$P6" --arg u "$U6" --arg sni "$UDP_SNI" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" --arg svc "$SV_NAME" '.inbounds += [{"type":"vless","tag":"grpc-in","listen":"::","listen_port":$p6,"users":[{"uuid":$u}],"tls":{"enabled":true,"server_name":$sni,"certificate_path":$crt,"key_path":$key},"transport":{"type":"grpc","service_name":$svc}}]' "$JSON_FILE" | atomic_jq
+    echo "vless://${U6}@${vx_ADDR:-$SERVER_IP}:${P6}?encryption=none&security=tls&sni=${UDP_SNI}&alpn=h2&type=grpc&host=${UDP_SNI}&serviceName=${SV_NAME}#vless-grpc-velox" >> "$LINK_FILE"
+    open_port $P6
+    
+    apply_tcp_fast_open
+    systemctl restart vx-core.service
+    update_sub
+    echo -e "\n${green}✅ 大满贯全量装载完成！防火墙已被打穿，六大神级协议已全部就绪！${plain}"
+    echo -e "\n${yellow}💡 【云大厂架构师警告】: 若您的 VPS 位于 AWS / GCP / Oracle 等云环境，请务必前往云控制台的 [安全组/VPC防火墙] 放行上述端口！否则流量将被物理阻断！${plain}"
+    echo -e "👉 ${yellow}提示: 请按回车返回主菜单，直接按【f】提取所有节点链接！${plain}"
+    read -p ""
+}
+
+# ==================================================
+# ⚡ 底层调优: BBR 狂暴网络加速 (智能自适应防爆版)
+# ==================================================
+function enable_bbr() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "                 ⚡ 开启 BBR 底层网络狂暴加速 (TCP+UDP) ⚡"
+    echo -e "${cyan}======================================================================${plain}"
+    
+    local sys_conf="/etc/sysctl.conf"
+
+    # === 🚀 智能雷达：检测 BBR 状态并触发子控制台 ===
+    if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
+        echo -e "\n${green}✅ 系统雷达检测到 BBR 加速引擎已处于【运行中】状态！${plain}"
+        
+        # 👇 极客防呆装甲：死循环强力拦截，不输对绝不放行
+        while true; do
+            echo -e "  ${purple}1.${plain} 🔄 强制刷新覆写 (触发基于真实物理内存的智能防爆参数)"
+            echo -e "  ${red}2.${plain} 🛑 物理拔管关闭 (清除参数，恢复原生 cubic 拥塞控制)"
+            echo -e "  ${yellow}0.${plain} 🔙 保持现状并返回大屏"
+            echo -e "${cyan}----------------------------------------------------------------------${plain}"
+            read -p "👉 请下达战术指令 [0-2]: " bbr_choice
+
+            case "$bbr_choice" in
+                1) 
+                    echo -e "${yellow}>>> 权限确认！正在启动焦土化清理并准备覆写...${plain}"
+                    break # 打碎死循环，放行向下执行注入代码
+                    ;;
+                2) 
+                    echo -e "${yellow}>>> 正在拆除 BBR 引擎与 UDP 狂暴装甲...${plain}"
+                    sed -i '/net.core.default_qdisc/d; /net.ipv4.tcp_congestion_control/d; /net.ipv4.tcp_rmem/d; /net.ipv4.tcp_wmem/d; /net.core.rmem_max/d; /net.core.wmem_max/d; /net.core.rmem_default/d; /net.core.wmem_default/d; /net.ipv4.tcp_ecn/d; /net.ipv4.tcp_fastopen/d; /net.ipv4.udp_mem/d; /net.ipv4.udp_rmem_min/d; /net.ipv4.udp_wmem_min/d; /net.core.netdev_max_backlog/d; /fs.file-max/d; /net.ipv4.ip_local_port_range/d' "$sys_conf"
+                    echo "net.core.default_qdisc=fq_codel" >> "$sys_conf"
+                    echo "net.ipv4.tcp_congestion_control=cubic" >> "$sys_conf"
+                    sysctl -p >/dev/null 2>&1
+                    echo -e "\n${green}✅ BBR 已彻底物理关闭，网络链路已恢复出厂原生状态！${plain}"
+                    read -p "👉 按回车返回大屏..." 
+                    return
+                    ;;
+                0) 
+                    echo -e "${green}✅ 操作已取消，战术撤退！${plain}"
+                    sleep 1
+                    return 
+                    ;;
+                *) 
+                    echo -e "${red}❌ 致命拦截：非法输入！请严格输入 0, 1 或 2！${plain}"
+                    sleep 1.5
+                    ;;
+            esac
+        done
+    else
+        echo -e "${yellow}>>> 正在向系统内核注入 TCP/UDP 双轨智能狂暴参数...${plain}"
+    fi
+
+    # === 🧹 原子级焦土化肃清 (防重复垃圾堆叠) ===
+    modprobe tcp_bbr >/dev/null 2>&1 || true
+    sed -i '/net.core.default_qdisc/d; /net.ipv4.tcp_congestion_control/d; /net.ipv4.tcp_rmem/d; /net.ipv4.tcp_wmem/d; /net.core.rmem_max/d; /net.core.wmem_max/d; /net.core.rmem_default/d; /net.core.wmem_default/d; /net.ipv4.tcp_ecn/d; /net.ipv4.tcp_fastopen/d; /net.ipv4.udp_mem/d; /net.ipv4.udp_rmem_min/d; /net.ipv4.udp_wmem_min/d; /net.core.netdev_max_backlog/d; /fs.file-max/d; /net.ipv4.ip_local_port_range/d' "$sys_conf"
+    
+    # 🧠 智能侦测：物理内存嗅探 (绝不依靠 Swap)
+    local total_mem=$(free -m | awk '/^Mem:/{print $2}')
+    echo -e "🧠 ${cyan}雷达侦测到物理内存: ${plain}${total_mem} MB"
+
+    # === 🚀 注入基础共性参数 ===
+    cat <<EOF >> "$sys_conf"
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+net.ipv4.tcp_ecn=1
+net.ipv4.tcp_fastopen=3
+fs.file-max=1048576
+net.ipv4.ip_local_port_range=1024 65535
+EOF
+
+    # ⚙️ 基于真实物理内存的动态资源分配
+    if [[ "$total_mem" -ge 2000 ]]; then
+        echo -e "🚀 ${green}判断为中大型神机，已触发【降维打击】模式，注入 32MB 极速缓冲区！${plain}"
+        cat <<EOF >> "$sys_conf"
+net.ipv4.tcp_rmem = 8192 262144 33554432
+net.ipv4.tcp_wmem = 8192 262144 33554432
+net.core.rmem_max = 33554432
+net.core.wmem_max = 33554432
+net.ipv4.udp_mem = 131072 262144 524288
+net.ipv4.udp_rmem_min = 16384
+net.ipv4.udp_wmem_min = 16384
+net.core.netdev_max_backlog = 16384
+EOF
+    elif [[ "$total_mem" -ge 800 ]]; then
+        echo -e "🛡️ ${yellow}判断为 1G 标准机，已触发【防爆装甲】模式，注入 16MB 安全缓冲区！${plain}"
+        cat <<EOF >> "$sys_conf"
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.ipv4.udp_mem = 65536 131072 262144
+net.ipv4.udp_rmem_min = 8192
+net.ipv4.udp_wmem_min = 8192
+net.core.netdev_max_backlog = 8192
+EOF
+    else
+        echo -e "⚠️ ${red}判断为轻量小鸡 (<1G)，已触发【保命模式】，维持常规缓冲防 OOM！${plain}"
+        cat <<EOF >> "$sys_conf"
+net.ipv4.tcp_rmem = 4096 87380 8388608
+net.ipv4.tcp_wmem = 4096 65536 8388608
+net.core.rmem_max = 8388608
+net.core.wmem_max = 8388608
+net.ipv4.udp_mem = 32768 65536 131072
+net.core.netdev_max_backlog = 4096
+EOF
+    fi
+    
+    sysctl -p >/dev/null 2>&1
+
+    if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
+        echo -e "\n${green}✅ TCP/UDP 双轨智能底层加速已成功激活！Hysteria2/TUIC 吞吐量已达当前物理极限！${plain}"
+    else
+        echo -e "\n${red}❌ BBR 激活失败，可能是当前系统的精简版内核不支持。${plain}"
+    fi
+    read -p "👉 按回车返回大屏..."
+}
+
+# ==================================================
+# 🛡️ 附加挂载: WARP 智能优选解锁 (支持一键开/关与 IP 探针)
+# ==================================================
+function enable_warp() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "         🛡️ WARP 智能优选解锁引擎 (流媒体/AI 专线) 控制中心"
+    echo -e "${cyan}======================================================================${plain}"
+
+    local SKIP_INSTALL=false
+
+    # 🚀 [新增逻辑] 智能状态感知：检测是否已经开启 WARP
+    if jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
+        echo -e "${green}>>> 系统检测：当前 WARP 智能分流已处于【运行中】状态！${plain}"
+        
+        # === 🛡️ 极客防呆一：热变阵拦截装甲 ===
+        echo -e "${yellow}💡 请下达对当前 WARP 护盾的战术指令：${plain}"
+        echo -e "  ${purple}1.${plain} 🔄 动态变阵 (不拔管，仅重新配置靶向分流应用)"
+        echo -e "  ${red}2.${plain} 💥 焦土化剥离 (彻底关闭 WARP 并物理清理巡逻犬与底层进程)"
+        echo -e "  ${yellow}0.${plain} 🔙 放弃并维持原状"
+        
+        local warp_action
+        while true; do
+            read -p "👉 请选择战术操作 [0/1/2]: " warp_action
+            if [[ "$warp_action" =~ ^[0-2]$ ]]; then
+                break
+            else
+                echo -e "${red}❌ 致命拦截：侦测到非法击键！请严格输入 0、1 或 2！防呆装甲已启动！${plain}"
+            fi
+        done
+
+        if [[ "$warp_action" == "2" ]]; then
+            echo -e "${yellow}>>> 正在执行焦土化剥离，恢复系统原生直连...${plain}"
+            jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" | atomic_jq 2>/dev/null
+            # 👇 补这一枪：底层剥离完成后，同步撕毁物理账本
+            rm -f "$CONF_DIR/warp_opts.txt"
+            
+            if command -v warp-cli &> /dev/null; then
+                warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1
+                systemctl stop warp-svc >/dev/null 2>&1
+                systemctl disable warp-svc >/dev/null 2>&1
+                apt-get purge -y cloudflare-warp >/dev/null 2>&1
+                rm -rf /var/lib/cloudflare-warp /etc/cloudflare-warp ~/.local/share/cloudflare-warp 2>/dev/null
+            fi
+            # === 💥 联动斩首：主动关闭 WARP 时，顺手物理超度巡逻犬 ===
+            systemctl stop vx-warp-watchdog.service >/dev/null 2>&1
+            systemctl disable vx-warp-watchdog.service >/dev/null 2>&1
+            crontab -l 2>/dev/null | grep -v "vx-warp-watchdog" | crontab -
+            rm -f /usr/local/bin/vx-warp-watchdog.sh
+            rm -f /etc/systemd/system/vx-warp-watchdog.service
+            systemctl daemon-reload
+            # ==========================================================
+            systemctl restart vx-core.service
+            echo -e "${green}✅ WARP 智能分流已彻底关闭，全站流量已恢复原生 IP！${plain}"
+            read -p "👉 按回车返回大屏..."
+            return
+            
+        elif [[ "$warp_action" == "1" ]]; then
+            echo -e "${green}>>> ⚡ 启动动态变阵协议！直接进入路由重注流程...${plain}"
+            jq 'del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" | atomic_jq 2>/dev/null
+            SKIP_INSTALL=true
+            
+        else
+            echo -e "${green}>>> 操作已取消，WARP 护盾继续为您护航。${plain}"
+            read -p "👉 按回车返回大屏..."
+            return
+        fi
+    fi
+
+    # 🚀 如果不是动态变阵，则走完整的安装流程
+    if [[ "$SKIP_INSTALL" == false ]]; then
+        # 1. 安全安装官方客户端
+        if ! command -v warp-cli &> /dev/null; then
+            echo -e "${yellow}>>> [1/4] 正在安全拉取 Cloudflare 官方组件 (不影响系统网络)...${plain}"
+            apt-get update -y >/dev/null 2>&1
+            apt-get install -y curl gnupg lsb-release jq >/dev/null 2>&1
+            curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list >/dev/null
+            apt-get update -y >/dev/null 2>&1
+            apt-get install cloudflare-warp -y >/dev/null 2>&1
+        else
+            echo -e "${green}✅ WARP 客户端已存在，跳过安装. ${plain}"
+            # 💥 [心跳起搏器] 强行激活并启动底层守护进程，绝不带病上岗！
+            systemctl enable warp-svc >/dev/null 2>&1
+            systemctl start warp-svc >/dev/null 2>&1
+        fi
+
+        # 2. 隔离化配置 (绝对防失联)
+        echo -e "${yellow}>>> [2/4] 正在建立本地 SOCKS5 安全隔离隧道...${plain}"
+        sleep 2
+        warp-cli --accept-tos registration new >/dev/null 2>&1 || warp-cli registration new >/dev/null 2>&1
+        warp-cli --accept-tos mode proxy >/dev/null 2>&1 || warp-cli mode proxy >/dev/null 2>&1
+        warp-cli --accept-tos proxy port 40000 >/dev/null 2>&1 || warp-cli proxy port 40000 >/dev/null 2>&1
+        warp-cli --accept-tos connect >/dev/null 2>&1 || warp-cli connect >/dev/null 2>&1
+        
+        echo -e ">>> 正在等待隧道连通，请稍候 8 秒..."
+        sleep 8
+
+        # 🚀 [新增逻辑] 物理探针极速抓取 IP
+        WARP_IP=$(curl -s --max-time 8 -x socks5h://127.0.0.1:40000 ipinfo.io/ip 2>/dev/null)
+        if [[ -n "$WARP_IP" ]]; then
+            echo -e "${green}✅ WARP 隔离通道建立成功！(监听端口: 40000 | 成功套取防封 IP: ${cyan}${WARP_IP}${green})${plain}"
+        else
+            echo -e "${red}❌ WARP 通道建立失败或响应超时！这可能是由于当前 VPS 架构受限。${plain}"
+            echo -e "${yellow}提示: 核心代理服务未受影响，按回车返回大屏...${plain}"
+            read -p "" && return
+        fi
+
+        # 确保 route 结构存在，并清理旧规则
+        if ! jq -e '.route' "$JSON_FILE" >/dev/null; then
+            jq '. += {"route": {"rules": []}}' "$JSON_FILE" | atomic_jq
+        fi
+        jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" | atomic_jq 2>/dev/null
+
+        # 挂载底层 SOCKS5 弹药库
+        jq '.outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}]' "$JSON_FILE" | atomic_jq
+    fi
+
+    # 3. 注入 Sing-box 神经元路由 (轻量极客自选靶向版)
+    echo -e "${yellow}>>> [3/4] 正在向 Sing-box 注入 AI 与流媒体精准分流规则...${plain}"
+
+    echo -e "\n${cyan}🪐 请自主勾选需要【套用 WARP 解锁】的阵地 (按需点菜)：${plain}"
+    echo -e "${yellow}💡 提示：支持多选，用空格隔开；例如输入 '1 2 4' 代表解锁 GPT+Gemini+Netflix。${plain}"
+    echo -e "  ${purple}1.${plain} ChatGPT / OpenAI 全系"
+    echo -e "  ${purple}2.${plain} Gemini ${green}(独立专线，不依赖 11)${plain}"
+    echo -e "  ${purple}3.${plain} Claude (Anthropic 旗舰)"
+    echo -e "  ${blue}4.${plain} Netflix (网飞全系)"
+    echo -e "  ${blue}5.${plain} Disney+ (迪士尼)"
+    echo -e "  ${blue}6.${plain} TikTok (国际版抖音)"
+    echo -e "  ${blue}7.${plain} YouTube & YouTube Music (油管全系)"
+    echo -e "  ${cyan}8.${plain} Instagram & Facebook (Meta 社交网络)"
+    echo -e "  ${cyan}9.${plain} X (Twitter) & Reddit (防频繁跳人机)"
+    echo -e "  ${yellow}10.${plain} Amazon Prime Video (亚马逊流媒体) & Spotify"
+    echo -e "  ${orange}11.${plain} Google + Google Play ${green}(搜索 / 账号 / 商店 / 下载 / 更新)${plain}"
+    echo -e "  ${red}12.${plain} 🌍 全局接管 ${red}(慎用！所有公网流量强制走 WARP)${plain}"
+    echo -e "  ${yellow}0.${plain} 🛑 仅建立地道，后台静默待命"
+
+    # === 🛡️ 极客防呆二：点菜矩阵死循环拦截 ===
+    # 轻量版不做公网 IP 自动探针，避免把 WARP 模块膨胀成大半个脚本。
+    # 默认 0 最稳妥；已知某台 VPS 必须绕行时可直接输入 2 / 11 / 2 11。
+    while true; do
+        read -r -p "👉 请输入战术指令 [回车默认 0；示例：1 2 4]： " sel_opts
+        sel_opts=${sel_opts:-"0"}
+
+        # 兼容逗号输入：2,11 / 2，11 → 2 11
+        sel_opts="${sel_opts//,/ }"
+        sel_opts="${sel_opts//，/ }"
+        sel_opts=$(echo "$sel_opts" | xargs 2>/dev/null)
+
+        local legal_input=true
+        local has_zero=false
+        local has_global=false
+
+        for opt in $sel_opts; do
+            if [[ ! "$opt" =~ ^([0-9]|1[0-2])$ ]]; then
+                legal_input=false
+                break
+            fi
+            [[ "$opt" == "0" ]] && has_zero=true
+            [[ "$opt" == "12" ]] && has_global=true
+        done
+
+        # 0 / 12 为独立模式，不与其他选项混用
+        if [[ "$has_zero" == true && "$sel_opts" != "0" ]]; then
+            legal_input=false
+        fi
+        if [[ "$has_global" == true && "$sel_opts" != "12" ]]; then
+            legal_input=false
+        fi
+
+        if [[ "$legal_input" == true ]]; then
+            break
+        else
+            echo -e "${red}❌ 输入无效：编号必须为 0~12；0/12 不可与其他靶向编号混用。${plain}"
+            sleep 1.2
+        fi
+    done
+
+    # === 🛡️ 极客防呆三：模式分流 ===
+    if [[ "$sel_opts" == "12" ]]; then
+        # 🌍 模式 A：全局模式
+        jq '.route.rules = [{"action":"sniff"}, {"ip_is_private": false, "outbound": "warp-socks"}] + .route.rules' "$JSON_FILE" | atomic_jq
+        echo "12" > "$CONF_DIR/warp_opts.txt"
+        echo -e "${yellow}⚠️ 战术警告：已开启【全局 WARP 接管】！所有公网流量已被覆盖！${plain}"
+
+    elif [[ "$sel_opts" == "0" ]]; then
+        # 🛑 模式 0：仅挂载
+        rm -f "$CONF_DIR/warp_opts.txt"
+        echo -e "${green}✅ 战术锁定：WARP 已在后台静默待命，系统原生路由未受任何干涉！${plain}"
+
+    else
+        # 🎯 靶向模式：每个应用独立生成一条 route rule
+        # 关键修复：Gemini 与 Google/Play 不再合并成一个大规则。
+        # 关键修复：Google 选项不再使用 DOMAIN_KEYWORD=google。
+        local JSON_RULES="[]"
+        local RULE=""
+
+        for opt in $sel_opts; do
+            case $opt in
+                1)
+                    RULE='{"domain_suffix":["openai.com","chatgpt.com","ai.com","auth0.com"],"domain_keyword":["openai","chatgpt"],"outbound":"warp-socks"}'
+                    ;;
+                2)
+                    RULE='{"domain_suffix":["gemini.google.com","gemini.google","gemini.gstatic.com","bard.google.com","deepmind.com","deepmind.google","generativeai.google","generativelanguage.googleapis.com","geller-pa.googleapis.com","proactivebackend-pa.googleapis.com","robinfrontend-pa.googleapis.com","webchannel-robinfrontend-pa.googleapis.com","alkalimakersuite-pa.clients6.google.com","alkalicore-pa.clients6.google.com","firebaseinstallations.googleapis.com","accounts.google.com","oauth2.googleapis.com","googleusercontent.com","gstatic.com"],"outbound":"warp-socks"}'
+                    ;;
+                3)
+                    RULE='{"domain_suffix":["anthropic.com","claude.ai"],"domain_keyword":["claude"],"outbound":"warp-socks"}'
+                    ;;
+                4)
+                    RULE='{"domain_suffix":["netflix.com","netflix.net","nflxvideo.net","nflxso.net","nflxext.com"],"domain_keyword":["netflix"],"outbound":"warp-socks"}'
+                    ;;
+                5)
+                    RULE='{"domain_suffix":["disneyplus.com","disney.com","dssott.com"],"domain_keyword":["disneyplus"],"outbound":"warp-socks"}'
+                    ;;
+                6)
+                    RULE='{"domain_suffix":["tiktok.com","tiktokcdn.com","byteoversea.com"],"domain_keyword":["tiktok"],"outbound":"warp-socks"}'
+                    ;;
+                7)
+                    RULE='{"domain_suffix":["youtube.com","youtu.be","youtube-nocookie.com","googlevideo.com","ytimg.com","yt.be"],"domain_keyword":["youtube","googlevideo"],"outbound":"warp-socks"}'
+                    ;;
+                8)
+                    RULE='{"domain_suffix":["instagram.com","facebook.com","fbcdn.net","messenger.com"],"domain_keyword":["instagram","facebook"],"outbound":"warp-socks"}'
+                    ;;
+                9)
+                    RULE='{"domain_suffix":["twitter.com","x.com","twimg.com","reddit.com","redditmedia.com"],"domain_keyword":["twitter","reddit"],"outbound":"warp-socks"}'
+                    ;;
+                10)
+                    RULE='{"domain_suffix":["primevideo.com","amazonvideo.com","pv-cdn.net","spotify.com","spotify.net","scdn.co","spoti.fi"],"domain_keyword":["primevideo","amazon","spotify"],"outbound":"warp-socks"}'
+                    ;;
+                11)
+                    # ==================================================
+                    # 🌐 Google + Google Play
+                    # logical or：关键词 / 专用后缀 / Google 常用 IP（防纯 IP 逃逸）
+                    # ==================================================
+                    RULE='{"type":"logical","mode":"or","rules":['
+                    RULE+='{"domain_keyword":["google","gmail","gstatic","googleapis","gvt","1e100"]},'
+                    RULE+='{"domain_suffix":["xn--ngstr-lra8j.com","android.com","ggpht.com","ggpht.cn","gvt0.com","gvt1.com","gvt2.com","gvt3.com","gvt4.com","gvt5.com","gvt6.com","gvt7.com","gvt8.com","gvt9.com","appspot.com","firebaseio.com","app-measurement.com","crashlytics.com","recaptcha.net","1e100.net"]},'
+                    RULE+='{"ip_cidr":["8.8.8.8/32","8.8.4.4/32","64.233.160.0/19","66.102.0.0/20","66.249.64.0/19","72.14.192.0/18","74.125.0.0/16","108.177.0.0/17","142.250.0.0/15","172.217.0.0/16","172.253.0.0/16","173.194.0.0/16","209.85.128.0/17","216.58.192.0/19","216.239.32.0/19","2001:4860::/32","2404:6800::/32","2607:f8b0::/32","2800:3f0::/32","2a00:1450::/32","2c0f:fb50::/32"]}'
+                    RULE+='],"outbound":"warp-socks"}'
+                    ;;
+            esac
+
+            JSON_RULES=$(jq -c --argjson rule "$RULE" '. + [$rule]' <<< "$JSON_RULES")
+        done
+
+        # 原子注入：保持每个应用一条独立规则，避免 2 / 11 互相覆盖。
+        jq --argjson rules "$JSON_RULES" \
+            '.route.rules = [{"action":"sniff"}] + $rules + .route.rules' \
+            "$JSON_FILE" | atomic_jq 2>/dev/null
+
+        # 固化用户选择，供大屏反向显示
+        echo "$sel_opts" > "$CONF_DIR/warp_opts.txt"
+
+        echo -e "${green}✅ 战术锁定：【轻量独立靶向分流】已缝合完毕！${plain}"
+        if [[ " $sel_opts " == *" 2 "* ]]; then
+            echo -e "   ${purple}🤖 Gemini：独立专线已启用，不依赖 11。${plain}"
+        fi
+        if [[ " $sel_opts " == *" 11 "* ]]; then
+            echo -e "   ${cyan}🌐 Google / Play：搜索、账号、商店、下载、更新及后台端点已纳入 WARP。${plain}"
+        fi
+        if [[ " $sel_opts " == *" 2 "* ]] && [[ " $sel_opts " == *" 11 "* ]]; then
+            echo -e "   ${green}✅ Gemini + Google/Play 同时启用，采用独立 route rule，互不覆盖。${plain}"
+        fi
+        echo -e "   ${green}✅ 未选择的应用继续使用原生公网路径。${plain}"
+    fi
+ 
+    # 4. 重启生效
+    echo -e "${yellow}>>> [4/4] 正在重启引擎，激活无缝解锁矩阵...${plain}"
+    systemctl restart vx-core.service
+    
+  # 🐕 [微创重构] Systemd 微服务级 WARP 哨兵巡逻犬 (1.8.3 智能防碰瓷完全体)
+    echo -e "${yellow}>>> [5/5] 🪐 正在释放【WARP 智能巡逻犬】...${plain}"
+    
+    cat << 'EOF' > /usr/local/bin/vx-warp-watchdog.sh
+#!/bin/bash
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export TZ="Asia/Shanghai"
+JSON_FILE="/etc/vx_vne/config.json"
+TG_CONF="/etc/vx_tg.conf"
+
+while true; do
+    sleep 60
+    
+    # 🛡️ 智能前置拦截：物理透视 Sing-box 核心配置
+    if [[ ! -f "$JSON_FILE" ]] || ! jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
+        # 铁证如山：Sir根本没在这台 VPS 开启过 WARP 分流，巡逻犬原地无条件长眠，绝对不瞎报警！
+        continue
+    fi
+    
+    # 只有当前机器确实启用了 WARP 分流，才允许刺探物理链路
+    WARP_CHECK=$(curl -4 -s --max-time 10 -x socks5h://127.0.0.1:40000 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null)
+    if [[ ! "$WARP_CHECK" == *"warp=on"* ]]; then
+        systemctl restart warp-svc >/dev/null 2>&1
+        sleep 3
+        warp-cli --accept-tos connect >/dev/null 2>&1 || warp-cli connect >/dev/null 2>&1
+        
+        if [[ -f "$TG_CONF" ]]; then
+            source "$TG_CONF"
+            if [[ -n "$VX_TG_TOKEN" && -n "$VX_TG_CHATID" ]]; then
+                MSG="🚨 <b>[vx 护盾断裂·巡逻犬触发]</b>%0ASir，WARP 智能分流护盾突然失去心跳！%0A🖥️ <b>阵地主机:</b> <code>$(hostname)</code>%0A🔄 <b>物理自愈:</b> 巡逻犬已强行重启底层进程！"
+                curl -4 -s -X POST "https://api.telegram.org/bot${VX_TG_TOKEN}/sendMessage" -d chat_id="${VX_TG_CHATID}" -d text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+            fi
+        fi
+        sleep 20
+    fi
+done
+EOF
+    chmod +x /usr/local/bin/vx-warp-watchdog.sh
+
+    # 将巡逻犬注册为 Systemd 守护微服务
+    cat << EOF > /etc/systemd/system/vx-warp-watchdog.service
+[Unit]
+Description=vx WARP Sentinel Watchdog Radar
+After=warp-svc.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/vx-warp-watchdog.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    systemctl enable --now vx-warp-watchdog.service >/dev/null 2>&1
+
+    # 物理超度以前写在 crontab 里的残渣
+    crontab -l 2>/dev/null | grep -v "vx-warp-watchdog" | crontab -
+    # =========================================================================
+
+    echo -e "\n${green}🎉 WARP 智能分流部署完美竣工！${plain}"
+    echo -e "${cyan}💡 开源提示: 此方案为应用层分流，绝对不会导致您的 VPS 断网或失联，请放心使用！${plain}"
+    read -p "👉 按回车返回大屏..."
+}
+
+# ==================================================
+# ☁️ 终极保命: Cloudflare Argo 隧道挂载 (极客绝对强校验版 V2)
+# ==================================================
+function enable_argo() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "             ☁️ Argo 隧道 (CDN 复活甲) 智能控制中枢"
+    echo -e "${cyan}======================================================================${plain}"
+
+    # 🚀 智能状态感知：检测 Argo 是否已在运行
+    if systemctl is-active --quiet vx-argo.service 2>/dev/null || [[ -f /etc/systemd/system/vx-argo.service ]]; then
+        echo -e "${green}>>> 系统检测：当前 Argo 隧道复活甲已处于【部署/运行】状态！${plain}"
+        
+        local close_choice=""
+        while true; do
+            read -p "❓ 是否要一键关闭并彻底拆除 Argo 隧道？(y/n/0返回): " close_choice
+            case "$close_choice" in
+                [Yy]) break ;;
+                [Nn]|0) echo -e "${green}>>> 操作已取消，Argo 隧道继续为您保驾护航。${plain}"; sleep 1; return 0 ;;
+                *) echo -e "${red}❌ 非法输入！请输入 y, n 或 0！${plain}" ;;
+            esac
+        done
+
+        echo -e "${yellow}>>> 正在拆除 Argo 隧道并清理系统守护进程...${plain}"
+        systemctl stop vx-argo >/dev/null 2>&1
+        systemctl disable vx-argo >/dev/null 2>&1
+        rm -f /etc/systemd/system/vx-argo.service
+        rm -f /usr/local/bin/cloudflared /usr/bin/cloudflared
+        rm -f /usr/local/etc/vx_argo_domain.txt /etc/vx_argo.env
+        systemctl daemon-reload
+        
+        # === 🚀 动态装甲恢复：Argo 拆除后，自动为 VMess 重新挂载 TLS ===
+        if jq -e '.inbounds[] | select(.tag == "vmess-in" and (has("tls") | not))' "$JSON_FILE" >/dev/null 2>&1; then
+            echo -e "${yellow}>>> 正在为 VMess 重新挂载 TLS 防弹装甲...${plain}"
+            local RESTORE_SNI=""
+            if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+                RESTORE_SNI=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+            else
+                RESTORE_SNI="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
+                generate_cert_dynamic "$RESTORE_SNI" >/dev/null 2>&1
+            fi
+            
+            jq --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" --arg sni "$RESTORE_SNI" '(.inbounds[] | select(.tag == "vmess-in")).tls = {"enabled":true,"server_name":$sni,"certificate_path":$crt,"key_path":$key}' "$JSON_FILE" | atomic_jq
+            systemctl restart vx-core.service
+
+            local V_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE")
+            local V_PATH=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .transport.path' "$JSON_FILE")
+            local V_UUID=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .users[0].uuid' "$JSON_FILE")
+            get_smart_ip
+            local VM_J=$(jq -n -c --arg v "2" --arg ps "vmess-ws-velox" --arg add "$SERVER_IP" --arg port "$V_PORT" --arg id "$V_UUID" --arg net "ws" --arg host "$RESTORE_SNI" --arg path "$V_PATH" --arg tls "tls" --arg sni "$RESTORE_SNI" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+            sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
+            echo "vmess://$(echo -n "$VM_J" | base64 -w 0)" >> "$LINK_FILE"
+        fi
+        
+       # === 智能清理遗留的节点链接 (极客重构版：无视大小写，物理透视 Base64) ===
+        if [[ -f "$LINK_FILE" ]]; then
+            mv "$LINK_FILE" "${LINK_FILE}.tmp"
+            cat "${LINK_FILE}.tmp" | while read line; do
+                # 1. 表面探针：明文里如果有 argo 或 trycloudflare (忽略大小写)，直接拦截抛弃！
+                if echo "$line" | grep -qiE "argo|trycloudflare"; then
+                    continue
+                fi
+                
+                # 2. 深度探针：如果是 vmess，扒掉外衣强行解密 Base64 嗅探内部特征
+                if [[ "$line" == vmess://* ]]; then
+                    if echo "$line" | sed 's/vmess:\/\///' | base64 -d 2>/dev/null | grep -qiE "argo|trycloudflare"; then
+                        continue
+                    fi
+                fi
+                
+                # 3. 验证无毒，安全节点准许放行回写
+                echo "$line" >> "$LINK_FILE"
+            done
+            rm -f "${LINK_FILE}.tmp"
+        fi
+        update_sub
+        echo -e "${green}✅ Argo 隧道已彻底拆除，复活甲节点已从本地销毁！${plain}"
+        read -p "👉 按回车返回大屏..."
+        return
+    fi
+
+    # ================= 🚀 核心手术位：绝对强校验与全身而退机制 =================
+    local ARGO_TARGET=""
+    while true; do
+        echo -e "\n${yellow}>>> 请选择要挂载 Argo 隧道的【核心协议】(选谁，谁就是复活甲)：${plain}"
+        echo -e "  ${purple}1.${plain} VMess-WS   (经典兼容模式：会自动物理剥离底层 TLS，支持临时/固定隧道)"
+        echo -e "  ${green}2.${plain} VLESS-gRPC (顶级隐身模式：极度硬核，【仅支持】固定隧道强穿透)"
+        echo -e "  ${red}0.${plain} 放弃操作，返回主菜单"
+        read -p "👉 请严格输入指令 [0/1/2]: " ARGO_TARGET
+
+        case "$ARGO_TARGET" in
+            1) echo -e "${green}>>> 指令确认：锁定 VMess-WS...${plain}"; break ;;
+            2) echo -e "${green}>>> 指令确认：锁定 VLESS-gRPC...${plain}"; break ;;
+            0) echo -e "${yellow}>>> 撤退指令确认！已安全退出，系统未做任何修改。${plain}"; sleep 1; return 0 ;;
+            *) echo -e "${red}❌ 致命拦截：非法输入！拒绝盲目执行，请重新输入 0, 1 或 2！${plain}" ;;
+        esac
+    done
+
+    local CORE_PORT=""
+    local CORE_UUID=""
+    local CORE_PATH_SVC=""
+    local GRPC_SNI=""
+
+    # 提取参数与智能脱甲判定
+    if [[ "$ARGO_TARGET" == "1" ]]; then
+        CORE_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+        CORE_UUID=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .users[0].uuid' "$JSON_FILE" 2>/dev/null)
+        CORE_PATH_SVC=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .transport.path' "$JSON_FILE" 2>/dev/null)
+
+        if [[ -z "$CORE_PORT" || "$CORE_PORT" == "null" ]]; then
+            echo -e "${red}❌ 未检测到 VMess-WS 节点！请先返回大满贯部署。${plain}"; read -p "👉 按回车返回..." && return
+        fi
+        
+        if jq -e '.inbounds[] | select(.tag == "vmess-in" and has("tls"))' "$JSON_FILE" >/dev/null 2>&1; then
+            echo -e "${yellow}>>> 正在智能剥离 VMess 底层 TLS 装甲，进行 Argo 物理适配...${plain}"
+            jq 'del(.inbounds[] | select(.tag == "vmess-in").tls)' "$JSON_FILE" | atomic_jq
+            systemctl restart vx-core.service
+            sleep 1
+        fi
+    else
+        CORE_PORT=$(jq -r '.inbounds[] | select(.tag == "grpc-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+        CORE_UUID=$(jq -r '.inbounds[] | select(.tag == "grpc-in") | .users[0].uuid' "$JSON_FILE" 2>/dev/null)
+        CORE_PATH_SVC=$(jq -r '.inbounds[] | select(.tag == "grpc-in") | .transport.service_name' "$JSON_FILE" 2>/dev/null)
+        GRPC_SNI=$(jq -r '.inbounds[] | select(.tag == "grpc-in") | .tls.server_name' "$JSON_FILE" 2>/dev/null)
+        
+        # 容错：如果 JSON 里没抓到 SNI，就去证书目录抓
+        if [[ -z "$GRPC_SNI" || "$GRPC_SNI" == "null" ]]; then
+            GRPC_SNI=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+        fi
+
+        if [[ -z "$CORE_PORT" || "$CORE_PORT" == "null" ]]; then
+            echo -e "${red}❌ 未检测到 VLESS-gRPC 节点！请先返回大满贯部署。${plain}"; read -p "👉 按回车返回..." && return
+        fi
+        echo -e "${green}>>> gRPC 模式确认：引擎将保留底层 TLS，启动强行穿透！${plain}"
+    fi
+
+    # 2. 安装官方 Cloudflared 核心
+    if ! command -v cloudflared &> /dev/null; then
+        echo -e "\n${yellow}>>> [1/4] 正在拉取 Cloudflare Argo 官方核心组件...${plain}"
+        local CPU_ARCH=$(uname -m)
+        local CF_ARCH="amd64"
+        if [[ "$CPU_ARCH" == "aarch64" || "$CPU_ARCH" == "arm64" ]]; then
+            CF_ARCH="arm64"
+        elif [[ "$CPU_ARCH" == "x86_64" ]]; then
+            CF_ARCH="amd64"
+        else
+            echo -e "${red}❌ 致命错误: 暂不支持当前系统架构 ($CPU_ARCH) 安装 Argo！${plain}"
+            read -p "👉 按回车返回大屏..." && return
+        fi
+        wget -q "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}" -O /usr/local/bin/cloudflared
+        chmod +x /usr/local/bin/cloudflared
+    fi
+
+    # 3. 智能双轨制选择 (核心变更：gRPC 物理阉割临时隧道)
+    local ARGO_MODE=""
+    if [[ "$ARGO_TARGET" == "1" ]]; then
+        while true; do
+            echo -e "\n${yellow}>>> [2/4] 请选择 Argo 隧道运行模式：${plain}"
+            echo -e "  ${purple}1.${plain} 临时穿透模式 (系统自动分配随机域名，免配置，小白首选)"
+            echo -e "  ${green}2.${plain} 固定保活模式 (需配置 CF Zero Trust，绑定自有域名，极客推荐)"
+            echo -e "  ${red}0.${plain} 放弃操作，返回主菜单"
+            
+            read -p "👉 请严格输入指令 [0/1/2]: " ARGO_MODE
+            case "$ARGO_MODE" in
+                1) echo -e "${green}>>> 指令确认：即将建立临时反向地下隧道...${plain}"; break ;;
+                2) echo -e "${green}>>> 指令确认：即将挂载 Zero Trust 固定装甲...${plain}"; break ;;
+                0) 
+                    echo -e "${yellow}>>> 撤退指令确认！正在回滚并返回大屏...${plain}"
+                    systemctl restart vx-core.service >/dev/null 2>&1
+                    sleep 1; return 0 
+                    ;;
+                *) echo -e "${red}❌ 致命拦截：非法输入！拒绝盲目执行，请重新输入 0, 1 或 2！${plain}" ;;
+            esac
+        done
+    else
+        # gRPC 强行锁定固定隧道模式
+        echo -e "\n${yellow}>>> [2/4] 隧道运行模式锁定：固定保活模式 (Zero Trust)${plain}"
+        echo -e "${purple}💡 极客科普：gRPC 协议依赖极度严格的 HTTP/2 握手，CF 临时隧道由于 CLI 限制无法支持！${plain}"
+        echo -e "${purple}💡 降维打击：系统已自动为您屏蔽临时隧道，强制进入 Zero Trust 满血配置流程！${plain}"
+        ARGO_MODE="2"
+    fi
+
+    if [[ "$ARGO_MODE" == "2" ]]; then
+        clear
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "         🛡️ CF Zero Trust 固定隧道配置指南 (极客防雷版)"
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "请严格按照以下步骤在 Cloudflare 官网 (Zero Trust -> Tunnels) 操作："
+        echo -e "1. 点击 Create a tunnel -> Cloudflared -> 随便起个隧道名字"
+        echo -e "2. 复制紧跟在 ${green}--token${plain} 后面的超长字符串，稍后填入下方！"
+        echo -e "3. 点击 Next，在 Public Hostname 页面设置："
+        echo -e "   - Subdomain: 随便起个代号 (如 rescue)"
+        echo -e "   - Domain: 选你绑在 CF 的域名 (如 xxx.com)"
+        
+        if [[ "$ARGO_TARGET" == "1" ]]; then
+            echo -e "  - Service Type: ${yellow}HTTP${plain}"
+            echo -e "  - Service URL（新版 CF 整行复制到 Service URL）: ${green}http://127.0.0.1:${CORE_PORT}${plain}"
+        else
+            echo -e "\n${red}【🚨 VLESS-gRPC 生死红线操作区 🚨】${plain}"
+            echo -e "   - Service Type: ${purple}HTTPS${plain} (⚠️ 必须选 HTTPS，否则必死！)"
+            echo -e "   - Service URL（新版 CF 整行复制到 Service URL）: ${green}https://127.0.0.1:${CORE_PORT}${plain}"
+            echo -e "   - 展开下方 Additional application settings -> TLS，必须完成以下 3 项："
+            echo -e "     ☢️ ${yellow}No TLS Verify${plain}          -> 开启 ${green}(ON)${plain}"
+            echo -e "     ☢️ ${yellow}HTTP2 connection${plain}       -> 开启 ${green}(ON)${plain}"
+            echo -e "     ☢️ ${yellow}Origin Server Name${plain}     -> 填入：${green}${GRPC_SNI}${plain} (⚠️ 极度致命：少填错填必连不上！)"
+            echo -e "   - ⚠️ 终极排雷：去 CF 主页面 -> Network(网络) -> 确保 ${green}gRPC 开关处于开启状态！${plain}\n"
+        fi
+        echo -e "${cyan}======================================================================${plain}"
+
+        read -p "👉 请粘贴您的 Cloudflare Tunnel Token (输入 0 放弃并退出): " ARGO_TOKEN
+        if [[ "$ARGO_TOKEN" == "0" || -z "$ARGO_TOKEN" ]]; then
+            echo -e "\n${red}已取消操作，安全返回主界面。${plain}"; sleep 1; return
+        fi
+        ARGO_TOKEN=$(echo "$ARGO_TOKEN" | tr -d ' ' | tr -d '\n' | tr -d '\r')
+
+        echo -e "${yellow}💡 提示：这里填的是你刚刚在 Subdomain 和 Domain 拼起来的完整域名。${plain}"
+        read -p "👉 请输入隧道绑定的完整域名 (如 rescue.xxx.com) (输入 0 退出): " ARGO_DOMAIN
+        ARGO_DOMAIN=$(echo "$ARGO_DOMAIN" | tr -d ' ')
+        if [[ -z "$ARGO_DOMAIN" || "$ARGO_DOMAIN" == "0" ]]; then
+            echo -e "\n${red}❌ 已取消操作！${plain}"; sleep 1; return
+        fi
+        
+        mkdir -p /usr/local/etc
+        echo "$ARGO_DOMAIN" > /usr/local/etc/vx_argo_domain.txt 2>/dev/null
+
+        echo -e "\n${yellow}>>> [3/4] 正在将 Token 注入系统守护进程...${plain}"
+        # 将 token 写入独立权限文件，避免明文暴露在 systemctl status
+        echo "ARGO_TOKEN=${ARGO_TOKEN}" > /etc/vx_argo.env
+        chmod 600 /etc/vx_argo.env
+
+        cat <<EOF > /etc/systemd/system/vx-argo.service
+[Unit]
+Description=Cloudflare Argo Tunnel (Fixed Token) for vx
+After=network.target
+[Service]
+Type=simple
+EnvironmentFile=/etc/vx_argo.env
+ExecStart=/usr/local/bin/cloudflared tunnel run --token \${ARGO_TOKEN}
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    else
+        echo -e "\n${yellow}>>> [3/4] 正在建立临时反向地下隧道...${plain}"
+        local ARGO_URL="http://127.0.0.1:$CORE_PORT"
+        local ARGO_EXTRA_ARGS="--no-autoupdate"
+
+        cat <<EOF > /etc/systemd/system/vx-argo.service
+[Unit]
+Description=Cloudflare Argo Tunnel (Temp) for vx
+After=network.target
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cloudflared tunnel --url $ARGO_URL $ARGO_EXTRA_ARGS
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+EOF
+    fi
+
+    systemctl daemon-reload
+    systemctl restart vx-argo
+    systemctl enable vx-argo >/dev/null 2>&1
+    
+    sleep 2
+    if ! systemctl is-active --quiet vx-argo.service; then
+        echo -e "\n${red}❌ Argo 隧道核心进程启动失败！${plain}"
+        echo -e "${yellow}原因排查：Token 错误、VPS 无法连接 CF 节点，或内存严重不足。${plain}"
+        systemctl stop vx-argo >/dev/null 2>&1
+        rm -f /etc/systemd/system/vx-argo.service
+        systemctl daemon-reload
+        read -p "👉 已安全回滚，按回车返回大屏..." && return
+    fi
+
+    if [[ "$ARGO_MODE" != "2" ]]; then
+        echo -e ">>> 正在等待 CF 边缘节点下发临时域名，请耐心等待 8 秒..."
+        sleep 8
+        ARGO_DOMAIN=$(journalctl -u vx-argo -n 50 --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
+        
+        if [[ -z "$ARGO_DOMAIN" ]]; then
+            echo -e "${red}❌ 隧道域名获取超时！可能是当前地区连接 trycloudflare 线路受阻。${plain}"
+            systemctl stop vx-argo >/dev/null 2>&1
+            rm -f /etc/systemd/system/vx-argo.service
+            read -p "👉 已安全中止操作，按回车返回大屏..." && return
+        fi
+    fi
+
+    # 5. 生成终极节点链接
+    local OPT_CHOICE=""
+    local ARGO_MAGIC_ADDRESS=""
+    while true; do
+        echo -e "\n${yellow}>>> [4/4] 隧道已建立！请配置复活节点的 CDN 优选链路：${plain}"
+        echo -e "  ${green}1.${plain} 官方优选: cloudflare-ech.com (三网均衡推荐)"
+        echo -e "  ${green}2.${plain} 跨境金融: www.visa.com.sg (适合联通/电信)"
+        echo -e "  ${green}3.${plain} 国际组织: www.wto.org (适合移动)"
+        echo -e "  ${purple}4.${plain} 极客自定义 (手动输入你扫出来的优选 IP 或泛播域名，如 time.is)"
+        echo -e "  ${red}0.${plain} 放弃生成链接并关闭隧道"
+        read -p "👉 请严格输入指令 [0-4]: " OPT_CHOICE
+
+        case "$OPT_CHOICE" in
+            1) ARGO_MAGIC_ADDRESS="cloudflare-ech.com"; break ;;
+            2) ARGO_MAGIC_ADDRESS="www.visa.com.sg"; break ;;
+            3) ARGO_MAGIC_ADDRESS="www.wto.org"; break ;;
+            4) 
+                read -p "👉 请输入自定义优选 IP 或域名 (如 104.16.x.x): " custom_ip
+                if [[ -z "$custom_ip" ]]; then
+                    echo -e "${red}❌ 输入为空，请重新选择！${plain}"
+                    continue
+                fi
+                ARGO_MAGIC_ADDRESS="$custom_ip"
+                break 
+                ;;
+            0) 
+                echo -e "\n${yellow}>>> 收到撤退指令！正在拆除刚建好的隧道...${plain}"
+                systemctl stop vx-argo >/dev/null 2>&1
+                rm -f /etc/systemd/system/vx-argo.service
+                systemctl daemon-reload
+                sleep 1; return 0 
+                ;;
+            *) echo -e "${red}❌ 非法输入！请不要乱敲键盘，只能输入 0 到 4！${plain}" ;;
+        esac
+    done
+    echo -e "${cyan}✅ 已锁定优选接入点: ${ARGO_MAGIC_ADDRESS}${plain}"
+    
+    local ARGO_LINK=""
+    if [[ "$ARGO_TARGET" == "1" ]]; then
+        # 👇 动态雷达：VMess 区分 temp 和 fixed
+        local ARGO_PS="vmess-argo-temp-velox"
+        [[ "$ARGO_MODE" == "2" ]] && ARGO_PS="vmess-argo-fixed-velox"
+
+        local VM_J=$(jq -n -c --arg v "2" --arg ps "$ARGO_PS" --arg add "$ARGO_MAGIC_ADDRESS" --arg port "443" --arg id "$CORE_UUID" --arg net "ws" --arg host "$ARGO_DOMAIN" --arg path "$CORE_PATH_SVC" --arg tls "tls" --arg sni "$ARGO_DOMAIN" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+        ARGO_LINK="vmess://$(echo -n "$VM_J" | base64 -w 0)"
+    else
+        # 👇 降维打击：gRPC 物理锁定为 fixed
+        local ARGO_PS="vless-grpc-argo-fixed-velox"
+        
+        ARGO_LINK="vless://${CORE_UUID}@${ARGO_MAGIC_ADDRESS}:443?encryption=none&security=tls&sni=${ARGO_DOMAIN}&alpn=h2&type=grpc&host=${ARGO_DOMAIN}&serviceName=${CORE_PATH_SVC}#${ARGO_PS}"
+    fi
+
+    sed -i '/[Aa]rgo/d' "$LINK_FILE" 2>/dev/null
+    # VMess 挂 Argo 后直连已脱 TLS，从订阅中隐藏，避免全平台/Clash 出现废节点
+    if [[ "$ARGO_TARGET" == "1" ]]; then
+        sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
+    fi
+    echo "$ARGO_LINK" >> "$LINK_FILE"
+    update_sub
+    echo -e "\n${green}🎉 Argo 隧道挂载成功！哪怕服务器 IP 被墙，此节点依然坚挺！${plain}"
+    if [[ "$ARGO_MODE" == "2" ]]; then
+        echo -e "${purple}🛡️ 当前模式: 固定隧道 (Zero Trust)${plain}"
+    else
+        echo -e "${purple}⏱️ 当前模式: 临时穿透 (trycloudflare)${plain}"
+    fi
+    echo -e "${cyan}🌐 专属防御域名: ${plain}${green}${ARGO_DOMAIN}${plain}"
+    echo -e "${yellow}💡 极客提示: 节点已内置高通透免流 IP ($ARGO_MAGIC_ADDRESS) 以确保即连即用。${plain}"
+    read -p "👉 按回车返回大屏，按【f】即可提取这个复活甲节点..."
+}
+
+# ==================================================
+# 🔄 OTA 热更新引擎: 脚本与内核双轨升级
+# ==================================================
+function update_ota() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "             🔄 vx OTA 智能热更新引擎"
+    echo -e "${cyan}======================================================================${plain}"
+
+    # --- 1. 更新面板脚本自身 ---
+    echo -e "${yellow}>>> [1/2] 正在检测面板脚本更新...${plain}"
+    curl -sL "$SCRIPT_URL" -o /tmp/vx_new.sh
+    if [[ -f /tmp/vx_new.sh && -s /tmp/vx_new.sh ]]; then
+        # 🚀 极客防呆：必须在 /tmp 里先验尸！语法满分才允许覆盖本体！
+               if bash -n /tmp/vx_new.sh; then
+            # === 自动备份当前版本（给回滚用） ===
+            if [[ -f "/usr/local/bin/vx" ]]; then
+                local CURRENT_VER
+                CURRENT_VER="$(grep -E '^vx_VERSION=' /usr/local/bin/vx 2>/dev/null | head -n1 | sed -E 's/^vx_VERSION="?([^"]+)".*/\1/')"
+                cp -f /usr/local/bin/vx "/usr/local/bin/vx.bak.${CURRENT_VER:-old}"
+                
+                # 只保留最近 3 个备份
+                ls -t /usr/local/bin/vx.bak.* 2>/dev/null | tail -n +4 | xargs -r rm -f
+            fi
+            
+            mv -f /tmp/vx_new.sh /usr/local/bin/vx
+            chmod +x /usr/local/bin/vx
+            echo -e "${green}✅ 面板脚本已同步至最新版本！已自动备份旧版本${plain}"
+        else
+            echo -e "\n${red}❌ 致命拦截：拉取的云端代码存在语法损坏 (可能是网络中断或 GitHub 抽风)！${plain}"
+            echo -e "${yellow}💡 极客装甲已强行阻断覆盖，成功保住了当前运行中的老版本！${plain}"
+            rm -f /tmp/vx_new.sh
+            read -p "👉 按回车键返回大屏..." && return
+        fi
+    else
+        echo -e "${red}❌ 脚本拉取失败，请检查网络！${plain}"
+        read -p "👉 按回车键返回大屏..." && return
+    fi
+
+    # --- 2. 更新 Sing-box 核心 ---
+    echo -e "\n${yellow}>>> [2/2] 正在检测 Sing-box 核心版本...${plain}"
+    
+    # 获取本地版本
+    local CURRENT_VER=$($BIN_FILE version 2>/dev/null | grep "version" | awk '{print $3}')
+    if [[ -z "$CURRENT_VER" ]]; then
+        CURRENT_VER="未知"
+    fi
+
+    # 获取远端最新版本 (解析 GitHub API)
+    local LATEST_VER=$(curl -s "https://api.github.com/repos/SagerNet/sing-box/releases/latest" | jq -r .tag_name | sed 's/v//g')
+
+    if [[ -z "$LATEST_VER" || "$LATEST_VER" == "null" ]]; then
+         echo -e "${red}❌ 无法获取 Sing-box 最新版本信息，可能是 GitHub API 限制。${plain}"
+         read -p "👉 按回车返回大屏..." && return
+    fi
+
+    echo -e "当前本地内核版本: ${purple}v${CURRENT_VER}${plain}"
+    echo -e "GitHub 最新版本:  ${green}v${LATEST_VER}${plain}"
+
+    if [[ "$CURRENT_VER" == "$LATEST_VER" ]]; then
+        echo -e "\n${green}🎉 您的 Sing-box 已经是最新版本，无需更新！${plain}"
+    else
+        echo -e "\n${yellow}💡 发现新版本，正在为您热更新核心...${plain}"
+        
+        # 下载最新内核 (自动适配 amd64/arm64)
+        local ARCH_RAW=$(uname -m)
+        case "${ARCH_RAW}" in
+            x86_64) CPU_ARCH="amd64" ;;
+            aarch64) CPU_ARCH="arm64" ;;
+            *) CPU_ARCH="amd64" ;;
+        esac
+        local DL_URL="https://github.com/SagerNet/sing-box/releases/download/v${LATEST_VER}/sing-box-${LATEST_VER}-linux-${CPU_ARCH}.tar.gz"
+        
+        wget -q "$DL_URL" -O /tmp/sing-box.tar.gz
+        if [[ -f /tmp/sing-box.tar.gz ]]; then
+            tar -xzf /tmp/sing-box.tar.gz -C /tmp
+            
+            # 👇 用通配符强行把解压出来的 sing-box 二进制文件揪出来，防错率 100%
+            local TMP_NEW_BIN=$(ls /tmp/sing-box-*/sing-box 2>/dev/null | head -n 1)
+            chmod +x "$TMP_NEW_BIN"
+
+            # === 🛡️ 极客防弹预检装甲：新内核试运行配置 ===
+            echo -e "\n${yellow}>>> 正在启动新内核战术预检 (语法兼容性雷达)...${plain}"
+            
+            # 2. 强行让新内核去读老配置文件，把输出丢进黑洞，只看退出状态码
+            if "$TMP_NEW_BIN" check -c "$JSON_FILE" >/dev/null 2>&1; then
+                echo -e "${green}✅ 预检通过：底层 JSON 语法与 v${LATEST_VER} 满血兼容！${plain}"
+                
+                # 3. 安全落地：停机 -> 覆盖 -> 满血复活
+                systemctl stop vx-core.service
+                cp -f "$TMP_NEW_BIN" "$BIN_FILE"
+                systemctl start vx-core.service
+                
+                echo -e "${green}✅ Sing-box 核心已成功无缝升级至 v${LATEST_VER}！${plain}"
+            else
+                # 4. 熔断机制触发：发现 Breaking Change！
+                echo -e "${red}❌ 致命拦截：侦测到破坏性更新 (Breaking Change)！${plain}"
+                echo -e "${yellow}💡 新版内核无法解析当前 config.json。已强行阻断升级，旧内核继续满血服役！${plain}"
+                echo -e "${purple}👉 极客建议：请查阅官方 Changelog 修复本地 JSON 语法后再试。${plain}"
+            fi
+
+            # 5. 焦土化清理临时文件
+            rm -rf /tmp/sing-box*
+        else
+            echo -e "${red}❌ 核心下载失败！请检查网络。${plain}"
+        fi
+    fi
+
+    echo -e "\n${cyan}======================================================================${plain}"
+    echo -e "🚀 ${green}准备就绪！正在启动热重载引擎 (Hot Reloading)...${plain}"
+    sleep 1.5
+
+    # 打标：进新进程后再重写订阅（避免用旧内存里的 update_sub）
+    touch "$CONF_DIR/.need_resub" 2>/dev/null || true
+    
+    # 💥 既然前面已经验过尸了，这老伙计安全得很，直接夺舍进程起飞！
+    exec /usr/local/bin/vx
+}
+
+# ==================================================
+# 🔄 版本回滚中心
+# ==================================================
+function version_rollback() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "         🔄 vx 版本回滚中心"
+    echo -e "${cyan}======================================================================${plain}"
+
+    local bak_list=()
+    local target=""
+    local current_ver=""
+    local current_bak=""
+
+    shopt -s nullglob
+    bak_list=(/usr/local/bin/vx.bak.*)
+    shopt -u nullglob
+
+    if [[ ${#bak_list[@]} -eq 0 ]]; then
+        echo -e "${yellow}⚠️ 当前没有可用的备份版本${plain}"
+        read -p "👉 按回车返回..."
+        return 0
+    fi
+
+    echo -e "${green}可用备份版本：${plain}"
+    local i=1
+    for bak in "${bak_list[@]}"; do
+        echo -e "  ${cyan}${i}.${plain} $(basename "$bak")"
+        ((i++))
+    done
+    echo -e "  ${red}0.${plain} 取消"
+
+      while true; do
+        read -p "👉 请选择要回滚的版本 [0-$((i-1))]: " choice
+        
+        if [[ "$choice" == "0" ]]; then
+            echo -e "${yellow}已取消${plain}"
+            return 0
+        fi
+        
+        if [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 && "$choice" -lt $i ]]; then
+            break
+        else
+            echo -e "${red}❌ 致命拦截：请输入 0 到 $((i-1)) 之间的数字！${plain}"
+            sleep 1.2
+        fi
+    done
+
+    target="${bak_list[$((choice-1))]}"
+    if [[ -z "$target" || ! -f "$target" ]]; then
+        echo -e "${red}❌ 目标备份不存在${plain}"
+        read -p "👉 按回车返回..."
+        return 1
+    fi
+
+    if [[ -f "/usr/local/bin/vx" ]]; then
+        current_ver="$(grep -E '^vx_VERSION=' /usr/local/bin/vx 2>/dev/null | head -n1 | sed -E 's/^vx_VERSION="?([^"]+)".*/\1/')"
+        current_bak="/usr/local/bin/vx.bak.${current_ver:-current}"
+        cp -f /usr/local/bin/vx "$current_bak" 2>/dev/null || true
+    fi
+
+    echo -e "${yellow}>>> 正在回滚到: $(basename "$target")${plain}"
+    cp -f "$target" /usr/local/bin/vx || {
+        echo -e "${red}❌ 回滚失败：复制备份文件失败${plain}"
+        read -p "👉 按回车返回..."
+        return 1
+    }
+    chmod +x /usr/local/bin/vx 2>/dev/null || true
+
+   echo -e "${green}✅ 回滚成功！正在热重载至目标版本...${plain}"
+   sleep 1
+   exec /usr/local/bin/vx
+}
+
+# ==================================================
+# 聚合提取中心
+# ==================================================
+function export_all_nodes() {
+    clear
+    update_sub
+    echo -e "${cyan}================ [ 🖨️ vx 节点精准提取中心 ] =================${plain}"
+    if [[ ! -s "$LINK_FILE" ]]; then
+        echo -e "${red}❌ 当前没有任何节点被装载！请先返回菜单生成节点。${plain}"
+        return
+    fi
+  
+    echo -e "${yellow}>>> 📱 独立节点链接与二维码：${plain}"
+    cat "$LINK_FILE" | while read line; do 
+        PROTOCOL=$(echo "$line" | cut -d ':' -f 1 | tr 'a-z' 'A-Z')
+   if [[ "$PROTOCOL" == "VMESS" ]]; then
+            VM_JSON=$(echo "$line" | sed 's/vmess:\/\///' | base64 -d 2>/dev/null)
+            if [[ "$VM_JSON" == *".trycloudflare.com"* || "$VM_JSON" == *"temp"* ]]; then
+                echo -e "\n${yellow}【 VMESS 协议 (Argo 临时隧道) 】${plain}"
+            elif [[ "$VM_JSON" == *"fixed"* ]]; then
+                echo -e "\n${purple}【 VMESS 协议 (Argo 固定隧道) 】${plain}"
+            else
+                echo -e "\n${purple}【 VMESS 协议 (直连/常规) 】${plain}"
+            fi
+       elif [[ "$PROTOCOL" == "VLESS" ]]; then
+            if [[ "$line" == *"Argo"* || "$line" == *"argo"* ]]; then
+            echo -e "\n${purple}【 VLESS-gRPC 协议 (Zero Trust 固定装甲) 】${plain}"
+            elif [[ "$line" == *"type=grpc"* ]]; then
+            echo -e "\n${purple}【 VLESS-gRPC 协议 】${plain}"
+            elif [[ "$line" == *"security=reality"* || "$line" == *"pbk="* ]]; then
+            echo -e "\n${purple}【 VLESS-Reality 协议 】${plain}"
+            else
+            echo -e "\n${purple}【 VLESS 协议 】${plain}"
+            fi
+        else
+            echo -e "\n${purple}【 $PROTOCOL 协议 】${plain}"
+        fi
+      echo -e "${green}🔗 分享链接【双击下方链接快速纯净复制】:${plain}"
+        if [[ "$PROTOCOL" == "VMESS" ]]; then
+            VM_JSON_CHECK=$(echo "$line" | sed 's/vmess:\/\///' | base64 -d 2>/dev/null)
+            if [[ "$VM_JSON_CHECK" == *"fixed"* ]]; then
+                echo -e "${purple}${line}${plain}\n"
+            else
+                echo -e "${yellow}${line}${plain}\n"
+            fi
+        elif [[ "$PROTOCOL" == "VLESS" && "$line" == *"argo"* ]]; then
+            echo -e "${purple}${line}${plain}\n"
+        else
+            echo -e "${yellow}${line}${plain}\n"
+        fi
+        echo -e "📱 专属节点二维码:"
+        echo "$line" | qrencode -t UTF8
+        echo -e "${cyan}-------------------------------------------------------------${plain}"
+    done
+    
+    echo -e "${yellow}>>> 🔗 聚合 Base64 订阅编码 (供电脑端一键复制导入)：${plain}"
+    B64_LINKS=$(cat "$LINK_FILE" | base64 -w 0)
+    echo -e "${blue}${B64_LINKS}${plain}\n"
+    echo -e "${yellow}>>> 🕵️ 是否生成【Serverless 幽灵订阅链接】(物理隐藏 VPS 真实 IP)？${plain}"
+    echo -e "${red}⚠️ 隐私警告：您的节点凭证（UUID/密码/端口）将以明文上传至第三方公共服务 paste.rs！${plain}"
+    echo -e "${red}   任何知道该链接的人均可获取您的完整节点信息，请确认您了解此风险！${plain}"
+    read -p "👉 确认了解风险并上传？(输入大写 YES 确认，回车跳过): " do_ghost
+    if [[ "$do_ghost" == "YES" ]]; then
+        echo -e "${cyan}>>> 正在通过加密通道上传节点数据...${plain}"
+        local GHOST_URL=$(echo "$B64_LINKS" | curl -s --data-binary @- https://paste.rs/)
+        if [[ "$GHOST_URL" == http* ]]; then
+            echo -e "${green}✅ 幽灵订阅生成成功！GFW 彻底致盲，无法追踪此链接至你的服务器：${plain}"
+            echo -e "👉 ${purple}${GHOST_URL}${plain}"
+            echo -e "${yellow}💡 提示：paste.rs 链接默认永久有效，泄露后无法撤销，请谨慎分享！${plain}"
+        else
+            echo -e "${red}❌ 上传失败，请检查服务器网络。${plain}"
+        fi
+    fi
+    # === 🚀 附加装甲：TG 专属高维信道推送 (真实订阅 URL + 防弹配置文件) ===
+    local TG_CONF="/etc/vx_tg.conf"
+    if [[ -f "$TG_CONF" ]]; then
+        source "$TG_CONF"
+        if [[ -n "$VX_TG_TOKEN" && -n "$VX_TG_CHATID" && -s "$LINK_FILE" ]]; then
+            echo -e "${yellow}>>> 侦测到已绑定 TG 哨兵，正在通过极密信道向您同步订阅配置...${plain}"
+            
+            # 智能提取防弹配置文件的下载直链与订阅链接
+            local ARMOR_LINK=""
+            local SUB_LINK=""
+            local CLASH_LINK=""
+            local S_PORT=$(cat "$CONF_DIR/sub_port.txt" 2>/dev/null)
+            local S_PATH=$(cat "$CONF_DIR/sub_path.txt" 2>/dev/null)
+            
+            # 探测 HTTPS 或 HTTP
+            if systemctl is-active --quiet vx-sub-https.service 2>/dev/null && [[ -f "$CERT_DIR/acme_domain.txt" ]]; then
+                local S_HTTPS_PORT=$(cat "$CONF_DIR/sub_port_https.txt" 2>/dev/null)
+                local S_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt")
+                SUB_LINK="https://${S_DOMAIN}:${S_HTTPS_PORT}/${S_PATH}/vx_sub"
+                CLASH_LINK="https://${S_DOMAIN}:${S_HTTPS_PORT}/${S_PATH}/clash.yaml"
+                ARMOR_LINK="https://${S_DOMAIN}:${S_HTTPS_PORT}/${S_PATH}/vx_armor.conf"
+            else
+                get_smart_ip
+                SUB_LINK="http://${SERVER_IP}:${S_PORT}/${S_PATH}/vx_sub"
+                CLASH_LINK="http://${SERVER_IP}:${S_PORT}/${S_PATH}/clash.yaml"
+                ARMOR_LINK="http://${SERVER_IP}:${S_PORT}/${S_PATH}/vx_armor.conf"
+            fi
+
+            # 锻造高维弹药包 (支持 HTML 富文本排版)
+            local MSG="📦 <b>[vx 节点矩阵·满血就绪]</b>%0A%0ASir，您的节点参数已更新！%0A%0A📡 <b>【全平台订阅 URL】</b> (Base64)：%0A<code>${SUB_LINK}</code>%0A%0A🐱 <b>【Clash/Mihomo 订阅】</b> (YAML)：%0A<code>${CLASH_LINK}</code>%0A%0A🛡️ <b>【iOS 防弹配置 URL】</b> (仅供 Shadowrocket 配置文件下载)：%0A<code>${ARMOR_LINK}</code>"
+            
+            curl -s -X POST "https://api.telegram.org/bot${VX_TG_TOKEN}/sendMessage" \
+                -d chat_id="${VX_TG_CHATID}" -d text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1
+                
+            echo -e "${green}✅ 订阅数据与防弹配置已同步推送至您的 Telegram 移动端！${plain}"
+        fi
+    fi
+
+    echo -e " 🚀 ${green}节点已满血复活！如果您觉得好用，请点个 Star ⭐${plain}"
+    echo -e " 🔗 项目地址: ${cyan}https://github.com/pwenxiang51-wq/vx-Node-Engine${plain}"
+    echo -e "${cyan}=============================================================${plain}"
+}
+
+# === 🔄 战略级防御：一键重置订阅防线 (更换 UUID 路径) ===
+function reset_sub_link() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "                 🔄 正在执行【焦土化】订阅路径重置"
+    echo -e "${cyan}======================================================================${plain}"
+
+    if [[ ! -f "$CONF_DIR/sub_path.txt" ]]; then
+        echo -e "${red}❌ 致命错误：您还未装载任何节点，订阅服务未初始化！${plain}"
+        read -p "👉 按回车返回..." && return
+    fi
+
+    local OLD_PATH=$(cat "$CONF_DIR/sub_path.txt")
+    
+    # 统一极客美学：调用纯正的 Linux 内核级 UUID
+    local NEW_UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null)
+    # 兜底防呆：如果系统精简过头没有 uuid 生成器，再降级为时间戳加盐
+    if [[ -z "$NEW_UUID" ]]; then
+        NEW_UUID="vx-$(date +%s)-$(shuf -i 100-999 -n 1)"
+    fi
+
+    echo -e "${yellow}>>> 正在摧毁旧订阅防线: ${OLD_PATH}${plain}"
+    echo -e "${yellow}>>> 正在锻造新维度的入口: ${NEW_UUID}${plain}"
+
+    # 物理重命名 Web 目录，旧链接瞬间 404
+    mv "$CONF_DIR/www/$OLD_PATH" "$CONF_DIR/www/$NEW_UUID" 2>/dev/null
+    echo "$NEW_UUID" > "$CONF_DIR/sub_path.txt"
+
+    # 强杀重启 HTTP/HTTPS 订阅微服务，释放旧端口监听
+    systemctl restart vx-sub.service >/dev/null 2>&1
+    systemctl restart vx-sub-https.service >/dev/null 2>&1
+
+    echo -e "\n${green}✅ 订阅路径重置完成！旧链接已物理失效，全网任何人都无法再获取您的最新节点！${plain}"
+    # 物理剥离 export_all_nodes，把主动权交还给Sir
+    read -p "👉 路径已更新！按回车返回指挥大屏..." 
+}
+
+# ==================================================
+# 🎛️ 模块化启停管控中心 (独立拔管/热重载)
+# ==================================================
+function manage_nodes() {
+    while true; do
+        clear
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "                 🎛️ 协议启停与独立拆除中心"
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "${yellow}💡 提示：输入数字即可将运行中的协议【物理断电并从订阅中移除】。${plain}"
+        echo -e "${yellow}💡 重新启用：请返回主菜单，使用 [1-6, 8] 键重新装载即可。${plain}\n"
+
+        # 动态状态雷达
+        local VL_ON="${red}[未启]${plain}"; local HY2_ON="${red}[未启]${plain}"; local TUIC_ON="${red}[未启]${plain}"
+        local VM_ON="${red}[未启]${plain}"; local SS_ON="${red}[未启]${plain}"; local GRPC_ON="${red}[未启]${plain}"
+        local NATIVE_ON="${red}[未启]${plain}"
+
+        [[ -f "$JSON_FILE" ]] && jq -e '.inbounds[] | select(.tag == "vless-in")' "$JSON_FILE" >/dev/null 2>&1 && VL_ON="${green}[运行中] ✅${plain}"
+        [[ -f "$JSON_FILE" ]] && jq -e '.inbounds[] | select(.tag == "hy2-in")' "$JSON_FILE" >/dev/null 2>&1 && HY2_ON="${green}[运行中] ✅${plain}"
+        [[ -f "$JSON_FILE" ]] && jq -e '.inbounds[] | select(.tag == "tuic-in")' "$JSON_FILE" >/dev/null 2>&1 && TUIC_ON="${green}[运行中] ✅${plain}"
+        [[ -f "$JSON_FILE" ]] && jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1 && VM_ON="${green}[运行中] ✅${plain}"
+        [[ -f "$JSON_FILE" ]] && jq -e '.inbounds[] | select(.tag == "ss-in")' "$JSON_FILE" >/dev/null 2>&1 && SS_ON="${green}[运行中] ✅${plain}"
+        [[ -f "$JSON_FILE" ]] && jq -e '.inbounds[] | select(.tag == "grpc-in")' "$JSON_FILE" >/dev/null 2>&1 && GRPC_ON="${green}[运行中] ✅${plain}"
+        
+        echo -e "  [1] VLESS-Reality      $VL_ON"
+        echo -e "  [2] Shadowsocks-2022   $SS_ON"
+        echo -e "  [3] VMess-WS+TLS       $VM_ON"
+        echo -e "  [4] VLESS-gRPC         $GRPC_ON"
+        echo -e "  [5] Hysteria2          $HY2_ON"
+        echo -e "  [6] TUIC v5            $TUIC_ON"
+        echo -e "  [0] 🔙 返回主菜单"
+        echo -e "${cyan}----------------------------------------------------------------------${plain}"
+        read -p "👉 请输入要【物理关闭】的协议序号 (按 0 返回): " m_choice
+
+        # 🛡️ 极客防呆拦截器：精准阻断误触！
+        if [[ "$m_choice" =~ ^[1-6]$ ]]; then
+            echo -e "\n${red}⚠️ 致命警告：您即将对选定协议执行物理断电！该节点的所有配置和订阅将被彻底销毁！${plain}"
+            read -p "👉 请确认是否执行拔管？(y/N): " confirm_del
+            if [[ "$confirm_del" != "y" && "$confirm_del" != "Y" ]]; then
+                echo -e "${green}✅ 拔管指令已撤销，防弹装甲继续为您服役！${plain}"
+                sleep 1.5
+                continue
+            fi
+            echo -e "${yellow}>>> 权限确认！正在执行焦土化清理...${plain}"
+        fi
+
+      case "$m_choice" in
+            1) 
+                local OLD_P=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .listen_port' "$JSON_FILE" 2>/dev/null); close_port "$OLD_P"
+                jq 'del(.inbounds[] | select(.tag == "vless-in"))' "$JSON_FILE" | atomic_jq
+                sed -i '/^vless:\/\/.*security=reality/Id' "$LINK_FILE" 2>/dev/null; systemctl restart vx-core.service; update_sub
+                echo -e "${green}✅ VLESS 已物理断电并移除！${plain}"; sleep 1.5 ;;
+            2) 
+                local OLD_P=$(jq -r '.inbounds[] | select(.tag == "ss-in") | .listen_port' "$JSON_FILE" 2>/dev/null); close_port "$OLD_P"
+                jq 'del(.inbounds[] | select(.tag == "ss-in"))' "$JSON_FILE" | atomic_jq
+                sed -i '/ss-2022/Id' "$LINK_FILE" 2>/dev/null; sed -i '/SS-2022/d' "$LINK_FILE" 2>/dev/null; systemctl restart vx-core.service; update_sub
+                echo -e "${green}✅ SS-2022 已物理断电并移除！${plain}"; sleep 1.5 ;;
+            3) 
+                local OLD_P=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE" 2>/dev/null); close_port "$OLD_P"
+                jq 'del(.inbounds[] | select(.tag == "vmess-in"))' "$JSON_FILE" | atomic_jq
+                sed -i '/vmess:\/\//Id' "$LINK_FILE" 2>/dev/null; systemctl restart vx-core.service; update_sub
+                echo -e "${green}✅ VMess 已物理断电并移除！${plain}"; sleep 1.5 ;;
+            4) 
+                local OLD_P=$(jq -r '.inbounds[] | select(.tag == "grpc-in") | .listen_port' "$JSON_FILE" 2>/dev/null); close_port "$OLD_P"
+                jq 'del(.inbounds[] | select(.tag == "grpc-in"))' "$JSON_FILE" | atomic_jq
+                sed -i '/gRPC/Id' "$LINK_FILE" 2>/dev/null; systemctl restart vx-core.service; update_sub
+                echo -e "${green}✅ gRPC 已物理断电并移除！${plain}"; sleep 1.5 ;;
+            5) 
+                local OP=$(jq -r '.inbounds[] | select(.tag == "hy2-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+                [[ -n "$OP" && "$OP" != "null" ]] && {
+                    while true; do local RN=$(iptables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${OP}\b" | awk 'NR==1{print $1}'); [[ -z "$RN" ]] && break; iptables -t nat -D PREROUTING "$RN" >/dev/null 2>&1; done
+                    command -v ip6tables &> /dev/null && while true; do local RN6=$(ip6tables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${OP}\b" | awk 'NR==1{print $1}'); [[ -z "$RN6" ]] && break; ip6tables -t nat -D PREROUTING "$RN6" >/dev/null 2>&1; done
+                }
+                jq 'del(.inbounds[] | select(.tag == "hy2-in"))' "$JSON_FILE" | atomic_jq
+                sed -i '/hysteria2:\/\//Id' "$LINK_FILE" 2>/dev/null; systemctl restart vx-core.service; update_sub
+                echo -e "${green}✅ Hysteria2 已物理断电，底层跳跃规则已彻底超度！${plain}"; sleep 1.5 ;;
+            6) 
+                local OP=$(jq -r '.inbounds[] | select(.tag == "tuic-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+                [[ -n "$OP" && "$OP" != "null" ]] && {
+                    while true; do local RN=$(iptables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${OP}\b" | awk 'NR==1{print $1}'); [[ -z "$RN" ]] && break; iptables -t nat -D PREROUTING "$RN" >/dev/null 2>&1; done
+                    command -v ip6tables &> /dev/null && while true; do local RN6=$(ip6tables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${OP}\b" | awk 'NR==1{print $1}'); [[ -z "$RN6" ]] && break; ip6tables -t nat -D PREROUTING "$RN6" >/dev/null 2>&1; done
+                }
+                jq 'del(.inbounds[] | select(.tag == "tuic-in"))' "$JSON_FILE" | atomic_jq
+                sed -i '/TUIC/Id' "$LINK_FILE" 2>/dev/null; systemctl restart vx-core.service; update_sub
+                echo -e "${green}✅ TUIC 已物理断电，底层跳跃规则已彻底超度！${plain}"; sleep 1.5 ;;
+            0) break ;;
+            *) echo -e "${red}❌ 无效选择，请重新输入！${plain}"; sleep 1 ;;
+        esac
+    done
+}
+
+# === 🗑️ [修正版] 终极自毁程序: 彻底卸载与清理 (寸草不生版) ===
+function uninstall_vne() {
+    clear
+    echo -e "${red}======================================================================${plain}"
+    echo -e "                 🗑️ 【 极客警告：终极焦土化卸载程序 】"
+    echo -e "${red}======================================================================${plain}"
+    echo -e "${yellow}⚠️ 警告：此操作将执行最彻底的物理级拔管！"
+    echo -e "以下防弹装甲将被连根拔起，化为灰烬：${plain}"
+    echo -e "  💀 核心引擎：Reality / Hys2 / TUIC / VMess / SS-2022 / gRPC (全系阵亡)"
+    echo -e "  💀 战术外挂：Acme 证书 / Argo 隧道 / WARP 优选 / TG 哨兵 / 订阅服务"
+    echo -e "  💀 运维残留：所有配置文件、定时任务、底层防火墙放行/跳跃规则"
+    echo -e "${cyan}注：BBR 底层网络优化将随本次卸载一并还原为系统默认值。${plain}"
+    echo -e "${red}======================================================================${plain}"
+    
+    read -p "👉 最后确认：是否执行终极焦土化清理？(y/N): " confirm
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+        echo -e "${green}✅ 操作已取消，防弹装甲继续为您服役。${plain}"
+        sleep 1
+        return
+    fi
+    # === 👇 物理拆除 SWAP 虚拟内存 👇 ===
+    if [[ -f "/swapfile" ]]; then
+        # 🚀 动态探针：精准探测 swapfile 物理文件大小
+        local SWAP_SIZE=$(du -sh /swapfile 2>/dev/null | awk '{print $1}')
+        [[ -z "$SWAP_SIZE" ]] && SWAP_SIZE="未知" # 极限防呆兜底
+        
+        echo -e "\n${yellow}>>> 💥 [0/5] 正在彻底清除 SWAP 虚拟内存，成功释放 ${cyan}${SWAP_SIZE}${yellow} 物理硬盘空间...${plain}"
+        swapoff /swapfile >/dev/null 2>&1
+        rm -f /swapfile >/dev/null 2>&1
+        sed -i '/\/swapfile/d' /etc/fstab 2>/dev/null
+    fi
+    # === 👆 新增结束 👆 ===
+    echo -e "\n${yellow}>>> 💥 [1/5] 正在启动猎杀程序，物理拔管所有核心进程...${plain}"
+    # 💥 必须先让 WARP 客户端正常断开，恢复系统原生 DNS 和路由，再杀进程！
+    if command -v warp-cli &> /dev/null; then 
+        warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1
+    fi
+
+    # 猎杀所有可能运行的服务 (使用变量)
+    systemctl stop vx-core cloudflared warp-svc vx-sub vx-sub-https vx-argo vx-tg-sentinel vx-hy2-native vx-warp-watchdog.service 2>/dev/null
+    systemctl disable vx-core cloudflared warp-svc vx-sub vx-sub-https vx-argo vx-tg-sentinel vx-hy2-native vx-warp-watchdog.service 2>/dev/null
+    systemctl stop vx-midnight.timer vx-midnight.service >/dev/null 2>&1
+    systemctl disable vx-midnight.timer vx-midnight.service >/dev/null 2>&1
+    rm -f /etc/systemd/system/vx-midnight.timer /etc/systemd/system/vx-midnight.service /usr/local/bin/vx_midnight_clean.sh
+    # 清理 Systemd 守护进程文件 (使用变量精准删除)
+     rm -f "$SERVICE_FILE" /etc/systemd/system/cloudflared.service /etc/systemd/system/vx-tg-sentinel.service /etc/systemd/system/vx-argo.service /etc/systemd/system/vx-sub.service /etc/systemd/system/vx-sub-https.service /etc/systemd/system/vx-hy2-native.service /etc/systemd/system/vx-warp-watchdog.service 2>/dev/null
+     systemctl daemon-reload
+
+   echo -e "${yellow}>>> 💥 [2/5] 正在粉碎战术外挂 (Argo / WARP / Acme)...${plain}"
+    # 爆破 Argo 隧道与 Cloudflared 二进制
+    rm -rf /etc/cloudflared /root/.cloudflared 2>/dev/null
+    rm -f /usr/local/bin/cloudflared /usr/bin/cloudflared 2>/dev/null
+    rm -f /usr/local/etc/vx_argo_domain.txt /etc/vx_argo.env 2>/dev/null
+    
+    # 爆破  APT 基因污染残渣 (极客补枪)
+    # 👇 剥离条件判断，无视状态进行无差别物理粉碎与除垢
+    apt-get purge -y cloudflare-warp 2>/dev/null
+    rm -rf /var/lib/cloudflare-warp /etc/cloudflare-warp 2>/dev/null
+    
+    if command -v wg-quick &> /dev/null; then wg-quick down wgcf 2>/dev/null; rm -rf /etc/wireguard/wgcf* 2>/dev/null; fi
+    rm -f /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg /etc/apt/sources.list.d/cloudflare-client.list 2>/dev/null
+    
+    # 爆破 Acme.sh
+    if [[ -f ~/.acme.sh/acme.sh ]]; then ~/.acme.sh/acme.sh --uninstall 2>/dev/null; fi
+    rm -rf ~/.acme.sh 2>/dev/null
+    
+    # 物理超度订阅引擎的底层僵尸进程 (极客补枪)
+    pkill -9 -f "busybox httpd" 2>/dev/null
+    pkill -9 -f "socat openssl-listen" 2>/dev/null
+
+    echo -e "${yellow}>>> 💥 [3/5] 正在焦土化清理定时任务 (OTA与雷达哨兵)...${plain}"
+    crontab -l 2>/dev/null | grep -vE "acme.sh|vx|tg" | crontab -
+    
+    echo -e "${yellow}>>> 💥 [3.5/5] 正在还原 BBR 内核参数与极限缓冲区，恢复出厂拥塞控制...${plain}"
+   
+   # 👇 物理拔管：摧毁所有衍生的独立内核配置文件
+   rm -f /etc/sysctl.d/99-velox-network.conf /etc/sysctl.d/99-velox-bbr.conf /etc/sysctl.d/99-velox-bbr-extreme.conf /etc/modules-load.d/velox-bbr.conf 2>/dev/null
+   
+   sed -i '/net.core.default_qdisc/d; /net.ipv4.tcp_congestion_control/d; /net.ipv4.tcp_rmem/d; /net.ipv4.tcp_wmem/d; /net.core.rmem_max/d; /net.core.wmem_max/d; /net.core.rmem_default/d; /net.core.wmem_default/d; /net.ipv4.tcp_ecn/d; /net.ipv4.tcp_fastopen/d; /net.ipv4.udp_mem/d; /net.ipv4.udp_rmem_min/d; /net.ipv4.udp_wmem_min/d; /net.core.netdev_max_backlog/d; /fs.file-max/d; /net.ipv4.ip_local_port_range/d' /etc/sysctl.conf
+
+   echo "net.core.default_qdisc=fq_codel" >> /etc/sysctl.conf
+   echo "net.ipv4.tcp_congestion_control=cubic" >> /etc/sysctl.conf
+   sysctl -p >/dev/null 2>&1
+
+   echo -e "${yellow}>>> 💥 [4/5] 正在深层抹除配置文件目录与核心二进制...${plain}"
+    # 【致命错误修正】：精准抹除 /etc/，决不能硬编码写 /etc/vx
+    # === 💥 极客补枪：封闭订阅引擎随机开出的端口 ===
+    for SUB_F in "$CONF_DIR/sub_port.txt" "$CONF_DIR/sub_port_https.txt"; do
+        if [[ -f "$SUB_F" ]]; then
+            SPORT=$(cat "$SUB_F" 2>/dev/null)
+            if [[ -n "$SPORT" ]]; then
+                command -v ufw &> /dev/null && { ufw delete allow $SPORT/tcp >/dev/null 2>&1; }
+                command -v iptables &> /dev/null && { iptables -D INPUT -p tcp --dport $SPORT -j ACCEPT 2>/dev/null; }
+            fi
+        fi
+    done
+    # ========================================================
+   if [[ -f "$JSON_FILE" ]]; then
+       local PORTS=$(jq -r '.inbounds[].listen_port' "$JSON_FILE" 2>/dev/null | grep -v null)
+       for PORT in $PORTS; do
+           if command -v ufw &> /dev/null; then
+               ufw delete allow $PORT/tcp >/dev/null 2>&1
+               ufw delete allow $PORT/udp >/dev/null 2>&1
+           fi
+           if command -v firewall-cmd &> /dev/null; then
+               firewall-cmd --zone=public --remove-port=$PORT/tcp --permanent >/dev/null 2>&1
+               firewall-cmd --zone=public --remove-port=$PORT/udp --permanent >/dev/null 2>&1
+           fi
+           if command -v iptables &> /dev/null; then
+               iptables -D INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null
+               iptables -D INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null
+               while true; do
+                    local RN=$(iptables -t nat -nL PREROUTING --line-numbers 2>/dev/null | grep -E "to:.*:${PORT}\b" | awk 'NR==1{print $1}')
+                    [[ -z "$RN" ]] && break
+                    iptables -t nat -D PREROUTING "$RN" >/dev/null 2>&1
+                done
+               if command -v ip6tables &> /dev/null; then
+                   ip6tables -D INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null
+                   ip6tables -D INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null
+               fi
+           fi
+       done
+       if command -v firewall-cmd &> /dev/null; then firewall-cmd --reload >/dev/null 2>&1; fi
+       if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+   fi
+   # ========================================================
+    rm -rf "$CONF_DIR" # 使用 CONF_DIR 变量，决不再犯错
+    rm -f "$BIN_FILE"  # 使用 BIN_FILE 变量，决不留后门
+    rm -rf /usr/local/vx /tmp/sing-box* 2>/dev/null
+    rm -f /usr/local/bin/vx-tg-sentinel.sh 2>/dev/null
+    rm -f /usr/local/bin/hysteria 2>/dev/null
+    # === 💥 极客补枪：物理超度新加的战术微服务与阵列日志 ===
+    rm -f /usr/local/bin/vx-warp-watchdog.sh 2>/dev/null
+    rm -f /usr/local/bin/vx.bak.*
+    rm -f /tmp/vx_ip.cache /tmp/vx_warp_ip.cache /tmp/vx_changelog.cache 2>/dev/null
+    
+  # 抹除专属 TG 哨兵记忆碎片与独立凭证 (微服务隔离版)
+    rm -f /etc/vx_tg.conf /root/.vx_known_ips 2>/dev/null
+    # 抹除核心控制台指令
+    rm -f /usr/local/bin/vx 2>/dev/null
+    rm -f /usr/bin/vx 2>/dev/null
+
+    echo -e "\n${green}🎉 [5/5] 焦土化清理竣工！系统已恢复至出厂级纯净状态！${plain}"
+    echo -e "${cyan}山高水长，江湖再见！退网保平安！${plain}"
+
+    # 延迟删除脚本本体（bash 已将脚本内容载入内存，删除文件不影响当前执行）
+    # 不再 unset 函数，避免清理正在调用的栈帧产生未定义行为
+    (sleep 2 && rm -f /usr/local/bin/vx /usr/bin/vx 2>/dev/null) &
+    exit 0
+}
+
+# ==================================================
+# 📜 引擎进化编年史 (全量云端快照)
+# ==================================================
+function view_changelog() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "                 📜 vx Node Engine 进化编年史"
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "${yellow}>>> 正在同步云端战斗日志...${plain}\n"
+    
+    local FULL_LOG=$(curl -sLk -m 5 "https://rn.04wen.dpdns.org:37285/stealth_8x9q2z/changelog.txt" 2>/dev/null)
+    
+    if [[ -n "$FULL_LOG" ]]; then
+        echo "$FULL_LOG" | while IFS= read -r line; do
+            if [[ "$line" == \[* ]]; then
+                echo -e "${purple}${line}${plain}"
+            else
+                echo -e "${green}${line}${plain}"
+            fi
+        done
+    else
+        echo -e "${red}❌ 同步超时！请检查 GitHub RAW 连通性。${plain}"
+    fi
+    
+    echo -e "\n${cyan}======================================================================${plain}"
+    read -p "👉 阅毕，请按回车键返回指挥中心..."
+}
+
+# ==================================================
+# 📖 隐藏式避坑指南与面板说明 
+# ==================================================
+function show_help() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "                 📖 vx Node Engine (vx) 极客战术与避坑指南"
+    echo -e "${cyan}======================================================================${plain}"
+    
+    echo -e "${yellow}💡 【核心战术 1】：六大协议矩阵，到底怎么选？${plain}"
+    echo -e "  - ${green}TCP 隐匿组 (VLESS-Reality / SS-2022)${plain}: 伪装成大厂流量或彻底消除特征。属于【常驻防弹衣】，稳如老狗，适合全天候挂机。"
+    echo -e "  - ${blue}UDP 暴力组 (Hysteria2 / TUIC v5)${plain}: 走底层 QUIC 协议。属于【暴力推背引擎】，专治运营商晚高峰网络炸裂，适合看 4K/8K 视频。"
+    echo -e "  - ${purple}CDN 容灾组 (VMess / VLESS-gRPC)${plain}: 引擎内的【黄金底座】。平时正常用，一旦 IP 被墙，随时准备接管 Argo 隧道实现物理复活。"
+
+    echo -e "\n${yellow}🚀 【核心战术 2】：Argo 隧道 (CDN 复活甲) 怎么玩？${plain}"
+    echo -e "  - ${cyan}小白快捷通道${plain}：选 ${green}VMess${plain} 挂载【临时隧道】。免域名，免配置，系统自动剥离 TLS 并分配 CF 临时域名，一键满血复活。"
+    echo -e "  - ${cyan}极客硬核通道${plain}：选 ${green}VLESS-gRPC${plain} 挂载【固定隧道 (Zero Trust)】。必须配合自己的真实域名，强制 H2 穿透，实现网关级的顶级隐身。"
+
+    echo -e "\n${yellow}🛠️ 【运维外挂 3】：高阶菜单功能扫盲${plain}"
+    echo -e "  - ${cyan}[b] 一键换皮${plain}: ${purple}(仅限无真实域名的自签玩家)${plain} UDP 协议跑久了被墙精准限速？按 b 一秒重置底层随机 SNI，金蝉脱壳！"
+    echo -e "  - ${cyan}[d] WARP 三通道分流矩阵${plain}: 挂载本地特种突围隧道。点菜式解锁 GPT/Gemini/Netflix，定点抢救谷歌搜索狂弹验证码！自带巡逻犬心跳保活与秒级自愈。"
+    echo -e "  - ${cyan}[f] 零端口极密推送${plain}: ${purple}(隐藏特性)${plain} 绑定 TG 哨兵后，按 f 可直接将订阅推送到您的手机 Telegram，VPS 维持公网零暴露状态！"
+    echo -e "  - ${cyan}[h] 节点哨兵${plain}: 绑定 TG 机器人。有人扫端口？手机立刻弹报警！杜绝任何人白嫖。"
+    echo -e "  - ${cyan}[m] 模块化拔管${plain}: 协议级物理断电中心，彻底销毁节点配置与残留规则。"
+    echo -e "  - ${cyan}[n] 订阅重置 (防扩散)${plain}: 订阅链接被泄露到公网？按 n 瞬间更换 UUID 路径，旧链接当场 404，彻底阻断二次传播！(注：踢掉已连上的白嫖党需配合重新装载节点)"
+    echo -e "  - ${cyan}[o] 核心强启 (满血复活)${plain}: 遇到节点断流、连不上等玄学问题？不用重启 VPS，按 o 一键热重载底层内核进程解决 99% 的问题！"
+    echo -e "  - ${cyan}[p] 双栈网络热变阵${plain}: 机器带 IPv6？按 p 一键将出海网络变阵为纯 IPv6，绕过针对 IPv4 的封锁与风控！"
+    
+    echo -e "\n${red}☢️ 【生死红线】：新手必看的避坑指南${plain}"
+    echo -e "  1. ${red}NAT 端口机警告${plain}：如果没有独立 IP，只有几个高位转发端口，${yellow}绝对不要按【7】大满贯！${plain} 请乖乖用 1-6 单独指定可用端口部署。"
+    echo -e "  2. ${red}大厂防火墙警告${plain}：AWS、GCP、Oracle 等云主机，不仅要在本机开端口，${yellow}必须去云控制台的【VPC/网络安全组】放行对应的 TCP/UDP 端口！${plain}"
+    echo -e "  3. ${purple}内存防爆盘机制${plain}：引擎内置物理探针，512M/1G 小鸡在安装时已自动强制注入 ${yellow}1GB SWAP 虚拟内存${plain}，请放心满血输出，绝不 OOM 暴毙！"
+    echo -e "${cyan}======================================================================${plain}"
+    read -p "👉 阅毕，请按回车键返回指挥中心..."
+}
+
+# ==============================================================================
+# 🔄 核心引擎物理强启与极客验尸
+# ==============================================================================
+function restart_singbox_core() {
+    while true; do
+        clear
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "                 🔄 核心引擎物理强启控制阀"
+        echo -e "${cyan}======================================================================${plain}"
+        
+        local service_status=$(systemctl is-active vx-core.service 2>/dev/null || echo "inactive")
+        [[ "$service_status" == "active" ]] && echo -e " 当前态势: ${green}● 满血运行中${plain}" || echo -e " 当前态势: ${red}○ 物理断电中${plain}"
+        
+        echo -e "----------------------------------------------------------------------"
+        echo -e "  ${yellow}1.${plain} 🔄 强制重启 Sing-box 服务 (热重载并清空缓存)"
+        echo -e "  ${red}2.${plain} 🛑 物理拔管关闭 Sing-box"
+        echo -e "  ${green}0.${plain} 🔙 取消操作并返回主菜单"
+        echo -e "${cyan}======================================================================${plain}"
+        
+        read -p "👉 请选择战术操作 [0-2]: " op
+        
+        # 【强拦截门禁】：非 0,1,2 直接报错重试
+        if [[ ! "$op" =~ ^[0-2]$ ]]; then
+            echo -e "${red}❌ 拦截：无效击键！请严格输入 0、1 或 2！${plain}"
+            sleep 1.2
+            continue
+        fi
+        
+        case "$op" in
+            1)
+                echo -e "${yellow}>>> 正在注入启动脉冲...${plain}"
+                systemctl daemon-reload
+                systemctl restart vx-core.service >/dev/null 2>&1
+                sleep 1
+                if systemctl is-active --quiet vx-core.service; then
+                    echo -e "${green}✅ 满血复活！内核已成功点火！${plain}"
+                else
+                    echo -e "${red}☠️ 启动失败！自动触发极客验尸：${plain}"
+                    journalctl -u vx-core.service -n 10 --no-pager | grep -v "inbound connection" | tail -n 6
+                fi
+                sleep 2; return
+                ;;
+            2)
+                systemctl stop vx-core.service >/dev/null 2>&1
+                echo -e "${red}🛑 核心已强制断电关闭！${plain}"
+                sleep 1.5; return
+                ;;
+            0)
+                echo -e "${green}>>> 安全撤退。${plain}"
+                sleep 0.5; return
+                ;;
+        esac
+    done
+}
+
+# ==================================================
+# 📺 全息测速与流媒体检测中心 (双擎驱动 + 满血防呆版)
+# ==================================================
+function test_media_unlock() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "                 📺 全息测速与解锁检测中心 (双擎版)"
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "${yellow}💡 请选择您要空投的战术探针：${plain}"
+    echo -e "  ${purple}1.${plain} 🚀 极速流媒体探测 (纯血 Go 协程并发，3秒出结果！【vx自用】)"
+    echo -e "  ${blue}2.${plain} 🐢 全量融合怪体检 (涵盖 CPU/硬盘/流媒体，疯狂吃满算力！【深度拷机】)"
+    echo -e "  ${yellow}0.${plain} 🔙 放弃并直接撤退"
+    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+    
+    # 🛡️ 极客防呆装甲：死循环锁死拦截，绝对不给乱按键任何执行机会！
+    local probe_choice
+    while true; do
+        read -p "👉 请精准输入战术编号 [0/1/2]: " probe_choice
+        
+        # 使用正则表达式严密过滤：必须且只能是 0、1 或 2，多一个空格都不行！
+        if [[ "$probe_choice" =~ ^[0-2]$ ]]; then
+            break # 指令合法，解除循环锁定，放行通关！
+        else
+            echo -e "${red}❌ 致命拦截：侦测到非法击键 [${probe_choice}]！请严格输入 0、1 或 2！防呆装甲已启动！${plain}"
+        fi
+    done
+
+    # 🛑 0键物理撤退逻辑
+    if [[ "$probe_choice" == "0" ]]; then
+        echo -e "${yellow}>>> 战术撤退，安全返回主控大屏...${plain}"
+        sleep 1
+        return
+    fi
+
+    clear
+    # 🎯 核心枢纽：物理透视 WARP 状态
+    local HAS_WARP=false
+    if jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
+        HAS_WARP=true
+        echo -e "${green}>>> 🛡️ 雷达侦测到 WARP 护盾已开启！正在强行建立 40000 端口地下引流通道...${plain}\n"
+    else
+        echo -e "${yellow}>>> 🌐 当前为原机直连状态，正在刺探原生 IP 的突围能力...${plain}\n"
+    fi
+
+    # 🚀 分支 1：Sir自用的极速 Go 探针
+    if [[ "$probe_choice" == "1" ]]; then
+        echo -e "📡 ${yellow}正在空投 [Go-Media-Check] 极速原子探针...${plain}"
+        if [[ "$HAS_WARP" == true ]]; then
+            export HTTP_PROXY="socks5://127.0.0.1:40000"
+            export HTTPS_PROXY="socks5://127.0.0.1:40000"
+            export ALL_PROXY="socks5://127.0.0.1:40000"
+            bash <(curl -Ls unlock.icmp.ing/scripts/test.sh)
+            unset HTTP_PROXY HTTPS_PROXY ALL_PROXY
+        else
+            bash <(curl -Ls unlock.icmp.ing/scripts/test.sh)
+        fi
+
+    # 🐢 分支 2：拷机专用的全量融合怪
+    elif [[ "$probe_choice" == "2" ]]; then
+        echo -e "📡 ${red}正在空投 [融合怪 ECS] 全量拷机脚本！前方高能，算力即将飙升...${plain}"
+        if [[ "$HAS_WARP" == true ]]; then
+            export HTTP_PROXY="socks5h://127.0.0.1:40000"
+            export HTTPS_PROXY="socks5h://127.0.0.1:40000"
+            export ALL_PROXY="socks5h://127.0.0.1:40000"
+            bash <(curl -sL https://github.com/spiritLHLS/ecs/raw/main/ecs.sh)
+            unset HTTP_PROXY HTTPS_PROXY ALL_PROXY
+        else
+            bash <(curl -sL https://github.com/spiritLHLS/ecs/raw/main/ecs.sh)
+        fi
+    fi
+
+    echo -e "\n${cyan}======================================================================${plain}"
+    read -p "👉 测试完毕！按回车键满血返回指挥中心..."
+}
+
+# ==================================================
+# 🕵️ 节点防盗哨兵 (全息控制台 + 后台抓鬼) - 微服务独立版
+# ==================================================
+function node_sentinel() {
+    while true; do
+        clear
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "                 🕵️ 节点防盗哨兵 (全息态势感知大屏)"
+        echo -e "${cyan}======================================================================${plain}"
+
+        if ! systemctl is-active --quiet vx-core.service; then
+            echo -e "${red}❌ 致命错误：代理核心未运行，无法抓取日志！${plain}"
+            read -p "👉 按回车返回主菜单..." && return
+        fi
+
+        if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null; then
+            DAEMON_STAT="${green}[后台守护中]✅${plain}"
+        else
+            DAEMON_STAT="${yellow}[未部署]⚠️${plain}"
+        fi
+
+        echo -e "  ${green}1.${plain} 📊 全息控制台：雷达扫描 + 一键击毙/解封 (一站式生死簿)"
+        echo -e "  ${green}2.${plain} 📺 实时滚动：全自动动态日志追踪 (按 Ctrl+C 退出)"
+        echo -e "  ${cyan}3.${plain} 📡 部署/拆除：全自动 Telegram 雷达哨兵 ${DAEMON_STAT}"
+        
+        # 👇 探测独立凭证
+        if [[ -f "/etc/vx_tg.conf" ]] && grep -q "VX_TG_TOKEN" "/etc/vx_tg.conf"; then
+            CRED_STAT="${green}已配置 ✅${plain}"
+        else
+            CRED_STAT="${yellow}未配置 ⚠️${plain}"
+        fi
+
+        echo -e "  ${purple}4.${plain} 🧹 清理已知 IP 缓存 (让旧 IP 重新触发 TG 报警)"
+        echo -e "  ${blue}5.${plain} ⚙️ 专属 TG 机器人凭证管理 (当前: ${CRED_STAT})"
+        echo -e "      ${yellow}└─ 独立管理节点的 Token 与 ChatID，确保节点报警链路绝对纯净${plain}"
+        echo -e "  ${green}6.${plain} 🔍 最近无效连接日志 (Reality 扫描诊断)"
+        echo -e "  ${yellow}0.${plain} 🔙 返回主菜单"
+        echo -e "${cyan}----------------------------------------------------------------------${plain}"
+        read -p "👉 请选择操作 [0-6]: " sen_choice
+
+        case "$sen_choice" in
+            1)
+                while true; do
+                    clear
+                    echo -e "\n${yellow}>>> 正在启动【全息控制台】(合并底层日志与内核小黑屋)...${plain}"
+                    
+                    # 🚀 提取过去24小时日志活跃IP
+                    local raw_ips=($(journalctl -u vx-core.service --since "24 hours ago" --no-pager | grep "inbound connection from" | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | grep -v -E "^(127\.|10\.|192\.168\.|172\.)" | sort -u))
+                    # 🚀 提取内核层已被封杀的IP
+                    local banned_ips=($(iptables -L INPUT -n 2>/dev/null | grep "DROP" | awk '{print $4}' | grep -v "0.0.0.0/0" | sort -u))
+                    
+                    # 🚀 合并并去重，生成终极目标池
+                    local all_ips=($(echo "${raw_ips[@]} ${banned_ips[@]}" | tr ' ' '\n' | sort -u))
+
+                    if [[ ${#all_ips[@]} -eq 0 ]]; then
+                        echo -e "${green}✅ 报告：雷达未扫描到任何活跃面孔，小黑屋也空空如也，天下太平！${plain}"
+                        read -p "👉 按回车返回哨兵菜单..."
+                        break
+                    fi
+
+                    echo -e "\n${cyan}====================== 🌐 全息攻防控制台 ======================${plain}"
+                    echo -e "${blue} 序号 |      外部 IP      |   归属地 (国家/城市)   |   当前状态${plain}"
+                    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+
+                    local i=1
+                    for ip in "${all_ips[@]}"; do
+                        local info=$(curl -s4m3 "http://ip-api.com/json/$ip?lang=zh-CN")
+                        local loc=$(echo "$info" | jq -r '.regionName // ""')\ $(echo "$info" | jq -r '.city // ""')
+                        local status="${green}活跃中${plain}"
+
+                        # 智能探针：判断当前IP是否在囚犯名单中
+                        if printf '%s\n' "${banned_ips[@]}" | grep -q "^$ip$"; then
+                            status="${red}☠️ 已物理拔管${plain}"
+                        fi
+
+                        printf " ${yellow}[%02d]${plain} | %-15s | %-20s | %b\n" "$i" "$ip" "$loc" "$status"
+                        let i++
+                    done
+                    echo -e "${cyan}======================================================================${plain}"
+
+                    read -p "👉 请输入序号或 IP 切换【击毙/释放】状态 (直接回车返回菜单): " action_input
+                    [[ -z "$action_input" ]] && break
+
+                   local target_ip=""
+                    # 🛡️ 智能输入研判引擎 (满血防弹版)
+                    if [[ "$action_input" =~ ^[0-9]+$ ]] && [[ ! "$action_input" =~ \. ]] && [[ ! "$action_input" =~ : ]]; then
+                        if [ "$action_input" -gt 0 ] && [ "$action_input" -le "${#all_ips[@]}" ]; then
+                            local idx=$((action_input - 1))
+                            target_ip="${all_ips[$idx]}"
+                        else
+                            echo -e "${red}❌ 致命拦截：输入的序号超标或不存在！${plain}"
+                            sleep 2
+                            continue
+                        fi
+                    elif [[ "$action_input" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || [[ "$action_input" =~ ^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$ ]]; then
+                        if [[ "$action_input" == "0.0.0.0" ]] || [[ "$action_input" == "0" ]]; then
+                            echo -e "${red}❌ 拒绝执行：禁止封杀 0.0.0.0 (触发全局断网防御机制)！${plain}"
+                            sleep 2
+                            continue
+                        fi
+                        target_ip="$action_input"
+                    else
+                        echo -e "${red}❌ 致命拦截：输入格式非法！vx 引擎拒绝执行污染指令！${plain}"
+                        sleep 2
+                        continue
+                    fi
+
+                    # ⚖️ 命运裁决逻辑：已封杀则释放，活跃中则击毙
+                    if printf '%s\n' "${banned_ips[@]}" | grep -q "^$target_ip$"; then
+                        iptables -D INPUT -s "$target_ip" -j DROP 2>/dev/null
+                        ip6tables -D INPUT -s "$target_ip" -j DROP 2>/dev/null
+                        echo -e "${green}✅ 大赦天下！IP: ${target_ip} 已被解除封印，满血复活！${plain}"
+                    else
+                        iptables -I INPUT -s "$target_ip" -j DROP 2>/dev/null
+                        ip6tables -I INPUT -s "$target_ip" -j DROP 2>/dev/null
+                        echo -e "${red}☠️ 物理拔管！IP: ${target_ip} 已被强行打入冷宫，永久超时！${plain}"
+                    fi
+                    
+                    if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+                    sleep 2
+                done
+                ;;
+             2)
+                echo -e "\n${cyan}>>> 正在进入动态日志追踪模式 (按 Ctrl+C 退出)...${plain}"
+                trap 'echo -e "\n安全返回哨兵菜单..."' INT
+                TZ="Asia/Shanghai" journalctl -u vx-core.service -f | grep --line-buffered "inbound connection from" | GREP_COLORS='mt=01;32' grep --line-buffered --color=always -E "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b|^"
+                trap - INT
+                sleep 1
+                ;;
+             3)
+                if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null; then
+                    echo -e "\n${yellow}>>> 正在拆除全自动后台雷达...${plain}"
+                    systemctl stop vx-tg-sentinel >/dev/null 2>&1
+                    systemctl disable vx-tg-sentinel >/dev/null 2>&1
+                    rm -f /etc/systemd/system/vx-tg-sentinel.service /usr/local/bin/vx-tg-sentinel.sh
+                    systemctl daemon-reload
+                    echo -e "${green}✅ 后台自动报警守护进程已彻底粉碎！${plain}"
+                else
+                    echo -e "\n${cyan}=== 🚀 正在部署【独立节点静默监听雷达】 ===${plain}"
+                    TG_CONF="/etc/vx_tg.conf"
+                    if [[ -f "$TG_CONF" ]]; then source "$TG_CONF"; fi
+                    if [[ -z "$VX_TG_TOKEN" || -z "$VX_TG_CHATID" ]]; then
+                        read -p "🔑 请输入 TG Bot Token: " input_token
+                        read -p "💬 请输入 TG Chat ID: " input_chatid
+                        if [[ -z "$input_token" || -z "$input_chatid" ]]; then
+                            echo -e "${red}❌ 输入为空，已取消部署。${plain}"; sleep 1; continue
+                        fi
+                        echo "VX_TG_TOKEN=\"$input_token\"" > "$TG_CONF"
+                        echo "VX_TG_CHATID=\"$input_chatid\"" >> "$TG_CONF"
+                        # 👇 新增这一行：将凭证权限收缩至极限，除了 root，天王老子来了也看不了！
+                        chmod 600 "$TG_CONF"
+                        VX_TG_TOKEN="$input_token"
+                        VX_TG_CHATID="$input_chatid"
+                    fi
+
+                  cat << 'EOF' > /usr/local/bin/vx-tg-sentinel.sh
+#!/bin/bash
+export TZ="Asia/Shanghai"
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+source /etc/vx_tg.conf 2>/dev/null
+[[ -z "$VX_TG_TOKEN" || -z "$VX_TG_CHATID" ]] && exit 0
+
+KNOWN="/root/.vx_known_ips"
+PEND="/var/lib/vx-tg-sentinel/pending.tsv"
+AGG="/var/lib/vx-tg-sentinel/agg.tsv"
+mkdir -p /var/lib/vx-tg-sentinel
+touch "$KNOWN" "$PEND" "$AGG"
+chmod 600 "$KNOWN" "$PEND" "$AGG" 2>/dev/null
+
+# 参数：同IP两次才单报 | 90秒窗 | 10分钟内≥8个新IP改聚合 | 已知最多100
+HITS_NEED=2; WIN=90; MIN_GAP=5; AGG_WIN=600; AGG_N=8; MAX_KNOWN=100
+
+tg() {
+  curl -4 -s -X POST "https://api.telegram.org/bot${VX_TG_TOKEN}/sendMessage" \
+    -d chat_id="$VX_TG_CHATID" -d parse_mode="HTML" -d disable_web_page_preview=true \
+    -d text="$1" >/dev/null 2>&1
+}
+pub() {
+  [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || return 1
+  [[ "$1" =~ ^(10\.|127\.|192\.168\.|169\.254\.|172\.(1[6-9]|2[0-9]|3[0-1])\.) ]] && return 1
+  return 0
+}
+known() { grep -q "^$1|" "$KNOWN" 2>/dev/null; }
+learn() {
+  local t=$(date +%s) tmp
+  tmp=$(mktemp)
+  grep -v "^$1|" "$KNOWN" 2>/dev/null > "$tmp"
+  echo "$1|$t" >> "$tmp"
+  tail -n "$MAX_KNOWN" "$tmp" > "$KNOWN"
+  rm -f "$tmp"
+}
+geo() {
+  local j c r y i
+  j=$(curl -4 -s --max-time 3 "http://ip-api.com/json/$1?lang=zh-CN&fields=status,country,regionName,city,isp")
+  echo "$j" | grep -q '"status":"success"' || { echo "未知||||"; return; }
+  c=$(echo "$j"|grep -o '"country":"[^"]*"'|cut -d'"' -f4)
+  r=$(echo "$j"|grep -o '"regionName":"[^"]*"'|cut -d'"' -f4)
+  y=$(echo "$j"|grep -o '"city":"[^"]*"'|cut -d'"' -f4)
+  i=$(echo "$j"|grep -o '"isp":"[^"]*"'|cut -d'"' -f4)
+  echo "${c:-未知}|${r}|${y}|${i:-未知}"
+}
+
+journalctl -u vx-core.service -f -n 0 --output=cat 2>/dev/null | while read -r line; do
+  echo "$line" | grep -qiE 'invalid|rejected|auth failed' && continue
+  echo "$line" | grep -q 'inbound connection from' || continue
+  ip=$(echo "$line" | grep -oE 'inbound connection from ([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $4}')
+  pub "$ip" || continue
+  known "$ip" && { learn "$ip"; continue; }
+
+  now=$(date +%s)
+  # 清理过期 pending / agg
+  awk -F'|' -v n="$now" -v w="$WIN" '$2+0>=n-w' "$PEND" 2>/dev/null > "$PEND.tmp" && mv "$PEND.tmp" "$PEND"
+  awk -F'|' -v n="$now" -v w="$AGG_WIN" '$1+0>=n-w' "$AGG" 2>/dev/null > "$AGG.tmp" && mv "$AGG.tmp" "$AGG"
+
+  echo "$now|$ip" >> "$AGG"
+  cnt=$(cut -d'|' -f2 "$AGG" | sort -u | wc -l); cnt=${cnt// /}
+  if (( cnt >= AGG_N )); then
+    sample=$(cut -d'|' -f2 "$AGG" | sort -u | head -5 | tr '\n' ',' | sed 's/,$//')
+    tg "🚨 <b>[vx 独立节点雷达·集中接入]</b>
+Sir，短时间内出现大量全新 IP！
+🖥️ <b>受访阵地:</b> <code>$(hostname)</code>
+📊 <b>近 $((AGG_WIN/60)) 分钟新 IP:</b> <b>${cnt}</b> 个
+🧾 <b>样例:</b> <code>${sample}</code>
+⏰ <b>北京时间:</b> $(date +'%Y-%m-%d %H:%M:%S')
+<i>(注：多为端口扫描噪声，已聚合为一条，避免刷屏)</i>"
+    while read -r x; do [[ -n "$x" ]] && learn "$x"; done < <(cut -d'|' -f2 "$AGG" | sort -u)
+    : > "$AGG"; : > "$PEND"
+    continue
+  fi
+
+  # pending: ip|first|hits
+  row=$(grep "^$ip|" "$PEND" 2>/dev/null | tail -1)
+  if [[ -z "$row" ]]; then
+    echo "$ip|$now|1" >> "$PEND"
+    continue
+  fi
+  first=$(echo "$row"|cut -d'|' -f2); hits=$(echo "$row"|cut -d'|' -f3)
+  [[ "$hits" =~ ^[0-9]+$ ]] || hits=1
+  if (( now - first > WIN )); then
+    grep -v "^$ip|" "$PEND" > "$PEND.tmp"; echo "$ip|$now|1" >> "$PEND.tmp"; mv "$PEND.tmp" "$PEND"
+    continue
+  fi
+  hits=$((hits+1))
+grep -v "^$ip|" "$PEND" > "$PEND.tmp"; echo "$ip|$first|$hits" >> "$PEND.tmp"; mv "$PEND.tmp" "$PEND"
+# 次数不够，或不满 5 秒跨度 → 不当确认
+if (( hits < HITS_NEED || now - first < MIN_GAP )); then
+  continue
+fi
+learn "$ip"
+grep -v "^$ip|" "$PEND" > "$PEND.tmp"; mv "$PEND.tmp" "$PEND"
+
+  learn "$ip"
+  grep -v "^$ip|" "$PEND" > "$PEND.tmp"; mv "$PEND.tmp" "$PEND"
+  g=$(geo "$ip")
+  c=$(echo "$g"|cut -d'|' -f1); r=$(echo "$g"|cut -d'|' -f2)
+  y=$(echo "$g"|cut -d'|' -f3); i=$(echo "$g"|cut -d'|' -f4)
+  tg "🚨 <b>[vx 独立节点雷达触发]</b>
+Sir，侦测到【全新 IP】接入您的节点！
+🖥️ <b>受访阵地:</b> <code>$(hostname)</code>
+👉 <b>来源 IP:</b> <code>${ip}</code>
+🌍 <b>归属地:</b> ${c} ${r} ${y}
+🏢 <b>运营商:</b> ${i}
+⏰ <b>北京时间:</b> $(date +'%Y-%m-%d %H:%M:%S')
+<i>(注：同一 IP 间隔≥5秒再次出现才确认；分享新用户或动态换 IP 也可能触发)</i>"
+done
+EOF
+                    chmod +x /usr/local/bin/vx-tg-sentinel.sh
+                    cat << EOF > /etc/systemd/system/vx-tg-sentinel.service
+[Unit]
+Description=vx TG Sentinel Radar
+After=vx-core.service
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/vx-tg-sentinel.sh
+Restart=always
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+EOF
+                    systemctl daemon-reload
+                    systemctl enable --now vx-tg-sentinel >/dev/null 2>&1
+                    echo -e "${green}✅ 全自动监听雷达已潜伏入系统底层！${plain}"
+                fi
+                read -p "👉 按回车返回哨兵菜单..."
+                ;;
+            4)
+                > /root/.vx_known_ips
+                systemctl restart vx-tg-sentinel 2>/dev/null
+                echo -e "\n${green}✅ 缓存清空！旧 IP 再次连接将被视为新面孔！${plain}"
+                read -p "👉 按回车返回哨兵菜单..."
+                ;;
+            5)
+                echo -e "\n${cyan}=== ⚙️ 专属 TG 机器人凭证 ===${plain}"
+                if [[ -f "/etc/vx_tg.conf" ]]; then
+                    source "/etc/vx_tg.conf"
+                    echo -e "当前 Token: ${green}${VX_TG_TOKEN:0:8}********${VX_TG_TOKEN: -5}${plain}"
+                    echo -e "当前 ChatID: ${green}${VX_TG_CHATID:0:3}****${VX_TG_CHATID: -2}${plain}"
+                fi
+                echo -e "  ${green}1.${plain} 重新覆盖凭证\n  ${red}2.${plain} 物理蒸发凭证\n  ${yellow}0.${plain} 返回"
+                read -p "👉 [0-2]: " cred_choice
+                if [ "$cred_choice" == "1" ]; then
+                    read -p "🔑 新 Token: " new_token
+                    read -p "💬 新 Chat ID: " new_chatid
+                    echo "VX_TG_TOKEN=\"$new_token\"" > /etc/vx_tg.conf
+                    echo "VX_TG_CHATID=\"$new_chatid\"" >> /etc/vx_tg.conf
+                    # 👇 新增这一行：确保新写的文件依然固若金汤
+                    chmod 600 /etc/vx_tg.conf
+                    systemctl restart vx-tg-sentinel 2>/dev/null
+                    echo -e "${green}✅ 已覆写并热重载！${plain}"
+                elif [ "$cred_choice" == "2" ]; then
+                    rm -f /etc/vx_tg.conf
+                    systemctl stop vx-tg-sentinel >/dev/null 2>&1
+                    systemctl disable vx-tg-sentinel >/dev/null 2>&1
+                    rm -f /etc/systemd/system/vx-tg-sentinel.service /usr/local/bin/vx-tg-sentinel.sh
+                    systemctl daemon-reload
+                    echo -e "${green}🗑️ 凭证与雷达已物理拔管！${plain}"
+                fi
+                read -p "👉 按回车返回..."
+                ;;
+             6)
+                clear
+                echo -e "${cyan}======================================================================${plain}"
+                echo -e " 🔍 最近无效连接日志 (扫描诊断)"
+                echo -e "${cyan}======================================================================${plain}"
+                echo -e "${yellow}说明: 大量 REALITY: processed invalid connection = 端口扫描噪声${plain}"
+                echo -e "${yellow}      不是代理已被登录盗用。确认后可到主菜单 [m] 卸载 Reality 换端口。${plain}"
+                echo -e "${cyan}----------------------------------------------------------------------${plain}\n"
+
+                if ! systemctl is-active --quiet vx-core.service 2>/dev/null; then
+                    echo -e "${red}❌ 代理核心未运行，无法读取日志。${plain}"
+                    read -p "👉 按回车返回哨兵菜单..."
+                    continue
+                fi
+
+                _scan_log=$(journalctl -u vx-core.service --since "10 min ago" --no-pager 2>/dev/null \
+                    | grep -E "inbound connection from|invalid|REALITY" | tail -n 50 || true)
+
+                if [[ -z "$_scan_log" ]]; then
+                    echo -e "${green}✅ 最近 10 分钟无 inbound/invalid 记录（当前安静）。${plain}"
+                else
+                    echo "$_scan_log"
+                fi
+
+                echo -e "\n${cyan}----------------------------------------------------------------------${plain}"
+                read -p "👉 按回车返回哨兵菜单..."
+                ;;
+              0) break ;;
+          *) echo -e "${red}❌ 无效选择！${plain}"; sleep 1 ;;
+        esac
+    done
+}
+
+# === 🚀 极客快捷指令拦截器 (CLI 模式) ===
+if [[ "$1" == "log" || "$1" == "radar" || "$1" == "sentinel" ]]; then
+    trap 'echo -e "\n返回命令行..."' INT
+    TZ="Asia/Shanghai" journalctl -u vx-core.service -f | grep --line-buffered "inbound connection from"
+    trap - INT
+    exit 0
+fi
+
+# === 🔄 降维打击：一键换皮引擎 (重置 UDP 防探针乱码装甲) [修复版] ===
+function reset_random_sni() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "         🔄 正在启动 UDP 暴力层 (Hy2/TUIC) 一键换皮装甲"
+    echo -e "${cyan}======================================================================${plain}"
+
+    if [[ ! -f "$JSON_FILE" ]]; then
+        echo -e "${red}❌ 致命错误: 核心配置不存在，请先装载节点！${plain}"
+        read -p "👉 按回车返回大屏..." && return
+    fi
+
+    if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+        echo -e "${green}✅ 系统检测到您正在使用真实域名证书，自带满血防弹属性，无需换皮！${plain}"
+        read -p "👉 按回车返回大屏..." && return
+    fi
+
+    # 智能侦测：检查底层究竟有没有装载这两个协议
+    if ! jq -e '.inbounds[] | select(.tag == "hy2-in" or .tag == "tuic-in")' "$JSON_FILE" >/dev/null 2>&1; then
+        echo -e "${yellow}⚠️ 未检测到运行中的 Hy2/TUIC 协议，无需换皮。${plain}"
+        read -p "👉 按回车返回大屏..." && return
+    fi
+
+   # 锻造新装甲
+    local NEW_UDP_SNI="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
+    echo -e "${yellow}>>> 正在启动正则焦土化打击，注入全新随机伪装: ${NEW_UDP_SNI}${plain}"
+
+    # 重新发证
+    generate_cert_dynamic "$NEW_UDP_SNI" >/dev/null 2>&1
+
+    # 原子级 JQ 注入：强行修改服务端底层配置
+    jq --arg new_sni "$NEW_UDP_SNI" '
+        (.. | select(type == "object" and .tag == "hy2-in") | .tls.server_name) = $new_sni |
+        (.. | select(type == "object" and .tag == "tuic-in") | .tls.server_name) = $new_sni
+    ' "$JSON_FILE" | atomic_jq
+
+    # 核心修复点：正则精准轰炸！
+    # 无视旧马甲叫什么名字，只要是 hy2 和 tuic 的链接，强制覆盖 sni 参数！
+    # 同时绝不会误伤 VLESS 的 apple.com！
+    # 使用 Python 做替换，彻底规避 SNI 字符串含 sed 元字符的风险
+    python3 - "$LINK_FILE" "$NEW_UDP_SNI" <<'PYEOF'
+import sys, re
+
+link_file = sys.argv[1]
+new_sni   = sys.argv[2]
+
+with open(link_file, 'r') as f:
+    lines = f.readlines()
+
+out = []
+for line in lines:
+    if line.startswith('hysteria2://') or line.startswith('tuic://'):
+        line = re.sub(r'sni=[^&#\n]+', f'sni={new_sni}', line)
+    out.append(line)
+
+with open(link_file, 'w') as f:
+    f.writelines(out)
+PYEOF
+
+    if [[ $? -ne 0 ]]; then
+        # python3 不可用时降级回 sed，SNI 已确认只含 [a-z0-9.] 安全字符
+        sed -i -E "/^hysteria2:\/\// s/sni=[^&#]+/sni=${NEW_UDP_SNI}/g" "$LINK_FILE" 2>/dev/null
+        sed -i -E "/^tuic:\/\// s/sni=[^&#]+/sni=${NEW_UDP_SNI}/g" "$LINK_FILE" 2>/dev/null
+    fi
+    update_sub
+
+    # 物理重启核心
+    systemctl restart vx-core.service
+
+    echo -e "\n${green}🎉 换皮竣工！UDP 协议已满血复活，旧特征已被彻底物理销毁！${plain}"
+    echo -e "${red}⚠️ 警告：请务必返回菜单按【f】提取最新节点，旧节点已阵亡！${plain}"
+    read -p "👉 按回车返回大屏..."
+}
+
+# --- 主循环入口 ---
+while true; do
+    # 每次刷新菜单，重新配发独立防弹凭证，确保协议间物理隔离
+    TEMP_UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")
+    TEMP_PASS=$(openssl rand -hex 8)
+    
+   # ================= 👇 独立感知：TG 专属兵符探测 👇 =================
+    if [[ -f "/etc/vx_tg.conf" ]] && grep -q "VX_TG_TOKEN" "/etc/vx_tg.conf"; then
+        TG_RADAR_STAT="${green}[雷达已挂载]✅${plain}"
+    else
+        TG_RADAR_STAT="${yellow}[未挂载]⚠️${plain}"
+    fi
+    # ======================================================================
+    
+    show_dashboard
+    # 彻底粉碎冗余，保持逻辑清晰
+    echo -e "                 🚀 【 vx 核心引擎装载区 】"
+    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+    echo -e "${red}⚠️ 装载 3～6 单节点若需域名真证：必须先按 a 申请证书，再装对应协议。${plain}"
+    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+    echo -e "  ${cyan}1.${plain} ➕ 新增/覆写 VLESS-Reality          ${green}[最稳主力✨]${plain}"
+    echo -e "  ${cyan}2.${plain} ➕ 新增/覆写 Shadowsocks-2022       ${purple}[非TLS底牌🥷]${plain}"
+    echo -e "  ${cyan}3.${plain} ➕ 新增/覆写 VMess-WS+TLS           ${red}[全能复活甲🛡️]${plain}"
+    echo -e "  ${cyan}4.${plain} ➕ 新增/覆写 VLESS-gRPC             ${green}[顶级隐身·ZT💎]${plain}"
+    echo -e "  ${cyan}5.${plain} ➕ 新增/覆写 Hysteria2              ${yellow}[暴力加速🚀]${plain}"
+    echo -e "  ${cyan}6.${plain} ➕ 新增/覆写 TUIC v5                ${blue}[极致抗丢包💎]${plain}"
+    echo -e "  ${cyan}7.${plain} 🚀 终极大招: 一键满血装载所有协议   ${cyan}[大满贯引擎]${plain}"
+    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+    echo -e "                 🛡️  【 战术外挂与运维模块 】"
+    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+    echo -e "  ${cyan}a.${plain} 🌍 挂载 Acme 真实证书    |  ${cyan}f.${plain} 🖨️ ${cyan}一键提取节点${plain} ${green}[核心]${plain}"
+    echo -e "  ${cyan}b.${plain} 🔄 一键换皮 (防探针装甲) |  ${cyan}g.${plain} 📺 流媒体/AI 解锁测试"
+    echo -e "  ${cyan}c.${plain} ⚡ 开启 BBR 狂暴加速     |  ${cyan}h.${plain} 🕵️ 节点哨兵 ${TG_RADAR_STAT}"
+    echo -e "  ${cyan}d.${plain} 🛡️ 挂载 WARP 三通道分流  |  ${cyan}i.${plain} 🔄 OTA 热更新引擎"
+    echo -e "  ${cyan}e.${plain} ☁️ 挂载 Argo 防封复活甲  |  ${cyan}j.${plain} 📖 避坑指南与面板说明"
+    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+    echo -e "  ${cyan}k.${plain} 🗑️ ${red}彻底粉碎卸载${plain}          |  ${cyan}l.${plain} 📜 ${cyan}引擎更新日志${plain}"
+    echo -e "  ${cyan}m.${plain} 🎛️ ${cyan}模块启停 (物理拔管)${plain}   |  ${cyan}n.${plain} 🔄 ${cyan}重置订阅链接 (防白嫖)${plain}"
+    echo -e "  ${cyan}o.${plain} 🔄 ${yellow}核心强启 (满血复活)${plain}   |  ${cyan}p.${plain} 📡 ${yellow}双栈网络寻址热变阵${plain}"
+    echo -e "  ${cyan}q.${plain} 🔄 ${cyan}版本回滚（历史切换)${plain}   |  ${cyan}0.${plain} 🔙 ${cyan}退出终端${plain}"
+    echo -e "${cyan}======================================================================${plain}"
+    
+    read -p "👉 执行指令 [0-7, a-q]: " choice
+    case "$choice" in
+        1) install_vless_reality; read -p "👉 按回车返回大屏..." ;;
+        2) install_ss_2022; read -p "👉 按回车返回大屏..." ;;
+        3) install_vmess_ws; read -p "👉 按回车返回大屏..." ;;
+        4) install_vless_grpc; read -p "👉 按回车返回大屏..." ;;
+        5) install_hysteria2; read -p "👉 按回车返回大屏..." ;;
+        6) install_tuic_v5; read -p "👉 按回车返回大屏..." ;;
+        7) install_all_nodes ;;
+        a|A) apply_acme_cert ;;
+        b|B) reset_random_sni ;;
+        c|C) enable_bbr ;;
+        d|D)
+            # ==================================================
+            # 🛡️ WARP 安装/管理二次确认
+            # ==================================================
+            while true; do
+                echo ""
+                echo -e "${red}⚠️ 【WARP 操作确认】${plain}"
+                echo -e "${yellow}即将进入 WARP 安装 / 管理流程。${plain}"
+                echo -e "${yellow}首次执行可能会安装 Cloudflare WARP，并修改 Sing-box 靶向分流规则。${plain}"
+                echo ""
+                echo -e "  ${green}Y.${plain} 确认继续"
+                echo -e "  ${red}N.${plain} 取消返回"
+                echo ""
+
+                read -r -p "👉 确认继续吗？[Y/N]: " warp_confirm
+
+                case "$warp_confirm" in
+                    y|Y)
+                        enable_warp
+                        break
+                        ;;
+                    n|N)
+                        echo -e "${green}✅ 已取消 WARP 操作，未进行任何修改。${plain}"
+                        sleep 1
+                        break
+                        ;;
+                    *)
+                        echo -e "${red}❌ 无效指令！请严格输入 Y 或 N！${plain}"
+                        sleep 1
+                        ;;
+                esac
+            done
+            ;;
+        e|E) enable_argo ;;
+        f|F) export_all_nodes; read -p "👉 提取完毕，按回车返回..." ;;
+        g|G) test_media_unlock ;;  
+        h|H) node_sentinel ;;
+        i|I) update_ota ;;
+        j|J) show_help ;;
+        k|K) uninstall_vne ;;
+        l|L) view_changelog ;;
+        m|M) manage_nodes ;;
+        n|N)
+            # ==================================================
+            # 🔄 订阅链接重置二次确认
+            # ==================================================
+            while true; do
+                echo ""
+                echo -e "${red}======================================================================${plain}"
+                echo -e "${red}⚠️ 【高危操作：订阅链接重置】${plain}"
+                echo -e "${red}======================================================================${plain}"
+                echo -e "${red}⚠️ 确认后将立即生成新的订阅路径！${plain}"
+                echo -e "${red}⚠️ 当前旧订阅链接将立即失效！${plain}"
+                echo -e "${red}⚠️ 已分享出去的旧链接将无法继续获取新的订阅内容！${plain}"
+                echo ""
+                echo -e "  ${green}Y.${plain} 确认重置"
+                echo -e "  ${red}N.${plain} 取消返回"
+                echo ""
+
+                read -r -p "👉 请再次确认 [Y/N]: " sub_reset_confirm
+
+                case "$sub_reset_confirm" in
+                    y|Y)
+                        reset_sub_link
+                        break
+                        ;;
+                    n|N)
+                        echo -e "${green}✅ 已取消订阅重置，旧订阅链接保持不变。${plain}"
+                        sleep 1
+                        break
+                        ;;
+                    *)
+                        echo -e "${red}❌ 无效指令！请严格输入 Y 或 N！${plain}"
+                        sleep 1
+                        ;;
+                esac
+            done
+            ;;
+        o|O) restart_singbox_core ;;
+        p|P) toggle_stack_mode ;;
+        q|Q) version_rollback ;;
+        0) break ;;
+        *) echo -e "${red}❌ 无效指令，已触发物理拦截机制！${plain}"; sleep 1 ;;
+    esac
+done
