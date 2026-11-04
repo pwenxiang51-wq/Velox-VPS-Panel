@@ -978,6 +978,7 @@ EOF_BBR
                         apt-get autoremove -y >/dev/null 2>&1
                         # 索引列表也可能占上百 M，安全删除后下次 apt update 会重建
                         rm -rf /var/cache/apt/archives/partial /var/cache/apt/archives/*.deb 2>/dev/null
+                        rm -f /var/cache/apt/pkgcache.bin /var/cache/apt/srcpkgcache.bin 2>/dev/null
                     else
                         $PKG_CLEAN >/dev/null 2>&1
                     fi
