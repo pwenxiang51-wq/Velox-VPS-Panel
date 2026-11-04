@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V6.2.9 全域兼容满血终极版 - 智能嗅探 + 原子防护)
+# 自动生成并运行 Velox 面板 (V6.2.10 全域兼容满血终极版 - 智能嗅探 + 原子防护)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
@@ -11,7 +11,7 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
-LOCAL_VERSION="6.2.9"
+LOCAL_VERSION="6.2.10"
 if command -v apt-get >/dev/null 2>&1; then
     PKG_INSTALL="apt-get install -yqq"
     PKG_REMOVE="apt-get remove --purge -yqq"
@@ -944,7 +944,7 @@ EOF_BBR
         while true; do
             clear
             echo -e "\n${blue}=== 🧹 焦土化清理与系统瘦身中心 ===${plain}"
-            echo -e "  ${green}1.${plain} 🧹 深度全域清理 (卸载冗余守护进程 / 释放内存 / 清除碎片 / 清日志)"
+            echo -e "  ${green}1.${plain} 🧹 深度全域清理 (日志 / apt缓存 / 旧内核 / 冗余进程 / 释放内存)"
             echo -e "  ${yellow}2.${plain} 🛑 软性封锁 WARP (仅停机休眠，释放180MB内存，不删配置)"
             echo -e "  ${red}3.${plain} 🗑️ 物理强拆 WARP 装甲 (连根拔起，彻底卸载客户端)"
             echo -e "  ${cyan}0.${plain} 🔙 返回主菜单"
@@ -955,7 +955,6 @@ EOF_BBR
                1)
                     echo -e "\n${yellow}正在执行深度大扫除，清理底层无用依赖与碎片...${plain}"
                     
-                    # 💡 极客战术投影：直接在 UI 屏幕上打出高亮科普和操作逻辑
                     echo -e "   ${cyan}[极客科普] fwupd 为物理硬件固件更新引擎，VPS 虚拟机环境中纯属冗余。${plain}"
                     echo -e "   ${cyan}[战术动作] 当前执行物理拔管并永久屏蔽，可无损释放约 160MB 左右物理内存。${plain}"
                     
@@ -964,23 +963,57 @@ EOF_BBR
                     systemctl disable fwupd 2>/dev/null
                     systemctl mask fwupd 2>/dev/null
                     $PKG_REMOVE fwupd >/dev/null 2>&1
-                    
-                    # 常规全域清理
-                    $PKG_CLEAN >/dev/null 2>&1
                     echo -e "[${green}物理清理完毕 ✅${plain}]"
                     
-                    echo -n " 📝  2. 焦土化清理 Systemd 历史日志... "
+                    echo -n " 📝  2. 焦土化清理 Systemd 历史日志 (保留近 3 天 / 上限 80M)... "
                     if command -v journalctl >/dev/null 2>&1; then
                         journalctl --vacuum-time=3d >/dev/null 2>&1
-                        journalctl --vacuum-size=100M >/dev/null 2>&1
+                        journalctl --vacuum-size=80M >/dev/null 2>&1
                     fi
                     echo -e "[${green}日志瘦身完毕 ✅${plain}]"
                     
-                    echo -n " ⚡  3. 物理拔管强制释放缓存内存... "
-                    sync; echo 3 > /proc/sys/vm/drop_caches
+                    echo -n " 📦  3. 清理 apt/yum 缓存与残余依赖... "
+                    if command -v apt-get >/dev/null 2>&1; then
+                        apt-get clean >/dev/null 2>&1
+                        apt-get autoremove -y >/dev/null 2>&1
+                        # 索引列表也可能占上百 M，安全删除后下次 apt update 会重建
+                        rm -rf /var/cache/apt/archives/partial /var/cache/apt/archives/*.deb 2>/dev/null
+                    else
+                        $PKG_CLEAN >/dev/null 2>&1
+                    fi
+                    echo -e "[${green}包缓存清理完毕 ✅${plain}]"
+                    
+                    echo -n " ⚡  4. 物理拔管强制释放缓存内存... "
+                    sync; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
                     echo -e "[${green}内存满血复苏 ✅${plain}]"
                     
-                    echo -e "\n${green}🎉 机器已剥离所有多余脂肪，进入极致干练状态！${plain}"
+                    # 5. 旧内核：只卸「非当前运行」的 linux-image，不动脚本/Docker/配置
+                    echo -e " 🐧  5. 侦测可安全移除的旧内核..."
+                    _running_k=$(uname -r)
+                    _old_images=""
+                    if command -v dpkg >/dev/null 2>&1; then
+                        _old_images=$(dpkg -l 'linux-image-*' 2>/dev/null | awk '/^ii/{print $2}' | grep -E '^linux-image-[0-9]' | grep -v "linux-image-${_running_k}" | grep -v 'linux-image-generic' | grep -v 'linux-image-gcp' | grep -v 'linux-image-aws' | grep -v 'linux-image-azure' || true)
+                    fi
+                    if [ -n "$_old_images" ]; then
+                        echo -e "   ${yellow}当前运行内核: ${cyan}${_running_k}${plain}"
+                        echo -e "   ${yellow}将移除以下旧内核包（不会动正在使用的内核）:${plain}"
+                        echo "$_old_images" | sed 's/^/     - /'
+                        read -p "   👉 确认卸载以上旧内核？(y/n) [回车默认 n]: " _purge_k
+                        if [[ "${_purge_k,,}" == "y" ]]; then
+                            if command -v apt-get >/dev/null 2>&1; then
+                                DEBIAN_FRONTEND=noninteractive apt-get purge -y $_old_images >/dev/null 2>&1
+                                DEBIAN_FRONTEND=noninteractive apt-get autoremove -y >/dev/null 2>&1
+                            fi
+                            echo -e "   [${green}旧内核已清理 ✅${plain}]"
+                        else
+                            echo -e "   [${cyan}已跳过旧内核清理${plain}]"
+                        fi
+                    else
+                        echo -e "   [${cyan}未发现可移除的旧内核，已跳过${plain}]"
+                    fi
+                    
+                    echo -e "\n${green}🎉 机器已剥离多余脂肪。日志/缓存/旧内核清理不触及代理、Docker 与业务配置。${plain}"
+                    echo -e "${yellow}提示: journal 活跃日志无法清零属正常；apt lists 若仍偏大，可手动: apt-get update${plain}"
                     read -p "👉 按【回车键】继续..."
                     ;;
                 2)
@@ -1691,6 +1724,14 @@ EOF_WATCH
 
         # 🚀 核心升级：废弃老旧的 bc 外挂，强行注入 vnstat (C语言内核) 和 jq
         require_deps vnstat jq
+        # 月度账单只保留近 12 个月（统一写入，所有机器一致）
+        if [ -f /etc/vnstat.conf ]; then
+            if grep -qE '^;?MonthlyMonths' /etc/vnstat.conf; then
+                sed -i -E 's/^;?MonthlyMonths.*/MonthlyMonths 12/' /etc/vnstat.conf
+            else
+                echo 'MonthlyMonths 12' >> /etc/vnstat.conf
+            fi
+        fi
         TG_CONF="/etc/velox_tg.conf"
 
         while true; do
