@@ -1434,7 +1434,7 @@ sleep 15
 export TZ="Asia/Shanghai"
 sleep 30  
 if systemctl is-active --quiet sing-box 2>/dev/null || pgrep -x "sing-box" >/dev/null 2>&1; then SB_STAT="运行中 ✅"; else SB_STAT="未运行/未安装 ⚠️"; fi
-if systemctl is-active --quiet xray 2>/dev/null || systemctl is-active --quiet x-ui 2>/dev/null || pgrep -x "xray" >/dev/null 2>&1; then XR_STAT="运行中 ✅"; else XR_STAT="未运行/未安装 ⚠️"; fi
+if systemctl is-active --quiet xray 2>/dev/null || pgrep -x "xray" >/dev/null 2>&1 || pgrep -x "aegis-xray" >/dev/null 2>&1 || pgrep -f "[/ ]xray( |$)|aegis-xray|xray-linux" >/dev/null 2>&1; then XR_STAT="运行中 ✅"; else XR_STAT="未运行/未安装 ⚠️"; fi
 if pgrep -x "cloudflared" >/dev/null 2>&1 || systemctl is-active --quiet velox-argo 2>/dev/null || systemctl is-active --quiet argo 2>/dev/null; then ARGO_STAT="运行中 ✅"; else ARGO_STAT="未运行/无自启 ⚠️"; fi
 if pgrep -x "mihomo" >/dev/null 2>&1 || pgrep -f "clash-meta" >/dev/null 2>&1; then MH_STAT="运行中 ✅"; elif command -v mihomo >/dev/null 2>&1 || [ -f /usr/local/bin/mihomo ] || [ -f /usr/local/bin/clash-meta ]; then MH_STAT="未运行 ⚠️"; else MH_STAT="未安装 ⚠️"; fi
 if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null || systemctl is-active --quiet warp-svc 2>/dev/null || ip link show wg0 >/dev/null 2>&1 || ip link show warp >/dev/null 2>&1; then WARP_STAT="已就绪 ✅"; else WARP_STAT="未开启/未安装 ⚠️"; fi
