@@ -812,7 +812,7 @@ echo -e "${cyan}=======================================================${plain}"
 
         # 仅提示探针（不占用「节点 Argo」状态）
         if [ -n "$PROBE_ARGO_PIDS" ]; then
-        echo -e " 📡 容器内 cloudflared : ${cyan}运行中${plain} ${yellow}(已排除，不计入节点 Argo)${plain}"
+        echo -e " 📡 容器内 cloudflared Tunnels : ${green}运行中${plain} ${yellow}(已排除，不计入节点 Argo)${plain}"
         fi
 
         # ========== 以下只报「节点 Argo」==========
@@ -840,7 +840,7 @@ echo -e "${cyan}=======================================================${plain}"
 
                 if [ -n "$argo_token_live" ]; then
                     masked_token="${argo_token_live:0:6}******[系统级智能打码]******${argo_token_live: -6}"
-                    echo -e " 🔗 链路模式 : ${purple}Token 守护模式 (节点固定隧道)${plain}"
+                    echo -e " 🔗 链路模式 : ${purple}Tunnels Token 守护模式 (节点固定隧道)${plain}"
                     echo -e " 🔑 绑定凭证 : ${cyan}${masked_token}${plain} ${green}✅${plain}"
                 else
                     # 3) 临时隧道：优先游击队日志，再按「节点服务/节点 PID」关联的近期日志，避免旧 journal 脏 URL
@@ -871,7 +871,7 @@ echo -e "${cyan}=======================================================${plain}"
         else
             echo -e " 🚇 节点 Argo 进程 : ${red}未运行 ❌${plain}"
             if [ -n "$PROBE_ARGO_PIDS" ]; then
-                echo -e " 💡 ${cyan}仅检测到容器内 cloudflared，节点侧 Argo 未开启。${plain}"
+                echo -e " 💡 ${cyan}仅检测到容器内 cloudflared Tunnels，节点侧 Argo 未开启。${plain}"
             fi
         fi
         echo ""
