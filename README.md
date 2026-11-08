@@ -1,4 +1,4 @@
-# 🛰️ VeloX VPS Panel v6.2.9
+# 🛰️ VeloX VPS Panel v6.2.11
 
 [![OS](https://img.shields.io/badge/OS-Ubuntu%20%7C%20Debian-orange.svg)]()
 [![Language](https://img.shields.io/badge/Language-Pure%20Bash-blue.svg)]()
