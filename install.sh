@@ -1,5 +1,5 @@
 #!/bin/bash
-# 自动生成并运行 Velox 面板 (V6.2.10 全域兼容满血终极版 - 智能嗅探 + 原子防护)
+# 自动生成并运行 Velox 面板 (V6.2.11 全域兼容满血终极版 - 智能嗅探 + 原子防护)
 
 cat << 'EOF' > /usr/local/bin/velox
 #!/bin/bash 
@@ -11,7 +11,7 @@ cyan='\033[1;36m'
 red='\033[1;31m'
 purple='\033[38;5;207m' 
 plain='\033[0m'
-LOCAL_VERSION="6.2.10"
+LOCAL_VERSION="6.2.11"
 if command -v apt-get >/dev/null 2>&1; then
     PKG_INSTALL="apt-get install -yqq"
     PKG_REMOVE="apt-get remove --purge -yqq"
@@ -768,52 +768,111 @@ echo -e "${cyan}=======================================================${plain}"
         else
             echo -e " 🛡️  WARP 状态 : ${red}未开启或未部署 ❌${plain}"
         fi
-        # ================= 👇 Argo 智能探测 (系统内核级穿透) 👇 =================
+             # ================= 👇 Argo 智能探测（节点 vs 容器 探针拆开）👇 =================
         echo -e "\n${cyan}[ Argo 隧道状态 ]${plain}"
-        
-        # 提取活跃的 Argo 服务名
+
+        # --- 辅助：判断某个 cloudflared PID 是否属于 Docker/容器（探针）---
+        _argo_is_probe_pid() {
+            local pid="$1"
+            [ -z "$pid" ] || [ ! -d "/proc/$pid" ] && return 1
+            # cgroup 落在 docker/containerd 里 → 容器
+            if grep -qE 'docker|containerd|kubepods|libpod' /proc/$pid/cgroup 2>/dev/null; then
+                return 0
+            fi
+            local cmd
+            cmd=$(tr '\0' ' ' < /proc/$pid/cmdline 2>/dev/null)
+            # 容器内 常用 token-file + /run/secrets
+            if echo "$cmd" | grep -qE -- '--token-file|/run/secrets/cf_tunnel'; then
+                return 0
+            fi
+            return 1
+        }
+
+        # 宿主机 systemd 节点向服务
         ACTIVE_ARGO_SVC=""
         for svc in cloudflared velox-argo argo; do
-            if systemctl is-active --quiet "$svc" 2>/dev/null; then ACTIVE_ARGO_SVC="$svc"; break; fi
+            if systemctl is-active --quiet "$svc" 2>/dev/null; then
+                ACTIVE_ARGO_SVC="$svc"
+                break
+            fi
         done
 
-        if [ -n "$ACTIVE_ARGO_SVC" ] || pgrep -x "cloudflared" >/dev/null 2>&1; then
-            echo -e " 🚇 Argo 进程 : ${green}满血运行中 ✅${plain}"
-            
-            # 神级嗅探 1：直接查杀本地实体配置文件 (最稳固的防线)
-            if [ -f "/etc/cloudflared/config.yml" ] && grep -q "tunnel:" "/etc/cloudflared/config.yml"; then
-                tunnel_id=$(grep "tunnel:" /etc/cloudflared/config.yml | awk '{print $2}' | tr -d '"' | tr -d "'")
-                echo -e " 🔗 链路模式 : ${purple}本地配置守护模式 (高级固定隧道)${plain}"
-                echo -e " 🆔 隧道 UUID : ${cyan}${tunnel_id}${plain} ${green}✅${plain}"
+        # 分类 PID：节点 vs 探针
+        NODE_ARGO_PIDS=""
+        PROBE_ARGO_PIDS=""
+        for pid in $(pgrep -x cloudflared 2>/dev/null); do
+            if _argo_is_probe_pid "$pid"; then
+                PROBE_ARGO_PIDS="$PROBE_ARGO_PIDS $pid"
             else
-                # 神级嗅探 2：无视日志，直接让 Systemd 交出启动参数里的 Token
+                NODE_ARGO_PIDS="$NODE_ARGO_PIDS $pid"
+            fi
+        done
+        NODE_ARGO_PIDS=$(echo $NODE_ARGO_PIDS)
+        PROBE_ARGO_PIDS=$(echo $PROBE_ARGO_PIDS)
+
+        # 仅提示探针（不占用「节点 Argo」状态）
+        if [ -n "$PROBE_ARGO_PIDS" ]; then
+            echo -e " 📡 容器内 cloudflared : ${cyan}运行中${plain} ${yellow}(已排除，不计入节点 Argo)${plain}
+        fi
+
+        # ========== 以下只报「节点 Argo」==========
+        if [ -n "$ACTIVE_ARGO_SVC" ] || [ -n "$NODE_ARGO_PIDS" ]; then
+            echo -e " 🚇 节点 Argo 进程 : ${green}满血运行中 ✅${plain}"
+
+            # 1) 本地 config 固定隧道
+            if [ -f "/etc/cloudflared/config.yml" ] && grep -q "tunnel:" "/etc/cloudflared/config.yml" 2>/dev/null; then
+                tunnel_id=$(grep "tunnel:" /etc/cloudflared/config.yml | awk '{print $2}' | tr -d '"' | tr -d "'")
+                echo -e " 🔗 链路模式 : ${purple}本地配置守护模式 (节点固定隧道)${plain}"
+                echo -e " 🆔 隧道 UUID : ${cyan}${tunnel_id}${plain} ${green}✅${plain}"
+
+            else
+                # 2) 宿主机 Token（命令行里的 ey...，不含容器 probes）
                 argo_token_live=""
                 if [ -n "$ACTIVE_ARGO_SVC" ]; then
                     argo_token_live=$(systemctl cat "$ACTIVE_ARGO_SVC" 2>/dev/null | grep -oE 'ey[A-Za-z0-9_-]{50,}' | head -n 1)
                 fi
-                [ -z "$argo_token_live" ] && argo_token_live=$(ps -ef | grep cloudflared | grep -v grep | grep -oE "ey[A-Za-z0-9_-]{50,}" | head -n 1)
+                if [ -z "$argo_token_live" ] && [ -n "$NODE_ARGO_PIDS" ]; then
+                    for pid in $NODE_ARGO_PIDS; do
+                        argo_token_live=$(tr '\0' ' ' < /proc/$pid/cmdline 2>/dev/null | grep -oE 'ey[A-Za-z0-9_-]{50,}' | head -n 1)
+                        [ -n "$argo_token_live" ] && break
+                    done
+                fi
 
                 if [ -n "$argo_token_live" ]; then
                     masked_token="${argo_token_live:0:6}******[系统级智能打码]******${argo_token_live: -6}"
-                    echo -e " 🔗 链路模式 : ${purple}Token 守护模式 (固定隧道)${plain}"
+                    echo -e " 🔗 链路模式 : ${purple}Token 守护模式 (节点固定隧道)${plain}"
                     echo -e " 🔑 绑定凭证 : ${cyan}${masked_token}${plain} ${green}✅${plain}"
                 else
-                    # 神级嗅探 3：确认是临时穿透隧道，精准捕获 URL
-                    argo_url=$(journalctl _COMM=cloudflared --no-pager -n 100 2>/dev/null | grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
-                    [ -z "$argo_url" ] && [ -n "$ACTIVE_ARGO_SVC" ] && argo_url=$(journalctl -u "$ACTIVE_ARGO_SVC" --no-pager -n 100 2>/dev/null | grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
-                    # 🚀 极客补枪：如果系统日志里没有，去查游击队的复活日志！
-                    [ -z "$argo_url" ] && [ -f /tmp/velox_argo_guerilla.log ] && argo_url=$(grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" /tmp/velox_argo_guerilla.log | tail -n 1 | sed 's/https:\/\///')
-                    
+                    # 3) 临时隧道：优先游击队日志，再按「节点服务/节点 PID」关联的近期日志，避免旧 journal 脏 URL
+                    argo_url=""
+                    [ -f /tmp/velox_argo_guerilla.log ] && \
+                        argo_url=$(grep -oE '[a-zA-Z0-9.-]+\.trycloudflare\.com' /tmp/velox_argo_guerilla.log 2>/dev/null | tail -n 1)
+
+                    if [ -z "$argo_url" ] && [ -n "$ACTIVE_ARGO_SVC" ]; then
+                        argo_url=$(journalctl -u "$ACTIVE_ARGO_SVC" --no-pager -n 80 --since "30 min ago" 2>/dev/null \
+                            | grep -oE '[a-zA-Z0-9.-]+\.trycloudflare\.com' | tail -n 1)
+                    fi
+
+                    # 仅当存在节点 PID 时，才用 _COMM=cloudflared 且限制时间，降低探针历史污染
+                    if [ -z "$argo_url" ] && [ -n "$NODE_ARGO_PIDS" ]; then
+                        argo_url=$(journalctl _COMM=cloudflared --no-pager -n 50 --since "30 min ago" 2>/dev/null \
+                            | grep -oE '[a-zA-Z0-9.-]+\.trycloudflare\.com' | tail -n 1)
+                    fi
+
                     if [ -n "$argo_url" ]; then
-                        echo -e " 🔗 链路模式 : ${cyan}https://${argo_url}${plain} ${yellow}(临时穿透隧道)${plain}"
+                        echo -e " 🔗 链路模式 : ${cyan}https://${argo_url}${plain} ${yellow}(临时穿透隧道 · 可复制为 SNI)${plain}"
+                        echo -e " 💡 ${yellow}重启后临时域名会变，需重新部署临时 Argo 后再从此处复制。${plain}"
                     else
-                        echo -e " 🔗 链路模式 : ${purple}隐秘守护模式或未知状态 ${plain}${yellow}(未嗅探到明文 Token 或 URL)${plain}"
-                        echo -e " 💡 ${yellow}极客提示：若您使用固定隧道，请前往 Cloudflare Zero Trust 后台查看解析状态。${plain}"
+                        echo -e " 🔗 链路模式 : ${yellow}节点 Argo 运行中，但未抓到 trycloudflare SNI${plain}"
+                        echo -e " 💡 ${yellow}若刚启动请稍等再进 7；固定隧道请到 CF Zero Trust 查看域名。${plain}"
                     fi
                 fi
             fi
         else
-            echo -e " 🚇 Argo 进程 : ${red}未运行 ❌${plain}"
+            echo -e " 🚇 节点 Argo 进程 : ${red}未运行 ❌${plain}"
+            if [ -n "$PROBE_ARGO_PIDS" ]; then
+                echo -e " 💡 ${cyan}仅检测到 Polaris/容器 cloudflared，节点脚本侧 Argo 未开启。${plain}"
+            fi
         fi
         echo ""
         read -p "👉 按【回车键】继续..."
@@ -1435,7 +1494,18 @@ export TZ="Asia/Shanghai"
 sleep 30  
 if systemctl is-active --quiet sing-box 2>/dev/null || pgrep -x "sing-box" >/dev/null 2>&1; then SB_STAT="运行中 ✅"; else SB_STAT="未运行/未安装 ⚠️"; fi
 if systemctl is-active --quiet xray 2>/dev/null || pgrep -x "xray" >/dev/null 2>&1 || pgrep -x "aegis-xray" >/dev/null 2>&1 || pgrep -f "[/ ]xray( |$)|aegis-xray|xray-linux" >/dev/null 2>&1; then XR_STAT="运行中 ✅"; else XR_STAT="未运行/未安装 ⚠️"; fi
-if pgrep -x "cloudflared" >/dev/null 2>&1 || systemctl is-active --quiet velox-argo 2>/dev/null || systemctl is-active --quiet argo 2>/dev/null; then ARGO_STAT="运行中 ✅"; else ARGO_STAT="未运行/无自启 ⚠️"; fi
+ARGO_STAT="未运行/无自启 ⚠️"
+if systemctl is-active --quiet cloudflared 2>/dev/null || systemctl is-active --quiet velox-argo 2>/dev/null || systemctl is-active --quiet argo 2>/dev/null; then
+    ARGO_STAT="运行中 ✅"
+else
+    for _apid in $(pgrep -x cloudflared 2>/dev/null); do
+        if ! grep -qE 'docker|containerd|kubepods|libpod' /proc/$_apid/cgroup 2>/dev/null \
+           && ! tr '\0' ' ' < /proc/$_apid/cmdline 2>/dev/null | grep -qE -- '--token-file|/run/secrets/cf_tunnel'; then
+            ARGO_STAT="运行中 ✅"
+            break
+        fi
+    done
+fi
 if pgrep -x "mihomo" >/dev/null 2>&1 || pgrep -f "clash-meta" >/dev/null 2>&1; then MH_STAT="运行中 ✅"; elif command -v mihomo >/dev/null 2>&1 || [ -f /usr/local/bin/mihomo ] || [ -f /usr/local/bin/clash-meta ]; then MH_STAT="未运行 ⚠️"; else MH_STAT="未安装 ⚠️"; fi
 if systemctl is-active --quiet warp-go 2>/dev/null || systemctl is-active --quiet wg-quick@wgcf 2>/dev/null || systemctl is-active --quiet warp-svc 2>/dev/null || ip link show wg0 >/dev/null 2>&1 || ip link show warp >/dev/null 2>&1; then WARP_STAT="已就绪 ✅"; else WARP_STAT="未开启/未安装 ⚠️"; fi
 MSG="🟢 <b>[Velox 系统复苏通知]</b>
