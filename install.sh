@@ -812,7 +812,7 @@ echo -e "${cyan}=======================================================${plain}"
 
         # 仅提示探针（不占用「节点 Argo」状态）
         if [ -n "$PROBE_ARGO_PIDS" ]; then
-            echo -e " 📡 容器内 cloudflared : ${cyan}运行中${plain} ${yellow}(已排除，不计入节点 Argo)${plain}
+        echo -e " 📡 容器内 cloudflared : ${cyan}运行中${plain} ${yellow}(已排除，不计入节点 Argo)${plain}"
         fi
 
         # ========== 以下只报「节点 Argo」==========
@@ -871,7 +871,7 @@ echo -e "${cyan}=======================================================${plain}"
         else
             echo -e " 🚇 节点 Argo 进程 : ${red}未运行 ❌${plain}"
             if [ -n "$PROBE_ARGO_PIDS" ]; then
-                echo -e " 💡 ${cyan}仅检测到 Polaris/容器 cloudflared，节点脚本侧 Argo 未开启。${plain}"
+                echo -e " 💡 ${cyan}仅检测到容器内 cloudflared，节点侧 Argo 未开启。${plain}"
             fi
         fi
         echo ""
