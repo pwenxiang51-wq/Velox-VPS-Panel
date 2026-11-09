@@ -858,6 +858,18 @@ echo -e "${cyan}=======================================================${plain}"
                         argo_url=$(journalctl _COMM=cloudflared --no-pager -n 50 --since "30 min ago" 2>/dev/null \
                             | grep -oE '[a-zA-Z0-9.-]+\.trycloudflare\.com' | tail -n 1)
                     fi
+                 # 4) 常见脚本落盘（s-box / x-ui 等）
+                    if [ -z "$argo_url" ]; then
+                        for _dir in /etc/s-box /etc/x-ui /usr/local/x-ui /etc/s-ui \
+                                    /etc/sing-box /usr/local/etc/sing-box /tmp; do
+                            [ -d "$_dir" ] || continue
+                            argo_url=$(grep -rsoE --include='*.log' --include='*.json' \
+                                --include='*.yaml' --include='*.yml' --include='*.txt' \
+                                '[a-zA-Z0-9.-]+\.trycloudflare\.com' "$_dir" 2>/dev/null | \
+                                sed 's/.*://' | tail -n 1)
+                            [ -n "$argo_url" ] && break
+                        done
+                    fi
 
                     if [ -n "$argo_url" ]; then
                         echo -e " 🔗 链路模式 : ${cyan}https://${argo_url}${plain} ${yellow}(临时穿透隧道 · 可复制为 SNI)${plain}"
