@@ -204,7 +204,7 @@ refresh_status_async() {
             fi
 
            # 🚀 OTA 智能雷达：抛弃 txt，直接从 GitHub 的 install.sh 源码中暴搜版本号！
-            local remote=$(curl -fsL -m 5 "https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/install.sh?t=$RANDOM" 2>/dev/null | grep -m 1 "LOCAL_VERSION=" | cut -d '"' -f2)
+            local remote=$(curl -fsL -m 5 "https://raw.githubusercontent.com/VeloxSpace/Velox-VPS-Panel/main/install.sh?t=$RANDOM" 2>/dev/null | grep -m 1 "LOCAL_VERSION=" | cut -d '"' -f2)
             [ -z "$remote" ] && remote="$LOCAL_VERSION"
             remote=$(echo "$remote" | tr -d '\n' | tr -d '\r')
             echo "$remote" > "$STATUS_DIR/version.stat"
@@ -294,7 +294,7 @@ echo -e "${blue}╚██╗ ██╔╝██╔══╝  ██║    ██
 echo -e "${purple} ╚████╔╝ ███████╗███████╗╚██████╔╝██╔╝ ██╗${plain}"
 echo -e "${purple}  ╚═══╝  ╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝${plain}"
 echo -e "${cyan}=======================================================${plain}"
-echo -e "   👨‍💻 作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
+echo -e "   👨‍💻 作者GitHub项目 : ${blue}github.com/VeloxSpace${plain}"
 echo -e "   📝 作者Velo.x博客 : ${blue}222382.xyz${plain}"
 echo -e "   ✈️ 作者Telegram   : ${blue}@Velox95${plain}"
 echo -e "   📡 面板内核状态   : ${OTA_NOTICE}"
@@ -3360,7 +3360,7 @@ EOF_CERT
             echo -e "\n${blue}=== 🔄 Velox OTA 云端平滑升级引擎 ===${plain}"
             echo -e "${yellow}📡 正在连接 Velo.x 星际指挥中心，请求拉取最新装甲...${plain}"
             
-            UPDATE_URL="https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/install.sh?t=$RANDOM"
+            UPDATE_URL="https://raw.githubusercontent.com/VeloxSpace/Velox-VPS-Panel/main/install.sh?t=$RANDOM"
             
             if curl -sL "$UPDATE_URL" -o /tmp/velox_update.sh && grep -q "velox" /tmp/velox_update.sh; then
                 echo -e "${cyan}📦 成功捕获最新版源文件，正在执行热重载...${plain}"

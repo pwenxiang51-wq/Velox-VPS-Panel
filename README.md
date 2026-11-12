@@ -36,7 +36,7 @@
 在纯净的 **Ubuntu / Debian** 系统终端中，执行以下指令即可一键安装：
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel/main/install.sh)
+bash <(curl -sL https://raw.githubusercontent.com/VeloxSpace/Velox-VPS-Panel/main/install.sh)
 ```
 > 💡 提示：安装完成后，随时在终端输入 `velox` 即可唤醒面板。
 
@@ -50,6 +50,6 @@ bash <(curl -sL https://raw.githubusercontent.com/pwenxiang51-wq/Velox-VPS-Panel
 ---
 
 ## 👨‍💻 作者与支持
-* **GitHub**: [github.com/pwenxiang51-wq](https://github.com/pwenxiang51-wq)
+* **GitHub**: [github.com/VeloxSpace](https://github.com/VeloxSpace)
 * **Blog**: [222382.xyz](https://222382.xyz)
 * **Telegram**: [@Velox95](https://t.me/Velox95)
